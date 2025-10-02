@@ -24,7 +24,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.raytsunoda.shiawasekannavipro"
+        applicationId = "com.raytsunoda.shiawasekannavipro.stg"
         minSdk = 23
         targetSdk = 35
         versionCode = 3 // ✅ Google Play初回は「1」

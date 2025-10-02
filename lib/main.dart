@@ -31,8 +31,10 @@ Future<void> main() async {
   // .env は存在しない環境もあるので任意読み込み（無ければ無視）
   try {
     await dotenv.load(fileName: ".env");
-  } catch (_) {
-    // no-op
+  } catch (e) {
+    // 起動を止めない（ログだけ）
+    // ignore: avoid_print
+    print("[dotenv] .env 読み込みスキップ/失敗: $e");
   }
   // ←ココに追加
   debugPrint('[boot] ENABLED=${PurchaseConfig.ENABLED}, DEV_FORCE_PRO=${PurchaseConfig.DEV_FORCE_PRO}');

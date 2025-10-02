@@ -23,6 +23,33 @@ class NotificationService {
   // Cold start 時に一旦キューしておく
   static ReceivedAction? _pendingAction;
 
+    // ====== Permission / Safety helpers ======
+    /// 通知権限があるか確認し、なければ（許可されれば）要求する
+    static Future<bool> _ensureAllowed({bool requestIfDenied = true}) async {
+        try {
+          final allowed = await AwesomeNotifications().isNotificationAllowed();
+          if (allowed) return true;
+          if (!requestIfDenied) return false;
+          // iOS/Android どちらも OK（ユーザーが拒否したら false）
+          return await AwesomeNotifications().requestPermissionToSendNotifications();
+        } catch (_) {
+          return false;
+        }
+      }
+
+    /// 例外でアプリが落ちないように包む
+    static Future<T?> _safe<T>(Future<T> Function() block) async {
+        try {
+          return await block();
+        } catch (e) {
+          dev.log('[notif] ignored error: $e');
+          return null;
+        }
+      }
+
+
+
+
   /// 初期化：**runApp の前**に1度だけ呼び出す
   static Future<void> init(GlobalKey<NavigatorState> navigatorKey) async {
     _navKey = navigatorKey;
@@ -130,76 +157,84 @@ class NotificationService {
     String tab = 'weekly',
   }) async {
     if (!kDebugMode) return;
+    if (!await _ensureAllowed(requestIfDenied: true)) return;
     final d = delay ?? const Duration(seconds: 10);
     Future.delayed(d, () async {
-      await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-          id: DateTime.now().millisecondsSinceEpoch.remainder(1 << 31),
-          channelKey: _channelKey,
-          title: 'デバッグ通知',
-          body: 'タップでAIコメント履歴へ移動',
-          // ← 先頭スラッシュ付きで合わせる
-          payload: {'route': '/history', 'tab': tab},
-          category: NotificationCategory.Reminder,
-          displayOnForeground: true,
-          wakeUpScreen: true,
-          autoDismissible: false, // 勝手に消えないように
-        ),
-      );
+      await _safe(() => AwesomeNotifications().createNotification(
+            content: NotificationContent(
+              id: DateTime.now().millisecondsSinceEpoch.remainder(1 << 31),
+              channelKey: _channelKey,
+              title: 'デバッグ通知',
+              body: 'タップでAIコメント履歴へ移動',
+              payload: {'route': '/history', 'tab': tab},
+              category: NotificationCategory.Reminder,
+              displayOnForeground: true,
+              wakeUpScreen: true,
+              autoDismissible: false,
+            ),
+          ));
     });
+
+
   }
 
   // ====================== スケジュール ======================
 
   /// 週次（先週の振り返り）…毎週 **月曜 10:00**
   static Future<void> scheduleWeeklyOnMonday10() async {
-    await AwesomeNotifications().cancel(_idWeekly); // 自分のIDだけ整理
-    await AwesomeNotifications().createNotification(
-      content: NotificationContent(
-        id: _idWeekly,
-        channelKey: _channelKey,
-        title: '週次のAIコメントを確認しましょう',
-        body: 'タップで履歴（週次）へ',
-        payload: {'route': '/history', 'tab': 'weekly'},
-        category: NotificationCategory.Reminder,
-      ),
-      schedule: NotificationCalendar(
-        weekday: DateTime.monday,
-        hour: 10,
-        minute: 0,
-        second: 0,
-        repeats: true,
-        preciseAlarm: true,
-      ),
-    );
+
+    if (!await _ensureAllowed(requestIfDenied: true)) return;
+    await _safe(() => AwesomeNotifications().cancel(_idWeekly));
+    await _safe(() => AwesomeNotifications().createNotification(
+          content: NotificationContent(
+            id: _idWeekly,
+            channelKey: _channelKey,
+            title: '週次のAIコメントを確認しましょう',
+            body: 'タップで履歴（週次）へ',
+            payload: {'route': '/history', 'tab': 'weekly'},
+            category: NotificationCategory.Reminder,
+          ),
+          schedule: NotificationCalendar(
+            weekday: DateTime.monday,
+            hour: 10,
+            minute: 0,
+            second: 0,
+            repeats: true,
+            preciseAlarm: true,
+          ),
+        ));
   }
 
   /// 月次（前月の振り返り）…毎月 **1日 10:00**
   static Future<void> scheduleMonthlyOnFirstDay10() async {
-    await AwesomeNotifications().cancel(_idMonthly);
-    await AwesomeNotifications().createNotification(
-      content: NotificationContent(
-        id: _idMonthly,
-        channelKey: _channelKey,
-        title: '月次のAIコメントを見直しましょう',
-        body: 'タップで履歴（月次）へ',
-        payload: {'route': '/history', 'tab': 'monthly'},
-        category: NotificationCategory.Reminder,
-      ),
-      schedule: NotificationCalendar(
-        day: 1,
-        hour: 10,
-        minute: 0,
-        second: 0,
-        repeats: true,
-        preciseAlarm: true,
-      ),
-    );
+
+  if (!await _ensureAllowed(requestIfDenied: true)) return;
+      await _safe(() => AwesomeNotifications().cancel(_idMonthly));
+      await _safe(() => AwesomeNotifications().createNotification(
+                content: NotificationContent(
+                  id: _idMonthly,
+                  channelKey: _channelKey,
+                  title: '月次のAIコメントを見直しましょう',
+                  body: 'タップで履歴（月次）へ',
+                  payload: {'route': '/history', 'tab': 'monthly'},
+                  category: NotificationCategory.Reminder,
+                ),
+                schedule: NotificationCalendar(
+                  day: 1,
+                  hour: 10,
+                  minute: 0,
+                  second: 0,
+                  repeats: true,
+                  preciseAlarm: true,
+                ),
+          ));
+
+
   }
 
   /// 旧スケジュールの残骸がある場合に自分のIDだけ掃除
   static Future<void> clearAiCommentSchedules() async {
-    await AwesomeNotifications().cancel(_idWeekly);
-    await AwesomeNotifications().cancel(_idMonthly);
+    await _safe(() => AwesomeNotifications().cancel(_idWeekly));
+    await _safe(() => AwesomeNotifications().cancel(_idMonthly));
   }
 }

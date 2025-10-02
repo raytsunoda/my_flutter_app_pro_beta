@@ -187,27 +187,66 @@ class LegacyImportService {
   }
 
   static List<String> _targetHeader() => const [
-    '日付', '幸せ感レベル', 'ストレッチ時間', 'ウォーキング時間', '睡眠の質',
-    '睡眠時間（時間換算）', '睡眠時間（分換算）', '睡眠時間（時間）', '睡眠時間（分）',
-    '寝付き満足度', '深い睡眠感', '目覚め感', 'モチベーション',
-    '感謝数', '感謝1', '感謝2', '感謝3', 'memo'
+        '日付', '幸せ感レベル', 'ストレッチ時間', 'ウォーキング時間', '睡眠の質',
+        '睡眠時間（時間換算）', '睡眠時間（分換算）', '睡眠時間（時間）', '睡眠時間（分）',
+        '寝付きの満足度', '深い睡眠感', '目覚め感', 'モチベーション',
+        '感謝数', '感謝1', '感謝2', '感謝3', 'memo'
   ];
 
   static List<String> _normalizeHeader(List<String> hdr) {
     // 旧 Swift 版は memo なし (17列) を想定。最終形 18列に揃える。
-    final want = _targetHeader();
-    if (hdr.length == want.length) return want;      // すでにOK
-    if (hdr.length == 17 && hdr.contains('感謝3')) return want; // 末尾 memo 追加
-    return want; // その他は強制で want に
+    // さらに「寝付き満足度」→「寝付きの満足度」へ表記統一（入力互換）。
+    final canon = _targetHeader();
+
+    // 入力ヘッダーをコピーして最小補正（列順は尊重）
+    final fixed = <String>[];
+    for (final h in hdr) {
+      final t = h.trim();
+      if (t == '寝付き満足度') {
+        fixed.add('寝付きの満足度'); // 表記統一
+      } else {
+        fixed.add(t);
+      }
+    }
+
+    // 列数が 17（memo 無し）なら末尾に memo を足す
+    if (fixed.length == 17 && fixed.contains('感謝3')) {
+      fixed.add('memo');
+    }
+
+    // 列の総称・順序は最終形に合わせる（欠落は強制補完）
+    if (fixed.length != canon.length) {
+      return canon;
+    }
+
+    // 期待セットと同数ならそのまま採用（中身は上で表記統一済み）
+    return fixed;
   }
 
+
   static List<dynamic> _normalizeRow(List<dynamic> src, List<String> normalizedHeader) {
-    final n = _fitToLength(src, normalizedHeader.length);
-    return n.map((e) {
-      final s = e?.toString() ?? '';
+    final n = _fitToLength(src, normalizedHeader.length).map((e) {
+    final s = e?.toString() ?? '';
       // セル内改行はスペースへ
       return s.replaceAll('\r', ' ').replaceAll('\n', ' ');
     }).toList();
+    // --- 最小変換ルール ---
+    // #7（睡眠時間（分換算））だけを必要に応じて補完する。#6（時間換算）は触らない。
+    // インデックス： #6=5, #7=6, #8=7, #9=8
+    try {
+      // 既に値がきちんと入っていれば触らない（空/0/空白なら補完対象）
+      final currentMinStr = (n[6] ?? '').toString().trim();
+      final needFill = currentMinStr.isEmpty || currentMinStr == '0';
+      if (needFill) {
+       final hh = double.tryParse((n[7] ?? '').toString().trim()) ?? 0.0; // 睡眠時間（時間）
+        final mm = double.tryParse((n[8] ?? '').toString().trim()) ?? 0.0; // 睡眠時間（分）
+        final totalMinutes = (hh * 60.0 + mm).round();
+        n[6] = totalMinutes.toString();
+      }
+    } catch (_) {
+      // 失敗してもスルー（他列はそのまま）
+    }
+    return n;
   }
 
   static List<dynamic> _fitToLength(List<dynamic> row, int len) {
@@ -243,10 +282,9 @@ class LegacyImportService {
   static String _extractMemo(List<dynamic> row, List<String> headerNorm) {
     final idx = headerNorm.indexOf('memo');
     if (idx < 0) return '';
-    if (row.length <= idx) {
-      // そもそも memo 列が存在するが空、というケース
-      return (row.length == idx ? '' : row[idx])?.toString() ?? '';
-    }
+    // 行の長さが memo の位置に満たない場合は空（境界安全）
+    if (row.length <= idx) return '';
+
     // memo 以降を結合して1つの文字列に（カンマを復元）
     final tail = row.sublist(idx).map((e) => (e ?? '').toString());
     final joined = tail.join(',').trim();
