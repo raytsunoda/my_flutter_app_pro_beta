@@ -1,0 +1,14 @@
+
+#include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - test/**           # ← テストを一旦除外
+    - lib_bak_20250615/**
+  errors:
+    unused_import: warning
+
+linter:
+
+  rules:
+

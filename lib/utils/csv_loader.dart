@@ -1,0 +1,1086 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:csv/csv.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:path_provider/path_provider.dart';
+import 'package:intl/intl.dart';
+import 'package:my_flutter_app_pro/utils/date_utils.dart';
+
+//import '../models/record_entry.dart';
+// デバッグ出力の全体トグル
+const bool kCsvVerbose = false; // ← ここを true にすれば従来通り詳細ログ
+
+String _norm(String s) => s.replaceAll('\uFEFF', '').trim().toLowerCase();
+
+int _idx(List<String> hdrs, String name, int fallbackIfMissing) {
+  final i = hdrs.indexOf(name);
+  return (i >= 0) ? i : fallbackIfMissing;
+}
+
+
+
+class CsvLoader {
+  static Future<File> getCsvFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return File('${dir.path}/HappinessLevelDB1_v2.csv');
+  }
+
+  static Future<List<List<String>>> loadCsvDataBetween(DateTime start, DateTime end) async {
+    final rows = await loadCsvRows();
+    final dateFormat = DateFormat('yyyy/MM/dd');
+    return rows.where((row) {
+      if (row.isEmpty) return false;
+      try {
+        final date = dateFormat.parse(row[0]);
+        return date.isAfter(start.subtract(const Duration(days: 1))) && date.isBefore(end.add(const Duration(days: 1)));
+      } catch (_) {
+        return false;
+      }
+    }).toList();
+  }
+
+
+  static Future<String> loadTodayMemo() async {
+    final data = await loadLatestCsvData('HappinessLevelDB1_v2.csv');
+    if (data.length <= 1) return "";
+    final last = data.last;
+    return last.length > 17 ? last[17] : "";
+  }
+
+  static Future<List<String>> loadTodayGratitude() async {
+    final data = await loadLatestCsvData('HappinessLevelDB1_v2.csv');
+    if (data.length <= 1) return [];
+    final last = data.last;
+    return [
+      if (last.length > 14) last[14] else
+        "",
+      if (last.length > 15) last[15] else
+        "",
+      if (last.length > 16) last[16] else
+        "",
+    ];
+  }
+
+  static Future<List<double>> loadTodayRadarScores() async {
+    final data = await loadLatestCsvData('HappinessLevelDB1_v2.csv');
+    if (data.length <= 1) return List.filled(7, 0.0);
+    final last = data.last;
+    return List.generate(7, (i) {
+      final idx = i + 7; // 7〜13列がスコア想定
+      if (last.length > idx) {
+        final val = double.tryParse(last[idx]) ?? 0.0;
+        return val;
+      }
+      return 0.0;
+    });
+  }
+
+  /// 指定日数分の最新データ（ヘッダー除く）
+  static Future<List<List<String>>> loadLastNDays(int days) async {
+    final matrix = await loadLatestCsvData('HappinessLevelDB1_v2.csv');
+    final now = DateTime.now();
+
+    // ヘッダーを除外して日付でフィルタ
+    return matrix.skip(1).where((row) {
+      try {
+        final date = DateFormat('yyyy/MM/dd').parse(row[0]); // 0列目が日付列
+        return date.isAfter(now.subtract(Duration(days: days)));
+      } catch (e) {
+        return false;
+      }
+    }).toList();
+  }
+
+  static Future<List<Map<String, String>>> _readCsv() async {
+    final data = await loadLatestCsvData('HappinessLevelDB1_v2.csv');
+    return toMapList(data);
+  }
+
+
+  // ===== csv_loader.dart: 置換版 loadCsv(String filename) 開始 =====
+  static final DateFormat _df = DateFormat('yyyy/MM/dd');
+
+  static String _normalizeYmd(String raw) {
+    final s = raw.trim().replaceAll('-', '/');
+    final p = s.split('/');
+    if (p.length != 3) return raw.trim();
+    final y = p[0].padLeft(4, '0');
+    final m = p[1].padLeft(2, '0');
+    final d = p[2].padLeft(2, '0');
+    return '$y/$m/$d';
+  }
+
+  static Future<List<Map<String, String>>> loadCsv(String filename) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final path = '${dir.path}/$filename';
+    final file = File(path);
+    if (!await file.exists()) {
+      throw Exception('CSV file not found at $path');
+    }
+
+    // 既存のロバストパーサを活用して確実に行列化
+    final raw = await file.readAsString();
+    final matrix = _robustCsvParse(raw);
+    if (matrix.isEmpty) return [];
+
+    // ヘッダー行（String化＆trim）
+    final headers = matrix.first.map((e) => e.toString().trim()).toList();
+
+    // データ行を Map 化（列数ズレはパディング/切り捨て）
+    final out = <Map<String, String>>[];
+    for (final row in matrix.skip(1)) {
+      final values = row.map((e) => e.toString()).toList();
+      final padded = values.length < headers.length
+          ? [...values, ...List.filled(headers.length - values.length, '')]
+          : values.sublist(0, headers.length);
+
+      final m = <String, String>{};
+      for (var i = 0; i < headers.length; i++) {
+        m[headers[i]] = padded[i];
+      }
+
+      // 日付ゆれをここで吸収（日本語ヘッダ/英語ヘッダどちらでも）
+      if (m.containsKey('日付') && m['日付']!.trim().isNotEmpty) {
+        final n = _normalizeYmd(m['日付']!);
+        m['日付'] = n;
+        if (m.containsKey('date')) m['date'] = n;
+      } else if (m.containsKey('date') && m['date']!.trim().isNotEmpty) {
+        final n = _normalizeYmd(m['date']!);
+        m['date'] = n;
+        if (m.containsKey('日付')) m['日付'] = n;
+      }
+
+      out.add(m);
+    }
+    return out;
+  }
+// ===== csv_loader.dart: 置換版 loadCsv(String filename) 終了 =====
+
+
+  // 補助：指定日付の行を取得
+  static Future<List<String>?> getRowForDate(DateTime date) async {
+    final csvData = await CsvLoader.loadLatestCsvData(
+        'HappinessLevelDB1_v2.csv'); //8/3 ✅
+    final targetDate = DateFormat('yyyy/MM/dd').format(date);
+    for (var row in csvData) {
+      if (row.isNotEmpty && row[0] == targetDate) {
+        return row;
+      }
+    }
+    return null;
+  }
+
+// 最新（過去）の日付のメモを取得する
+  /// 当日データがなければ最新過去データを返す
+  static Map<String, String>? getLatestAvailableRow(
+      List<Map<String, String>> data, DateTime referenceDate) {
+    for (var i = data.length - 1; i >= 0; i--) {
+      final row = data[i];
+      if (row.containsKey('日付') && row['日付']!.isNotEmpty) {
+        print("🔍 Found row: ${row['日付']}");
+        return row;
+      }
+    }
+    return null;
+  }
+
+
+  static Future<String> loadMemoForDate(DateTime date) async {
+    final row = await getRowForDate(date);
+    return row != null && row.length > 17 ? row[17] : '';
+  }
+
+
+  /// ───────────────────────────────────────────────
+  /// 共通ヘルパ – 空行を除外しつつ String 化
+  /// ───────────────────────────────────────────────
+  static List<List<String>> _sanitizeRows(List<List<dynamic>> rows) =>
+      rows
+          .where((r) =>
+      r.isNotEmpty &&
+          r.any((c) =>
+          c
+              .toString()
+              .trim()
+              .isNotEmpty)) // ← 空行フィルタ
+          .map((r) => r.map((e) => e.toString()).toList())
+          .toList();
+
+  /// --------------------------------------------------
+  /// ⑤ アプリ初回起動時：assets → DocumentDirectory
+  /// --------------------------------------------------
+  /// /// assets から初期 CSV をコピー（まだ無い場合だけ）
+  Future<void> copyAssetCsvIfNotExists() async {
+    print('🧪 初期CSVコピー処理を強制実行');
+
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/HappinessLevelDB1_v2.csv';
+      final file = File(filePath);
+
+      if (await file.exists()) {
+        print('📄 CSVファイルは既に存在しています: $filePath');
+        return;
+      }
+
+      print('📄 CSVファイルが存在しません。assets からコピーします');
+      final csvAsset = await rootBundle.loadString(
+          'assets/HappinessLevelDB1_v2.csv');
+      await file.writeAsString(csvAsset);
+      print('✅ 初期CSVコピー完了: $filePath');
+    } catch (e) {
+      print('❌ 初期CSVコピー中にエラーが発生: $e');
+    }
+  }
+
+  static List<List<String>> _robustCsvParse(String raw) {
+    List<List<dynamic>> tmp = const CsvToListConverter(eol: '\n').convert(raw);
+
+    List<List<String>> sanitize(List<List<dynamic>> rows) =>
+        rows
+            .where((r) =>
+        r.isNotEmpty && r.any((c) =>
+        c
+            .toString()
+            .trim()
+            .isNotEmpty))
+            .map((r) =>
+            r
+                .map((e) =>
+                e
+                    .toString()
+                    .replaceAll('"', '') // ← ★ 追加
+                    .trim())
+                .toList())
+            .toList();
+
+    if (tmp.length > 1) return sanitize(tmp);
+
+    // フォールバック
+    return sanitize(LineSplitter.split(raw)
+        .where((l) =>
+    l
+        .trim()
+        .isNotEmpty)
+        .map((l) => l.split(','))
+        .toList());
+  }
+
+  /// アプリ内で共通で使う正しいヘッダー
+// CSVヘッダーを外部で使えるように公開
+  static const List<String> _header = [
+
+    '日付',
+    '幸せ感レベル',
+    'ストレッチ時間',
+    'ウォーキング時間',
+    '睡眠の質',
+    '睡眠時間（時間換算）',
+    '睡眠時間（分換算）',
+    '睡眠時間（時間）',
+    '睡眠時間（分）',
+    '寝付き満足度',
+    '深い睡眠感',
+    '目覚め感',
+    'モチベーション',
+    '感謝数',
+    '感謝1',
+    '感謝2',
+    '感謝3',
+    'memo', // ← 追加
+  ];
+
+// 外部に公開する getter
+  static List<String> get header => _header;
+
+  static const _expectedLen = 18; // ← 変更
+
+/*───────────────────────────────────────────────
+  assets ➜ DocumentDirectory へ初期 CSV を撒く
+───────────────────────────────────────────────*/
+  Future<void> ensureCsvSeeded(String filename) async {
+    print('🟢 ensureCsvSeeded: called for $filename'); // <- リリースでも出力される
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/$filename');
+
+    if (!await file.exists()) {
+      print('📦 assets から $filename をコピー開始');
+      try {
+        final data = await rootBundle.loadString('assets/$filename');
+        await file.writeAsString(data);
+        print('✅ コピー成功: ${file.path}');
+      } catch (e) {
+        print('❌ assets からのコピー失敗: $e');
+      }
+    } else {
+      if (kCsvVerbose) debugPrint('ℹ️ 既にファイル存在: ${file.path}');
+    }
+  }
+
+
+/*───────────────────────────────────────────────
+/// ① DocumentDirectory の最新 CSV を取得（壊れていても復旧）
+───────────────────────────────────────────────*/
+  static Future<List<List<String>>> loadLatestCsvData(String filename) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/$filename');
+
+      if (!await file.exists()) {
+        debugPrint('📄 ファイルが存在しません: ${file.path}');
+        // ✅ リリースモードでも assets からコピー
+        debugPrint('📦 assets から $filename をコピー開始（モード問わず）');
+        final assetData = await rootBundle.loadString('assets/$filename');
+        await file.writeAsString(assetData);
+        debugPrint('✅ assets から $filename をコピー完了: ${file.path}');
+      } else {
+        if (kCsvVerbose) debugPrint('ℹ️ 既にファイル存在: ${file.path}');
+        // ✅ バックアップを取る（同じ内容でもOK）
+        final backupFile = File('${file.path}.bak');
+        await backupFile.writeAsString(await file.readAsString());
+        if (kCsvVerbose) debugPrint('🗂️ バックアップ作成: ${backupFile.path}');
+      }
+
+      // ① 読み込み + パース（空行除外付き）
+      final raw = await file.readAsString();
+      final data = _robustCsvParse(raw);
+      if (data.isEmpty) {
+        // 空ならヘッダーのみ返す
+        final fixedRows = <List<String>>[List<String>.from(_header)];
+        debugPrint("📄 読み込んだCSV内容(空扱い): $fixedRows");
+        debugPrint('✅ loadLatestCsvData rows = ${fixedRows.length}');
+        return fixedRows;
+      }
+
+      // ② データ行が無ければヘッダーのみ返す
+      if (data.length <= 1) {
+        debugPrint('⚠️ データ行が無いため、再コピーせず空データとして扱います');
+        final fixedRows = <List<String>>[List<String>.from(_header)];
+        debugPrint("📄 読み込んだCSV内容(ヘッダーのみ): $fixedRows");
+        debugPrint('✅ loadLatestCsvData rows = ${fixedRows.length}');
+        return fixedRows;
+      }
+
+      // ==== ここから “固定ヘッダーに名前で合わせて再マッピング” ====
+
+      // 固定ヘッダー（出力の列順）
+      final targetHeader = List<String>.from(_header);
+
+      // 元CSVの実ヘッダー（読み取ったまま）
+      final srcHeader = data.first.map((e) => e.toString().trim()).toList();
+
+      // 別名（表記ゆれ）対応マップ：左が固定ヘッダー、右が元CSVであり得る別名たち
+      final Map<String, List<String>> aliases = {
+        '日付': ['日付', 'date', 'Date'],
+        '幸せ感レベル': ['幸せ感レベル', 'score', 'スコア'],
+        'ストレッチ時間': ['ストレッチ時間', 'ストレッチ', 'stretch', 'ストレッチ(分)'],
+        'ウォーキング時間': ['ウォーキング時間', 'ウォーキング', 'walk', 'ウォーキング(分)'],
+        '睡眠の質': ['睡眠の質', 'sleep_score', '睡眠スコア'],
+        '睡眠時間（時間換算）': ['睡眠時間（時間換算）', '睡眠時間(時間換算)', '睡眠(時間)'],
+        '睡眠時間（分換算）': ['睡眠時間（分換算）', '睡眠時間(分換算)', '睡眠(分)'],
+        '睡眠時間（時間）': ['睡眠時間（時間）', '睡眠時間(時間)'],
+        '睡眠時間（分）': ['睡眠時間（分）', '睡眠時間(分)'],
+        '寝付き満足度': ['寝付き満足度', '寝つき満足度'],
+        '深い睡眠感': ['深い睡眠感', '深い睡眠'],
+        '目覚め感': ['目覚め感', '目ざめ感'],
+        'モチベーション': ['モチベーション', 'motivation'],
+        '感謝数': ['感謝数', 'gratitude_count'],
+        '感謝1': ['感謝1', 'gratitude1'],
+        '感謝2': ['感謝2', 'gratitude2'],
+        '感謝3': ['感謝3', 'gratitude3'],
+        'memo': ['memo', 'メモ', 'ひとことメモ', '今日のひとことメモ'],
+      };
+
+      // ヘルパ：固定名→srcHeader上のインデックス
+      int findSrcIndex(String canonical) {
+        final candidates = aliases[canonical] ?? [canonical];
+        for (final name in candidates) {
+          final idx = srcHeader.indexOf(name);
+          if (idx >= 0) return idx;
+        }
+        return -1; // 見つからない
+      }
+
+      // ヘルパ：yyyy/MM/dd へ正規化
+      String normalizeYmd(String raw) {
+        final s = raw.trim().replaceAll('-', '/');
+        final p = s.split('/');
+        if (p.length != 3) return raw.trim();
+        final y = p[0].padLeft(4, '0');
+        final m = p[1].padLeft(2, '0');
+        final d = p[2].padLeft(2, '0');
+        return '$y/$m/$d';
+      }
+
+      // ③ 固定ヘッダー + 再マッピングした行を構築
+      final fixedRows = <List<String>>[];
+      fixedRows.add(targetHeader);
+
+      for (var i = 1; i < data.length; i++) {
+        final row = data[i].map((e) => e.toString()).toList();
+        final outRow = <String>[];
+
+        for (final colName in targetHeader) {
+          final srcIdx = findSrcIndex(colName);
+          final val = (srcIdx >= 0 && srcIdx < row.length) ? row[srcIdx] : '';
+          outRow.add(val);
+        }
+
+        // 日付（列0）をゼロ詰め・区切り統一
+        if (outRow.isNotEmpty && outRow[0].trim().isNotEmpty) {
+          outRow[0] = normalizeYmd(outRow[0]);
+        }
+
+        fixedRows.add(outRow);
+      }
+
+      // （古い挙動との互換が必要なら）長さを合わせるが、通常は targetHeader 長に揃っている
+      if (_expectedLen != null && _expectedLen > 0) {
+        for (var i = 0; i < fixedRows.length; i++) {
+          final row = fixedRows[i];
+          if (row.length < _expectedLen) {
+            row.addAll(List.filled(_expectedLen - row.length, ''));
+          } else if (row.length > _expectedLen) {
+            fixedRows[i] = row.sublist(0, _expectedLen);
+          }
+        }
+      }
+
+      // debugPrint("📄 読み込んだCSV内容: $fixedRows");
+      // debugPrint('✅ loadLatestCsvData rows = ${fixedRows.length}');
+      return fixedRows;
+    } catch (e, st) {
+      debugPrint('❌ CSV 読み込み失敗: $e');
+      debugPrintStack(stackTrace: st);
+      return [];
+    }
+  }
+
+
+
+  /// --------------------------------------------------
+  /// ② assets 直読み（旧 loadCsvAsStringMatrix 互換）
+  /// --------------------------------------------------
+  Future<List<List<String>>> loadCsvAsStringMatrix(String assetPath) async =>
+      loadCsvFromAssets(assetPath);
+
+  static Future<List<List<String>>> loadCsvFromAssets(String assetPath) async {
+    final raw = await rootBundle.loadString('assets/$assetPath');
+    return _robustCsvParse(raw);
+  }
+
+
+/*───────────────────────────────────────────────
+  FileSystem 読み込み（行列 → String 化・空行除外）
+───────────────────────────────────────────────*/
+  Future<List<List<String>>> loadCsvFromFileSystem(String filename) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/$filename');
+
+    if (!await file.exists()) return [];
+
+    final raw = await file.readAsString();
+    return _robustCsvParse(raw);
+  }
+
+  /// --------------------------------------------------
+  /// ④ Map 形式で欲しい場合（TipsScreen 等の互換性）
+  /// --------------------------------------------------
+  static Future<List<Map<String, String>>> loadCsvAsMapList(
+      String assetPath) async {
+    final matrix = await CsvLoader.loadCsvFromAssets(assetPath);
+    return toMapList(matrix);
+  }
+
+  static List<Map<String, String>> toMapList(List<List<String>> matrix) {
+    if (matrix.isEmpty) return [];
+
+    final header = matrix.first.map((h) => h.trim()).toList();
+    return matrix.skip(1).map((row) {
+      final padded = row.length < header.length
+          ? [...row, ...List.filled(header.length - row.length, '')]
+          : row.sublist(0, header.length);
+      return Map<String, String>.fromIterables(header, padded);
+    }).toList();
+  }
+
+
+  static Future<bool> restoreCsvFromBackup(String filename) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/$filename');
+      final backupFile = File('${dir.path}/$filename.bak');
+
+      if (!await backupFile.exists()) return false;
+
+      await backupFile.copy(file.path);
+      return true;
+    } catch (e) {
+      print('Failed to restore CSV from backup: $e');
+      return false;
+    }
+  }
+
+
+  // AIコメントログファイル取得
+  // ファイルの最下部などに追加
+  // static Future<File> getAiCommentLogFile() async {
+  //   final dir = await getApplicationDocumentsDirectory();
+  //   final file = File('${dir.path}/ai_comment_log.csv');
+  //   if (!(await file.exists())) {
+  //     await file.create(recursive: true);
+  //     // ヘッダー行を初期化
+  //     await file.writeAsString('date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo\n');
+  //   }
+  //   return file;
+  // }
+  static Future<File> getAiCommentLogFile() async {
+   // final dir = await getApplicationDocumentsDirectory();
+   // final f = File('${dir.path}/ai_comment_log.csv');
+    final dir = await getApplicationDocumentsDirectory();
+        final file = File('${dir.path}/ai_comment_log.csv');
+        if (!(await file.exists())) {
+          await file.create(recursive: true);
+          // ヘッダーを書いておくことで再起動後の読み込みに失敗しない
+          await file.writeAsString(
+            'date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo\n',
+          );
+        }
+        return file;
+  }
+
+  // ✅ 追加: 指定日付・種別のAIコメントを読み込む
+  static Future<Map<String, String>?> loadSavedComment(DateTime date, String type) async {
+    final file = await getAiCommentLogFile();
+    if (!await file.exists()) return null;
+
+    final rows = const CsvToListConverter().convert(await file.readAsString(), eol: '\n');
+    if (rows.length < 2) return null;
+
+    // 正規化したヘッダーを作る
+    final rawHeaders = rows[0].map((e) => e.toString()).toList();
+    final headers = rawHeaders.map(_norm).toList();
+
+    // 列位置（見つからなければ 0=日付,1=type,2=comment をフォールバック）
+    final dateIndex    = _idx(headers, 'date', 0);
+    final typeIndex    = _idx(headers, 'type', 1);
+    final commentIndex = _idx(headers, 'comment', 2);
+
+    final targetDate = DateFormat('yyyy/MM/dd').format(date);
+    final targetType = type.trim().toLowerCase();
+
+    for (int i = rows.length - 1; i >= 1; i--) {
+      final row = rows[i];
+      if (row.length <= commentIndex) continue;
+      final savedDate = row[dateIndex].toString().trim();
+      final savedType = row[typeIndex].toString().trim().toLowerCase();
+      if (savedDate == targetDate && savedType == targetType) {
+        return {
+          'date': savedDate,
+          'comment': row[commentIndex].toString(),
+        };
+      }
+    }
+    return null;
+  }
+
+  static bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+
+
+
+
+
+// CSV → List<Map> 変換（オプション）
+  static Future<List<Map<String, String>>> loadAiCommentLogAsMapList() async {
+    final file = await getAiCommentLogFile();
+    if (!await file.exists()) return [];
+
+    final lines = await file.readAsLines();
+    if (lines.isEmpty) return [];
+
+    final headers = lines.first.split(',');
+    final data = lines.skip(1);
+
+    return data.map((line) {
+      final values = line.split(',');
+      return Map.fromIterables(headers, values);
+    }).toList();
+  }
+
+
+
+  /// AIコメントをCSVに1行ずつ追記する
+  static Future<void> appendAiCommentLog({
+    required String date,
+    required String type,
+    required String comment,
+    required String score,
+    required String sleep,
+    required String walk,
+    required String gratitude1,
+    required String gratitude2,
+    required String gratitude3,
+    required String memo,
+  }) async {
+    final file = await getAiCommentLogFile();
+    final exists = await file.exists();
+    final sink = file.openWrite(mode: FileMode.append);
+    if (!exists) {
+      sink.writeln('date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo');
+    }
+    sink.writeln('$date,$type,"$comment",$score,$sleep,$walk,"$gratitude1","$gratitude2","$gratitude3","$memo"');
+    await sink.close();
+  }
+
+  static Future<bool> isCommentAlreadySaved({
+    required String date, // 'YYYY/MM/DD'
+    required String type, // 'daily' | 'weekly' | 'monthly'
+  }) async {
+    final file = await getAiCommentLogFile();
+    if (!await file.exists()) return false;
+
+    final rows = const CsvToListConverter().convert(
+      await file.readAsString(),
+      eol: '\n',
+    );
+    // 末尾（新しい方）から探す：同日重複時も安全
+    for (int i = rows.length - 1; i >= 1; i--) {
+      final row = rows[i];
+      if (row.length >= 2 &&
+          row[0].toString().trim() == date &&
+          row[1].toString().trim().toLowerCase() == type.toLowerCase()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /*
+  static Future<bool> isCommentAlreadySaved({
+    required String date,
+    required String type,
+  }) async {
+    final file = await getAiCommentLogFile();
+    if (!await file.exists()) return false;
+    final rows = const CsvToListConverter().convert(await file.readAsString(), eol: '\n');
+    return rows.skip(1).any((row) =>
+    row.length >= 2 &&
+        row[0].toString() == date &&
+        row[1].toString() == type);
+  }
+*/
+
+
+  // CsvLoader.loadAiCommentLog（置き換え）
+  static Future<List<Map<String, String>>> loadAiCommentLog() async {
+    final file = await getAiCommentLogFile();
+    if (!await file.exists()) return [];
+
+    final raw = await file.readAsString();
+    final rows = const CsvToListConverter().convert(raw, eol: '\n');
+    if (rows.length <= 1) return [];
+
+    // ヘッダーを正規化（BOM/空白除去＋小文字化）
+    final headers = rows.first
+        .map((e) => e.toString().replaceAll('\uFEFF', '').trim().toLowerCase())
+        .toList();
+
+    // データ行 → Map<String,String>（キーは正規化済みヘッダー）
+    return rows.skip(1).map((row) {
+      final values = row.map((e) => e.toString()).toList();
+      // 列数ずれを吸収
+      final padded = values.length < headers.length
+          ? [...values, ...List.filled(headers.length - values.length, '')]
+          : values.sublist(0, headers.length);
+      return Map<String, String>.fromIterables(headers, padded);
+    }).toList();
+  }
+
+  static Future<String?> getSavedCommentLatest({
+    required String date,
+    required String type,
+  }) async {
+    final file = await getAiCommentLogFile();
+    if (!await file.exists()) return null;
+
+    // 末尾(=新しい)から探すことで同日重複時に“最後勝ち”
+    final rows = const CsvToListConverter().convert(await file.readAsString(), eol: '\n');
+    for (int i = rows.length - 1; i >= 1; i--) {
+      final row = rows[i];
+      if (row.length >= 3 &&
+          row[0].toString().trim() == date &&
+          row[1].toString().trim() == type) {
+        return row[2].toString();
+      }
+    }
+    return null;
+  }
+// CSVをList<Map<String, String>>形式で読み込む（ヘッダーあり）
+  //CSVの全行（ヘッダー以外）を「列名 → 値」のマップ形式で扱えるようにする
+  static Future<List<Map<String, String>>> loadCsvAsMaps(File file) async {
+    final content = await file.readAsLines();
+    if (content.length < 2) return [];
+
+    final headers = content.first.split(',');
+    return content.skip(1).map((line) {
+      final values = line.split(',');
+      return Map.fromIterables(headers, values);
+    }).toList();
+  }
+
+  static Future<DateTime?> getLatestDate(File file) async {
+    if (!await file.exists()) return null;
+    final rows = await file.readAsLines();
+    final dateFormat = DateFormat('yyyy/MM/dd');
+    List<DateTime> dates = [];
+
+    for (final line in rows.skip(1)) {
+      final values = line.split(',');
+      try {
+        final date = dateFormat.parse(values[0]);
+        dates.add(date);
+      } catch (_) {}
+    }
+
+    dates.sort((a, b) => b.compareTo(a));
+    return dates.isNotEmpty ? dates.first : null;
+  }
+
+  static Future<bool> hasDataForDate(DateTime date) async {
+    final rows = await loadCsvRows();
+    final targetDateStr = DateFormat('yyyy/MM/dd').format(date);
+    return rows.any((row) => row.isNotEmpty && row[0] == targetDateStr);
+  }
+
+
+  // CSV全行取得
+  static Future<List<List<String>>> loadCsvRows() async {
+    // ❷ これなら存在しなくても自動配置→読み込み
+    return await loadLatestCsvData('HappinessLevelDB1_v2.csv');
+  }
+
+// 指定日付のデータのみ取得（DateTime引数対応）
+  static Future<List<List<String>>> loadCsvDataForDate(DateTime date) async {
+    final rows = await loadCsvRows();
+    final dateStr = DateFormat('yyyy/MM/dd').format(date);
+    return rows.where((row) => row.isNotEmpty && row[0] == dateStr).toList();
+  }
+
+  static Future<List<String>> loadGratitudeForDate(DateTime date) async {
+    final rows = await loadCsvRows();
+    final targetDateStr = DateFormat('yyyy/MM/dd').format(date);
+    for (final row in rows) {
+      if (row.isNotEmpty && row[0] == targetDateStr) {
+        return [row[14], row[15], row[16]];
+      }
+    }
+    return [];
+  }
+  static Future<String> loadHappinessScoreForDate(DateTime date) async {
+    final rows = await loadCsvRows();
+    final targetDateStr = DateFormat('yyyy/MM/dd').format(date);
+    for (final row in rows) {
+      if (row.isNotEmpty && row[0] == targetDateStr) {
+        return row[1];
+      }
+    }
+    return '';
+  }
+  // レーダーは「睡眠の質 / ウォーキング時間 / ストレッチ時間 / 感謝数」
+  static Future<List<double>> loadRadarScoresForDate(DateTime date) async {
+    final rows = await loadCsvRows();
+    final targetDateStr = DateFormat('yyyy/MM/dd').format(date);
+    for (final row in rows) {
+      if (row.isNotEmpty && row[0] == targetDateStr) {
+        return [
+          double.tryParse(row[4]) ?? 0.0, // 睡眠の質
+          double.tryParse(row[3]) ?? 0.0, // ウォーキング
+          double.tryParse(row[2]) ?? 0.0, // ストレッチ
+        //  double.tryParse(row[13]) ?? 0.0, // 感謝件数
+        ];
+      }
+    }
+    return [];
+  }
+
+  /// {date, type, comment, ...} をキー(date+type)でUPSERTする
+  static Future<void> upsertAiCommentLog(Map<String, String> row) async {
+    final file = await getAiCommentLogFile();
+    final all = await loadAiCommentLog(); // 小文字キーで返ってくる前提
+
+    final keyDate = (row['date'] ?? '').trim();
+    final keyType = (row['type'] ?? '').trim().toLowerCase();
+    if (keyDate.isEmpty || keyType.isEmpty) return;
+
+    // 既存を除去してから末尾に追加（後勝ち）
+    final filtered = all.where((r) =>
+    (r['date'] ?? '') != keyDate || (r['type'] ?? '') != keyType).toList();
+    filtered.add({
+      ...row.map((k,v)=> MapEntry(k.toLowerCase(), v)), // 念のため小文字化
+    });
+
+    // CSV へ書き戻し
+    final headers = [
+      'date','type','comment','score','sleep','walk',
+      'gratitude1','gratitude2','gratitude3','memo'
+    ];
+    final buffer = StringBuffer()..writeln(headers.join(','));
+    for (final r in filtered) {
+      buffer.writeln([
+        r['date'] ?? '',
+        r['type'] ?? '',
+        r['comment']?.replaceAll('\n', r'\n') ?? '',
+        r['score'] ?? '',
+        r['sleep'] ?? '',
+        r['walk'] ?? '',
+        r['gratitude1'] ?? '',
+        r['gratitude2'] ?? '',
+        r['gratitude3'] ?? '',
+        r['memo']?.replaceAll('\n', r'\n') ?? '',
+      ].join(','));
+    }
+    await file.writeAsString(buffer.toString());
+  }
+
+  // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
+  static Future<void> saveAiCommentLog(List<Map<String, String>> rows) async {
+    final file = await getAiCommentLogFile();
+    // 念のためファイルの親ディレクトリを作成
+    await file.parent.create(recursive: true);
+
+    // 必ずこの順で書き出す
+    const headers = <String>[
+      'date', 'type', 'comment', 'score', 'sleep', 'walk',
+      'gratitude1', 'gratitude2', 'gratitude3', 'memo',
+    ];
+
+    // Map→2次元配列に正規化（不足キーは空文字で埋める）
+    final data = <List<dynamic>>[
+      headers, // ヘッダー行
+      ...rows.map((r) => headers.map((h) => (r[h] ?? '').toString()).toList()),
+    ];
+
+    // CSV化して保存
+    final csvText = const ListToCsvConverter().convert(data);
+    await file.writeAsString(csvText, flush: true);
+  }
+
+
+// 完全一致でその日を返す。無ければ null
+  static Map<String, String>? findRowByDateExact(
+      List<Map<String, String>> rows,
+      DateTime date,
+      ) {
+    final target = DateFormat('yyyy/MM/dd').format(date);
+    try {
+      return rows.firstWhere(
+            (r) => (r['日付'] ?? '').trim() == target,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+  /// メインCSV: 「日付に完全一致する1行」を返す（無ければ null）
+  /// rows: List<List<dynamic>> 形式（先頭行にヘッダー想定）
+  static Map<String, String>? getRowByExactDate(List<List<dynamic>> rows, DateTime d) {
+    final target = DateFormat('yyyy/MM/dd').format(d);
+    if (rows.isEmpty) return null;
+
+    final header = rows.first.map((e) => e.toString()).toList();
+    final idxDate = header.indexOf('日付');
+    if (idxDate < 0) return null;
+
+    for (int i = 1; i < rows.length; i++) {
+      final r = rows[i];
+      if (idxDate < r.length && r[idxDate].toString().trim() == target) {
+        // Map<String, String> に揃える
+        final m = <String, String>{};
+        for (int c = 0; c < header.length && c < r.length; c++) {
+          m[header[c]] = r[c].toString();
+        }
+        return m;
+      }
+    }
+    return null;
+  }
+// 小文字ヘッダのAIコメントログを上書き保存するユーティリティ
+// 受け取り: rows = List<Map<String,String>>  （キーは 'date','type','comment',...）
+  static Future<void> writeAiCommentLog(List<Map<String, String>> rows) async {
+    final file = await getAiCommentLogFile();
+
+    const header = [
+      'date','type','comment','score','sleep','walk',
+      'gratitude1','gratitude2','gratitude3','memo'
+    ];
+
+    // List<Map> -> List<List> に整形してから CSV 化
+    final csvRows = <List<dynamic>>[
+      header,
+      ...rows.map((r) => header.map((h) => r[h] ?? '').toList()),
+    ];
+
+    final csvText = const ListToCsvConverter().convert(csvRows);
+    await file.writeAsString(csvText, flush: true);
+  }
+  Future<List<Map<String, dynamic>>> loadDailyRecordsInRange(
+      DateTime start, DateTime end,
+      ) async {
+    final file = await CsvLoader.getAiCommentLogFile();
+    final rows = await CsvLoader.loadCsvAsMaps(file);
+
+
+ //   final file = await getCsvFile();
+// final rows = await loadCsv(file);
+    final s = fmtYMD(asYMD(start));
+    final e = fmtYMD(asYMD(end));
+    return rows.where((r) {
+      final raw = (r['date'] ?? '').toString().trim();
+      if (raw.isEmpty) return false;
+      final d = asYMD(parseYMD(raw));
+      final ds = fmtYMD(d);
+      return (ds.compareTo(s) >= 0) && (ds.compareTo(e) <= 0);
+    }).toList();
+  }
+  /*
+  /// List<String> 行（古い読み方）から感謝数を数える
+  static int gratitudeCountFromRow(List<dynamic> row) {
+    // 想定: 感謝1,感謝2,感謝3 が並ぶインデックスを安全に特定
+    // 既存ヘッダ順に依存しない場合は Map 版だけ使ってOK
+    final g1 = (row.length > 14 ? '${row[14] ?? ''}'.trim() : '');
+    final g2 = (row.length > 15 ? '${row[15] ?? ''}'.trim() : '');
+    final g3 = (row.length > 16 ? '${row[16] ?? ''}'.trim() : '');
+    var c = 0;
+    if (g1.isNotEmpty) c++;
+    if (g2.isNotEmpty) c++;
+    if (g3.isNotEmpty) c++;
+    return c;
+  }
+  */
+
+/*
+  /// 指定日付の行を読み込んでカウント（必要なら）
+  static Future<int> loadGratitudeCountForDate(String ymd) async {
+    final rows = await loadCsv('HappinessLevelDB1_v2.csv');
+    final m = rows.firstWhere(
+          (r) => (r['日付'] ?? '').trim() == ymd,
+      orElse: () => <String, String>{},
+    );
+    return gratitudeCountFromMap(m);
+  }
+  */
+
+  /// Map<String,String> 行（通常の loadCsv の戻り）から感謝数を数える
+  static int gratitudeCountFromMap(Map<String, String> m) {
+    int c = 0;
+    for (final k in const ['感謝1', '感謝2', '感謝3']) {
+      if ((m[k] ?? '').trim().isNotEmpty) c++;
+    }
+    return c;
+  }
+
+// 末尾に追加
+  /// 感謝数を「感謝1〜3の非空数」で再計算して返す（列の揺れにも強い）
+  static int gratitudeCountFromRow(Map<String, String> row) {
+    final g1 = (row['感謝1'] ?? row['gratitude1'] ?? '').trim();
+    final g2 = (row['感謝2'] ?? row['gratitude2'] ?? '').trim();
+    final g3 = (row['感謝3'] ?? row['gratitude3'] ?? '').trim();
+    return [g1, g2, g3].where((s) => s.isNotEmpty).length;
+  }
+
+  /// 指定日の行を読み、gratitudeCountFromRow で再計算して返す
+  static Future<int> loadGratitudeCountForDate(DateTime date) async {
+    final f = DateFormat('yyyy/MM/dd');
+    final rows = await loadCsv('HappinessLevelDB1_v2.csv');
+    final target = rows.firstWhere(
+          (r) => (r['日付'] ?? '').trim() == f.format(date),
+      orElse: () => <String, String>{},
+    );
+    if (target.isEmpty) return 0;
+    return gratitudeCountFromRow(target);
+  }
+// utils/csv_loader.dart のクラス内に追加
+  static List<dynamic>? pickBestRowForDate(
+      List<List<dynamic>> rows,
+      String ymd, // 'YYYY/MM/DD'
+      ) {
+    if (rows.isEmpty) return null;
+    final header = rows.first.map((e) => e.toString().trim()).toList();
+    final memoIdx = header.indexOf('memo');
+
+    List<dynamic>? candidate;
+    for (final raw in rows.skip(1)) {
+      final r = raw.map((e) => e?.toString() ?? '').toList();
+      if (r.isEmpty) continue;
+      if (r[0].toString().trim() != ymd) continue;
+      if (candidate == null) {
+        candidate = r;
+      } else if (memoIdx >= 0) {
+        final curHasMemo = candidate.length > memoIdx && candidate[memoIdx].toString().trim().isNotEmpty;
+        final newHasMemo = r.length > memoIdx && r[memoIdx].toString().trim().isNotEmpty;
+        if (!curHasMemo && newHasMemo) candidate = r;
+      }
+    }
+    return candidate;
+  }
+// 例: CsvLoader クラス内に追記
+  static String _normDateStr(String s) {
+    final t = s.trim().replaceAll('-', '/');
+    final p = t.split('/');
+    if (p.length != 3) return s.trim();
+    return '${p[0].padLeft(4,'0')}/${p[1].padLeft(2,'0')}/${p[2].padLeft(2,'0')}';
+  }
+
+  /// 入力: 任意の列名Map（ja/en混在OK）
+  /// 出力: 仕様で固定した“正規化キー”のMap
+  ///   date, score, stretch, walk, sleep_quality, sleep_h, sleep_m,
+  ///   fall_asleep, deep_sleep, wake_feel, motivation,
+  ///   gratitude_count, gratitude1, gratitude2, gratitude3, memo
+  static Map<String, String> normalizeRow(Map<String, String> row) {
+    String pick(List<String> keys) {
+      for (final k in keys) {
+        final v = row[k];
+        if (v != null && v.trim().isNotEmpty) return v.trim();
+      }
+      return '';
+    }
+
+    final m = <String, String>{
+      'date'            : pick(['日付','date']),
+      'score'           : pick(['幸せ感レベル','score']),
+      'stretch'         : pick(['ストレッチ時間','stretch']),
+      'walk'            : pick(['ウォーキング時間','walk']),
+      'sleep_quality'   : pick(['睡眠の質','sleep_quality']),
+      'sleep_h'         : pick(['睡眠時間（時間）','睡眠時間(時間)','睡眠時間（時）','sleep_h']),
+      'sleep_m'         : pick(['睡眠時間（分）','睡眠時間(分)','sleep_m']),
+      'fall_asleep'     : pick(['寝付き満足度','寝つき満足度','fall_asleep']),
+      'deep_sleep'      : pick(['深い睡眠感','deep_sleep']),
+      'wake_feel'       : pick(['目覚め感','wake_feel']),
+      'motivation'      : pick(['モチベーション','motivation']),
+      'gratitude_count' : pick(['感謝数','gratitude_count']),
+      'gratitude1'      : pick(['感謝1','gratitude1']),
+      'gratitude2'      : pick(['感謝2','gratitude2']),
+      'gratitude3'      : pick(['感謝3','gratitude3']),
+      'memo'            : pick(['memo','メモ','今日のひとことメモ','one_line_memo']),
+    };
+
+    // 日付は yyyy/MM/dd に統一
+    m['date'] = _normDateStr(m['date'] ?? '');
+
+    // 感謝数は“空でない感謝の数”に再計算（0/1/2/3）
+    final g1 = m['gratitude1']?.trim() ?? '';
+    final g2 = m['gratitude2']?.trim() ?? '';
+    final g3 = m['gratitude3']?.trim() ?? '';
+    final cnt = [g1,g2,g3].where((e) => e.isNotEmpty).length;
+    m['gratitude_count'] = cnt.toString();
+
+    return m;
+  }
+
+
+}
+

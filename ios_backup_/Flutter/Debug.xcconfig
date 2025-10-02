@@ -1,0 +1,6 @@
+#include "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
+
+FLUTTER_BUILD_MODE=debug
+FLUTTER_TARGET=lib/main.dart
+FLUTTER_APPLICATION_PATH=/Users/raytsunoda/my_flutter_app
+FLUTTER_ROOT=/Users/raytsunoda/Developer/flutter
