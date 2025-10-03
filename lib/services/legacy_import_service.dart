@@ -8,8 +8,160 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:my_flutter_app_pro/utils/csv_loader.dart'; // ★ 追加
+
 
 class LegacyImportService {
+
+  // 数値（整数/小数）だけで構成されるか
+  static bool _isNumericStr(String s) {
+    final t = s.trim();
+    if (t.isEmpty) return false;
+    return RegExp(r'^[+-]?\d+(\.\d+)?$').hasMatch(t);
+  }
+
+// 末尾から「非数値のセル」を3つ拾って、感謝1/2/3に割り当てる
+  static void _fallbackPickGratitudesFromTail({
+    required List<dynamic> srcRow,  // 読み込み元の1行（rows[r]）
+    required List<dynamic> rowOut,  // 出力行（out[r]）
+    required List<String> headerOut // 正規化後ヘッダー（out[0]）
+  }) {
+    final g1i = headerOut.indexOf('感謝1'); // #15
+    final g2i = headerOut.indexOf('感謝2'); // #16
+    final g3i = headerOut.indexOf('感謝3'); // #17
+    final cti = headerOut.indexOf('感謝数'); // #14
+    if (g1i < 0 || g2i < 0 || g3i < 0) return;
+
+    // メモは最後にある想定なので、末尾から「非数値テキスト」を拾う
+    final picks = <String>[];
+    for (int i = srcRow.length - 1; i >= 0 && picks.length < 3; i--) {
+      final v = (srcRow[i] ?? '').toString().trim();
+      if (v.isEmpty) continue;
+      if (!_isNumericStr(v)) picks.add(v);
+    }
+    if (picks.length == 3) {
+      // 末尾から拾っているので逆順にして G1,G2,G3 へ
+      // 末尾から拾っているので逆順にして G1,G2,G3 へ
+      final ordered = picks.reversed.toList();
+      rowOut[g1i] = ordered[0];
+      rowOut[g2i] = ordered[1];
+      rowOut[g3i] = ordered[2];
+
+      // 感謝数は再計算（非空の数）
+      final cnt = [picks[0], picks[1], picks[2]].where((e) => e.trim().isNotEmpty).length;
+      if (cti >= 0) rowOut[cti] = cnt.toString();
+    }
+  }
+
+// 原本ヘッダーに感謝1/2/3があるなら、それで上書き（あれば優先）
+  static void _applyGratitudesFromSourceHeader({
+    required List<String> headerSrc, // rows[0]
+    required List<dynamic> srcRow,   // rows[r]
+    required List<dynamic> rowOut,   // out[r]
+    required List<String> headerOut, // out[0]
+  }) {
+    int _idxOf(List<String> hdr, String key) => hdr.indexOf(key);
+    String _cell(dynamic v) => (v ?? '').toString().replaceAll('\r',' ').replaceAll('\n',' ').trim();
+
+    final g1d = headerOut.indexOf('感謝1');
+    final g2d = headerOut.indexOf('感謝2');
+    final g3d = headerOut.indexOf('感謝3');
+    final ctd = headerOut.indexOf('感謝数');
+    if (g1d < 0 || g2d < 0 || g3d < 0) return;
+
+    final g1s = _idxOf(headerSrc, '感謝1');
+    final g2s = _idxOf(headerSrc, '感謝2');
+    final g3s = _idxOf(headerSrc, '感謝3');
+    final cts = _idxOf(headerSrc, '感謝数');
+
+    String _get(int i) => (i >= 0 && i < srcRow.length) ? _cell(srcRow[i]) : '';
+
+    final g1 = _get(g1s);
+    final g2 = _get(g2s);
+    final g3 = _get(g3s);
+
+    // 値が取れたものだけ上書き（空なら触らない）
+    if (g1.isNotEmpty) rowOut[g1d] = g1;
+    if (g2.isNotEmpty) rowOut[g2d] = g2;
+    if (g3.isNotEmpty) rowOut[g3d] = g3;
+
+    // 感謝数は原本にあればそれ、無ければ非空で再計算
+    final hasCnt = cts >= 0 && cts < srcRow.length && _cell(srcRow[cts]).isNotEmpty;
+    if (ctd >= 0) {
+      if (hasCnt) {
+        rowOut[ctd] = _cell(srcRow[cts]);
+      } else {
+        final cnt = [rowOut[g1d], rowOut[g2d], rowOut[g3d]]
+            .map((e) => (e ?? '').toString().trim())
+            .where((e) => e.isNotEmpty).length;
+        rowOut[ctd] = cnt.toString();
+      }
+    }
+  }
+
+
+  // === 感謝1/2/3を原本から抽出して rowOut(#15〜#17) に強制セットするユーティリティ ===
+  static void _applyGratitudesFix({
+    required List<String> normalizedHeader,
+    required List<String> originalHeader,
+    required List<dynamic> srcRow,
+    required List<dynamic> rowOut,
+  }) {
+
+    int _idxOf(List<String> hdr, List<String> keys) {
+      for (final k in keys) {
+        final i = hdr.indexOf(k);
+        if (i >= 0) return i;
+      }
+      return -1;
+    }
+
+    String _cell(dynamic v) =>
+        (v ?? '').toString().replaceAll('\r', ' ').replaceAll('\n', ' ').trim();
+
+    String _cleanQuote(String s) {
+      var t = s.trim();
+      while (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
+        t = t.substring(1, t.length - 1).trim();
+      }
+      while (t.length >= 6 && t.startsWith('"""') && t.endsWith('"""')) {
+        t = t.substring(3, t.length - 3).trim();
+      }
+      return t;
+    }
+
+    // 出力側（正規化後ヘッダー）の目的位置
+    final idxG1Dest = normalizedHeader.indexOf('感謝1');   // 15
+    final idxG2Dest = normalizedHeader.indexOf('感謝2');   // 16
+    final idxG3Dest = normalizedHeader.indexOf('感謝3');   // 17
+    final idxCntDest = normalizedHeader.indexOf('感謝数'); // 14
+
+    // 原本ヘッダー上のソース位置（別名が出てきたらここに追記）
+    final idxG1Src = _idxOf(originalHeader, const ['感謝1']);
+    final idxG2Src = _idxOf(originalHeader, const ['感謝2']);
+    final idxG3Src = _idxOf(originalHeader, const ['感謝3']);
+    final idxCntSrc = _idxOf(originalHeader, const ['感謝数']);
+
+    String _get(int i) => (i >= 0 && i < srcRow.length) ? _cell(srcRow[i]) : '';
+
+    final g1 = _cleanQuote(_get(idxG1Src));
+    final g2 = _cleanQuote(_get(idxG2Src));
+    final g3 = _cleanQuote(_get(idxG3Src));
+    final cntSrc = int.tryParse(_get(idxCntSrc)) ?? 0;
+
+    // ★ 強制上書き（ここがキモ）
+    if (idxG1Dest >= 0 && idxG1Dest < rowOut.length) rowOut[idxG1Dest] = g1;
+    if (idxG2Dest >= 0 && idxG2Dest < rowOut.length) rowOut[idxG2Dest] = g2;
+    if (idxG3Dest >= 0 && idxG3Dest < rowOut.length) rowOut[idxG3Dest] = g3;
+
+    // 感謝数は原本優先。無ければ非空数から計算
+    final nonEmpty = [g1, g2, g3].where((e) => e.isNotEmpty).length;
+    final finalCnt = (cntSrc > 0) ? cntSrc : nonEmpty;
+    if (idxCntDest >= 0 && idxCntDest < rowOut.length) {
+      rowOut[idxCntDest] = finalCnt.toString();
+    }
+  }
+
   /// 設定 > データ移行（ファイルピッカー）
   static Future<ImportSummary?> importFromFilePicker(BuildContext context) async {
     try {
@@ -102,7 +254,34 @@ class LegacyImportService {
 // 6) 取り込み元を1行ずつ整形して投入
     for (int i = 1; i < rows.length; i++) {
       final src = rows[i].map((e) => e?.toString() ?? '').toList();
-      final normalized = _normalizeRow(src, normalizedHeader);
+      final normalized = _normalizeRow(src, normalizedHeader, hdr);
+
+      // --- 強制上書き: #10〜#13 を原本から確実に再セットする -----------------
+      int _h(String name) => hdr.indexOf(name);
+      String _raw(int i) =>
+          (i >= 0 && i < src.length) ? (src[i] ?? '').toString() : '';
+
+      // 引用符や改行を軽く除去
+      String _clean(String s) => s
+          .replaceAll('\r', ' ')
+          .replaceAll('\n', ' ')
+          .replaceAll(RegExp(r'^\s*"+'), '')
+          .replaceAll(RegExp(r'"+\s*$'), '')
+          .trim();
+
+      void _forceSet(String name, String value) {
+        final di = normalizedHeader.indexOf(name);
+        if (di >= 0) normalized[di] = _clean(value);
+      }
+
+      // #10〜#13 を原本から“必ず”書き戻す
+      _forceSet('寝付きの満足度', _raw(_h('寝付きの満足度')));
+      _forceSet('深い睡眠感',   _raw(_h('深い睡眠感')));
+      _forceSet('目覚め感',     _raw(_h('目覚め感')));
+      _forceSet('モチベーション', _raw(_h('モチベーション')));
+      // ----------------------------------------------------------------------
+
+
 
       // ▼ memo の保全：ヘッダー位置以降に分割された列があっても全部まとめて入れる
       final memoStr = _extractMemo(src, normalizedHeader);
@@ -149,11 +328,139 @@ class LegacyImportService {
       out.add(mapByDate[k]!);
     }
 
+    // ★ ここで “保存する直前” に #15〜#17 を原本から強制上書き
+    for (int r = 1; r < out.length; r++) { // r=0 はヘッダーなので 1 から
+      final rowOut = out[r];
+      final srcRow = (r < rows.length) ? rows[r] : const <dynamic>[];
+      _applyGratitudesFix(
+        normalizedHeader: normalizedHeader,
+        originalHeader: hdr,                  // ← 先に作った入力ヘッダー
+        srcRow: srcRow,
+        rowOut: rowOut,
+      );
+
+    }
+
+// --- ここから追加：保存直前の最終矯正（#15〜#17） ---
+    final headerOut = out.first.map((e) => e.toString()).toList();
+    final headerSrc = rows.first.map((e) => e.toString()).toList(); // 原本ヘッダー（rows[0]）
+
+    for (int r = 1; r < out.length; r++) {
+      final rowOut = out[r];
+      final srcRow = (r < rows.length) ? rows[r] : const <dynamic>[];
+
+      final g1i = headerOut.indexOf('感謝1');
+      final g2i = headerOut.indexOf('感謝2');
+      final g3i = headerOut.indexOf('感謝3');
+      if (g1i < 0 || g2i < 0 || g3i < 0) continue;
+
+      final g1v = (rowOut[g1i] ?? '').toString().trim();
+      final g2v = (rowOut[g2i] ?? '').toString().trim();
+      final g3v = (rowOut[g3i] ?? '').toString().trim();
+
+      final looksBad =
+          _isNumericStr(g1v) || _isNumericStr(g2v) || _isNumericStr(g3v);
+
+      if (looksBad) {
+        // 1) 原本ヘッダーからの復元を試みる（取れた分だけ上書き）
+        _applyGratitudesFromSourceHeader(
+          headerSrc: headerSrc,
+          srcRow: srcRow,
+          rowOut: rowOut,
+          headerOut: headerOut,
+        );
+
+        // 2) それでも数値のままなら、末尾から非数値を3つ拾って上書き
+        final ng1 = (rowOut[g1i] ?? '').toString().trim();
+        final ng2 = (rowOut[g2i] ?? '').toString().trim();
+        final ng3 = (rowOut[g3i] ?? '').toString().trim();
+        if (_isNumericStr(ng1) || _isNumericStr(ng2) || _isNumericStr(ng3)) {
+          _fallbackPickGratitudesFromTail(
+            srcRow: srcRow,
+            rowOut: rowOut,
+            headerOut: headerOut,
+          );
+        }
+      }
+    }
+
+
+// --- 最終ガード：#15〜#17 と memo(#18) を必ず正しい位置にそろえる ---
+        {
+      final headerOut = out.first.map((e) => e.toString()).toList();
+      final gi1 = headerOut.indexOf('感謝1');   // 15
+      final gi2 = headerOut.indexOf('感謝2');   // 16
+      final gi3 = headerOut.indexOf('感謝3');   // 17
+      final mi  = headerOut.indexOf('memo');    // 18
+
+      for (int r = 1; r < out.length; r++) {
+        final row = out[r];
+
+        // 行長が足りない／多すぎる場合も安全に 18 列へそろえる
+        if (row.length < headerOut.length) {
+          row.addAll(List.filled(headerOut.length - row.length, ''));
+        } else if (row.length > headerOut.length) {
+          while (row.length > headerOut.length) row.removeLast();
+        }
+
+        // 取り出し（null/改行を吸収）
+        String _t(dynamic v) =>
+            (v ?? '').toString().replaceAll('\r', ' ').replaceAll('\n', ' ').trim();
+
+        var g1 = _t(row[gi1]);
+        var g2 = _t(row[gi2]);
+        var g3 = _t(row[gi3]);
+        var memo = _t(row[mi]);
+
+        // もし感謝欄に数値(例: 3/4/3)が入っていて、memo にテキストが来ているなら
+        // 「memo→感謝3」へ移して、memo は空にする
+        bool _isNum(String s) => RegExp(r'^[+-]?\d+(\.\d+)?$').hasMatch(s);
+        final looksWrong = (_isNum(g1) || _isNum(g2) || _isNum(g3)) && memo.isNotEmpty;
+
+        if (looksWrong) {
+          // 感謝1/2/3 のどれかが空で、memo がテキストなら g3 を優先して埋める
+          if (g3.isEmpty || _isNum(g3)) {
+            g3 = memo;
+            memo = '';
+          } else if (g2.isEmpty || _isNum(g2)) {
+            g2 = memo;
+            memo = '';
+          } else if (g1.isEmpty || _isNum(g1)) {
+            g1 = memo;
+            memo = '';
+          }
+        }
+
+        // 書き戻し
+        row[gi1] = g1;
+        row[gi2] = g2;
+        row[gi3] = g3;
+        row[mi]  = memo;
+
+        // 感謝数は非空の数で再計算
+        final cnt = [g1, g2, g3].where((e) => e.isNotEmpty).length;
+        final cti = headerOut.indexOf('感謝数'); // 14
+        if (cti >= 0) row[cti] = cnt.toString();
+      }
+    }
+// --- 最終ガードここまで ---
+
+
+
+
     final csv = const ListToCsvConverter(eol: '\n').convert(out);
     await file.writeAsString(csv);
     debugPrint('✅ LegacyImport: saved -> ${file.path} (rows=${out.length})');
 
+
+// ★ インポート直後に“必ず”最新CSVを読み直してメモリ/UIを更新
+    await CsvLoader.loadLatestCsvData('HappinessLevelDB1_v2.csv', force: true);
+
+// ★ どのCSVを読んでいるか＆先頭2行を診断出力（確認しやすく）
+    await CsvLoader.debugDumpActiveCsv();
+
     return ImportSummary(inserted: inserted, overwritten: overwritten);
+
   }
 
   // ===== helper =====
@@ -214,40 +521,167 @@ class LegacyImportService {
       fixed.add('memo');
     }
 
-    // 列の総称・順序は最終形に合わせる（欠落は強制補完）
-    if (fixed.length != canon.length) {
+// --- 旧フォーマット（#6=時間, #7=分。換算列が無い）を検出して補正 ---
+// 旧: ... [睡眠の質, 睡眠時間（時間）, 睡眠時間（分）, 寝付き..., ...]
+// 新: ... [睡眠の質, 睡眠時間（時間換算）, 睡眠時間（分換算）, 睡眠時間（時間）, 睡眠時間（分）, 寝付き..., ...]
+    final hasHourRaw = fixed.contains('睡眠時間（時間）');
+    final hasMinRaw  = fixed.contains('睡眠時間（分）');
+    final hasHourConv = fixed.contains('睡眠時間（時間換算）');
+    final hasMinConv  = fixed.contains('睡眠時間（分換算）');
+
+    if ((hasHourRaw && hasMinRaw) && (!hasHourConv || !hasMinConv)) {
+      // ヘッダー自体は“最終形（canon）”で返す（中身の並びは後段で整える）
       return canon;
     }
 
-    // 期待セットと同数ならそのまま採用（中身は上で表記統一済み）
-    return fixed;
-  }
-
-
-  static List<dynamic> _normalizeRow(List<dynamic> src, List<String> normalizedHeader) {
-    final n = _fitToLength(src, normalizedHeader.length).map((e) {
-    final s = e?.toString() ?? '';
-      // セル内改行はスペースへ
-      return s.replaceAll('\r', ' ').replaceAll('\n', ' ');
-    }).toList();
-    // --- 最小変換ルール ---
-    // #7（睡眠時間（分換算））だけを必要に応じて補完する。#6（時間換算）は触らない。
-    // インデックス： #6=5, #7=6, #8=7, #9=8
-    try {
-      // 既に値がきちんと入っていれば触らない（空/0/空白なら補完対象）
-      final currentMinStr = (n[6] ?? '').toString().trim();
-      final needFill = currentMinStr.isEmpty || currentMinStr == '0';
-      if (needFill) {
-       final hh = double.tryParse((n[7] ?? '').toString().trim()) ?? 0.0; // 睡眠時間（時間）
-        final mm = double.tryParse((n[8] ?? '').toString().trim()) ?? 0.0; // 睡眠時間（分）
-        final totalMinutes = (hh * 60.0 + mm).round();
-        n[6] = totalMinutes.toString();
-      }
-    } catch (_) {
-      // 失敗してもスルー（他列はそのまま）
+// 列の総称・順序は最終形に合わせる（欠落は強制補完）
+    if (fixed.length != canon.length) {
+      return canon;
     }
-    return n;
+    return fixed;
+
   }
+
+
+  static List<dynamic> _normalizeRow(
+      List<dynamic> src,
+      List<String> normalizedHeader,
+      List<String> originalHeader,
+      ) {
+    // まず出力行の器を作る（正規化後ヘッダーの長さ）
+    final out = List<String>.filled(normalizedHeader.length, '');
+
+    // ユーティリティ：安全に文字列化して改行を潰す
+    String _cell(dynamic v) =>
+        (v ?? '').toString().replaceAll('\r', ' ').replaceAll('\n', ' ');
+
+    // 1) 同名/別名ヘッダーはそのままマッピング（存在するぶんだけ）
+    int _findByAlias(List<String> orig, String want) {
+      // 完全一致を優先
+      final exact = orig.indexOf(want);
+      if (exact >= 0) return exact;
+
+      // 旧名→新名のエイリアス
+      const Map<String, List<String>> aliases = {
+        // 新名 : [旧名候補...]
+        '寝付きの満足度': ['寝付き満足度', '寝つきの満足度', '寝付き満足度'],
+        // 他にも旧称がありえる場合はここに追加
+        // '睡眠の質': ['睡眠の質'], // 例：同名なら不要
+      };
+
+      final list = aliases[want];
+      if (list != null) {
+        for (final a in list) {
+          final i = orig.indexOf(a);
+          if (i >= 0) return i;
+        }
+      }
+      return -1;
+    }
+
+    for (int dest = 0; dest < normalizedHeader.length; dest++) {
+      final name = normalizedHeader[dest];
+      final srcIdx = _findByAlias(originalHeader, name);
+      if (srcIdx >= 0 && srcIdx < src.length) {
+        out[dest] = _cell(src[srcIdx]);
+      }
+    }
+
+
+    // 2) 旧フォーマット（#6=時間, #7=分。換算列が無い）→ 新フォーマット（#6=時間換算, #7=分換算, #8=時間, #9=分）を再構成
+    final idxHourRawSrc = originalHeader.indexOf('睡眠時間（時間）'); // 旧：時間
+    final idxMinRawSrc  = originalHeader.indexOf('睡眠時間（分）');   // 旧：分
+    final idxHourConvSrc = originalHeader.indexOf('睡眠時間（時間換算）'); // 新：時間換算（もし既にあれば）
+    final idxMinConvSrc  = originalHeader.indexOf('睡眠時間（分換算）');   // 新：分換算（もし既にあれば）
+
+    // 出力側の目的インデックス
+    final idxHourConvDest = normalizedHeader.indexOf('睡眠時間（時間換算）'); // #6
+    final idxMinConvDest  = normalizedHeader.indexOf('睡眠時間（分換算）');   // #7
+    final idxHourRawDest  = normalizedHeader.indexOf('睡眠時間（時間）');     // #8
+    final idxMinRawDest   = normalizedHeader.indexOf('睡眠時間（分）');       // #9
+
+    // 旧の時間/分（あれば取得）
+    final hRaw = (idxHourRawSrc >= 0 && idxHourRawSrc < src.length)
+        ? double.tryParse(_cell(src[idxHourRawSrc]).trim()) ?? 0.0
+        : 0.0;
+    final mRaw = (idxMinRawSrc >= 0 && idxMinRawSrc < src.length)
+        ? double.tryParse(_cell(src[idxMinRawSrc]).trim()) ?? 0.0
+        : 0.0;
+
+    // 既に換算列がソースにある場合は優先して使い、無ければ旧の時間/分から計算
+    final hourConv = (idxHourConvSrc >= 0 && idxHourConvSrc < src.length)
+        ? double.tryParse(_cell(src[idxHourConvSrc]).trim()) ?? (hRaw + (mRaw / 60.0))
+        : (hRaw + (mRaw / 60.0));
+    final minConv = (idxMinConvSrc >= 0 && idxMinConvSrc < src.length)
+        ? double.tryParse(_cell(src[idxMinConvSrc]).trim()) ?? (hRaw * 60.0 + mRaw)
+        : (hRaw * 60.0 + mRaw);
+
+    // 出力行へ上書き（空欄の場合も確実にセット）
+    if (idxHourConvDest >= 0) out[idxHourConvDest] = hourConv.toString();           // #6
+    if (idxMinConvDest  >= 0) out[idxMinConvDest]  = minConv.round().toString();    // #7（整数）
+    if (idxHourRawDest  >= 0 && hRaw != 0.0) out[idxHourRawDest] = hRaw.toString(); // #8
+    if (idxMinRawDest   >= 0 && mRaw != 0.0) out[idxMinRawDest]  = mRaw.toString(); // #9
+
+    // === ★ ここから追記：感謝1/2/3を原本ヘッダーから強制上書き（数値混入の矯正） ===
+
+    String _cleanQuote(String s) {
+      var t = s.trim();
+      // 先頭/末尾の " や """ を安全に剥がす（何重でも）
+      while (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
+        t = t.substring(1, t.length - 1).trim();
+      }
+      while (t.length >= 6 && t.startsWith('"""') && t.endsWith('"""')) {
+        t = t.substring(3, t.length - 3).trim();
+      }
+      return t;
+    }
+
+    int _idxOf(List<String> hdr, List<String> names) {
+      for (final n in names) {
+        final i = hdr.indexOf(n);
+        if (i >= 0) return i;
+      }
+      return -1;
+    }
+
+    // 出力先の位置（正規化後ヘッダー）
+    final idxG1Dest = normalizedHeader.indexOf('感謝1');
+    final idxG2Dest = normalizedHeader.indexOf('感謝2');
+    final idxG3Dest = normalizedHeader.indexOf('感謝3');
+    final idxCntDest = normalizedHeader.indexOf('感謝数');
+
+    // 原本ヘッダー上の位置（別名があればここに追加）
+    final idxG1Src = _idxOf(originalHeader, const ['感謝1']);
+    final idxG2Src = _idxOf(originalHeader, const ['感謝2']);
+    final idxG3Src = _idxOf(originalHeader, const ['感謝3']);
+    final idxCntSrc = _idxOf(originalHeader, const ['感謝数']);
+
+    // 原本の値をテキスト化＆引用符除去
+    String _get(int idx) {
+      if (idx < 0 || idx >= src.length) return '';
+      return _cell(src[idx]);
+    }
+    final g1Src = _cleanQuote(_get(idxG1Src));
+    final g2Src = _cleanQuote(_get(idxG2Src));
+    final g3Src = _cleanQuote(_get(idxG3Src));
+    final cntSrc = int.tryParse(_get(idxCntSrc)) ?? 0;
+
+    // 出力先へ「必ず」上書き（ここで 4/3 のような数値混入を矯正）
+    if (idxG1Dest >= 0) out[idxG1Dest] = g1Src;
+    if (idxG2Dest >= 0) out[idxG2Dest] = g2Src;
+    if (idxG3Dest >= 0) out[idxG3Dest] = g3Src;
+
+    // 感謝数は原本が正ならそれを、そうでなければ非空数を採用
+    final nonEmptyGratitudes = [g1Src, g2Src, g3Src].where((e) => e.isNotEmpty).length;
+    final finalCnt = cntSrc > 0 ? cntSrc : nonEmptyGratitudes;
+    if (idxCntDest >= 0) out[idxCntDest] = finalCnt.toString();
+
+    // === ★ 追記ここまで ===
+
+    return out;
+  }
+
+
 
   static List<dynamic> _fitToLength(List<dynamic> row, int len) {
     if (row.length == len) return row;

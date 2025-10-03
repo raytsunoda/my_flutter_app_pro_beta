@@ -7,6 +7,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:my_flutter_app_pro/utils/date_utils.dart';
+import 'package:path/path.dart' as p;
 
 //import '../models/record_entry.dart';
 // デバッグ出力の全体トグル
@@ -323,7 +324,11 @@ class CsvLoader {
 /*───────────────────────────────────────────────
 /// ① DocumentDirectory の最新 CSV を取得（壊れていても復旧）
 ───────────────────────────────────────────────*/
-  static Future<List<List<String>>> loadLatestCsvData(String filename) async {
+  // ★ force を追加（既存呼び出しはそのまま動きます）
+  static Future<List<List<String>>> loadLatestCsvData(
+      String filename, { bool force = false }
+      ) async {
+
     try {
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/$filename');
@@ -660,20 +665,7 @@ class CsvLoader {
     return false;
   }
 
-  /*
-  static Future<bool> isCommentAlreadySaved({
-    required String date,
-    required String type,
-  }) async {
-    final file = await getAiCommentLogFile();
-    if (!await file.exists()) return false;
-    final rows = const CsvToListConverter().convert(await file.readAsString(), eol: '\n');
-    return rows.skip(1).any((row) =>
-    row.length >= 2 &&
-        row[0].toString() == date &&
-        row[1].toString() == type);
-  }
-*/
+
 
 
   // CsvLoader.loadAiCommentLog（置き換え）
@@ -946,33 +938,7 @@ class CsvLoader {
       return (ds.compareTo(s) >= 0) && (ds.compareTo(e) <= 0);
     }).toList();
   }
-  /*
-  /// List<String> 行（古い読み方）から感謝数を数える
-  static int gratitudeCountFromRow(List<dynamic> row) {
-    // 想定: 感謝1,感謝2,感謝3 が並ぶインデックスを安全に特定
-    // 既存ヘッダ順に依存しない場合は Map 版だけ使ってOK
-    final g1 = (row.length > 14 ? '${row[14] ?? ''}'.trim() : '');
-    final g2 = (row.length > 15 ? '${row[15] ?? ''}'.trim() : '');
-    final g3 = (row.length > 16 ? '${row[16] ?? ''}'.trim() : '');
-    var c = 0;
-    if (g1.isNotEmpty) c++;
-    if (g2.isNotEmpty) c++;
-    if (g3.isNotEmpty) c++;
-    return c;
-  }
-  */
 
-/*
-  /// 指定日付の行を読み込んでカウント（必要なら）
-  static Future<int> loadGratitudeCountForDate(String ymd) async {
-    final rows = await loadCsv('HappinessLevelDB1_v2.csv');
-    final m = rows.firstWhere(
-          (r) => (r['日付'] ?? '').trim() == ymd,
-      orElse: () => <String, String>{},
-    );
-    return gratitudeCountFromMap(m);
-  }
-  */
 
   /// Map<String,String> 行（通常の loadCsv の戻り）から感謝数を数える
   static int gratitudeCountFromMap(Map<String, String> m) {
@@ -1079,6 +1045,28 @@ class CsvLoader {
     m['gratitude_count'] = cnt.toString();
 
     return m;
+  }
+// ★ 1) 実際に使っているCSVの状況をログ出力（デバッグ用）
+  static Future<void> debugDumpActiveCsv() async {
+    try {
+      final file = await CsvLoader.getCsvFile(); // 既存の本番CSVファイル取得関数
+      final exists = await file.exists();
+      print('[CSV DEBUG] path=${file.path} exists=$exists');
+      if (!exists) return;
+
+      final stat = await file.stat();
+      print('[CSV DEBUG] size=${stat.size} bytes modified=${stat.modified}');
+
+      final raf = await file.open();
+      final bytes = await raf.read(4096); // 先頭4KB
+      await raf.close();
+      final head = utf8.decode(bytes, allowMalformed: true);
+      final lines = head.split(RegExp(r'\r?\n')).take(2).toList();
+      print('[CSV DEBUG] first line: ${lines.isNotEmpty ? lines[0] : "(none)"}');
+      print('[CSV DEBUG] second line: ${lines.length > 1 ? lines[1] : "(none)"}');
+    } catch (e, st) {
+      print('[CSV DEBUG] error: $e\n$st');
+    }
   }
 
 
