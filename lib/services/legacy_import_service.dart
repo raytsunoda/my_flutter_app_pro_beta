@@ -252,62 +252,65 @@ class LegacyImportService {
     int inserted = 0, overwritten = 0;
 
 // 6) 取り込み元を1行ずつ整形して投入
+// PATCH A: begin
     for (int i = 1; i < rows.length; i++) {
+      // 1行分のソース
       final src = rows[i].map((e) => e?.toString() ?? '').toList();
+
+      // 既存ユーティリティで 18列の正規形に一次整形
       final normalized = _normalizeRow(src, normalizedHeader, hdr);
 
-      // --- 強制上書き: #10〜#13 を原本から確実に再セットする -----------------
-      int _h(String name) => hdr.indexOf(name);
-      String _raw(int i) =>
-          (i >= 0 && i < src.length) ? (src[i] ?? '').toString() : '';
+      // --- 10〜13列（寝付き/深い睡眠/目覚め/モチベ）を“列名候補”から安全取得して確定上書き ---
+      String _pick(List<String> names) => _cellAny(row: src, header: hdr, candidates: names);
 
-      // 引用符や改行を軽く除去
-      String _clean(String s) => s
-          .replaceAll('\r', ' ')
-          .replaceAll('\n', ' ')
-          .replaceAll(RegExp(r'^\s*"+'), '')
-          .replaceAll(RegExp(r'"+\s*$'), '')
-          .trim();
+      // #10〜#13 を候補名で吸い上げ（表記ゆれ対応）
+      final vSleepEase = _pick(['寝付きの満足度', '寝付き満足度']); // #10
+      final vDeepSleep = _pick(['深い睡眠感']);               // #11
+      final vWakeFeel  = _pick(['目覚め感']);                 // #12
+      final vMoti      = _pick(['モチベーション']);            // #13
 
-      void _forceSet(String name, String value) {
-        final di = normalizedHeader.indexOf(name);
-        if (di >= 0) normalized[di] = _clean(value);
-      }
+      normalized[9]  = vSleepEase;  // #10
+      normalized[10] = vDeepSleep;  // #11
+      normalized[11] = vWakeFeel;   // #12
+      normalized[12] = vMoti;       // #13
 
-      // #10〜#13 を原本から“必ず”書き戻す
-      _forceSet('寝付きの満足度', _raw(_h('寝付きの満足度')));
-      _forceSet('深い睡眠感',   _raw(_h('深い睡眠感')));
-      _forceSet('目覚め感',     _raw(_h('目覚め感')));
-      _forceSet('モチベーション', _raw(_h('モチベーション')));
-      // ----------------------------------------------------------------------
-
-
-
-      // ▼ memo の保全：ヘッダー位置以降に分割された列があっても全部まとめて入れる
+      // メモ列が途中で分割されていても救済して復元
       final memoStr = _extractMemo(src, normalizedHeader);
       if (memoStr.isNotEmpty) {
         normalized[_targetHeader().indexOf('memo')] = memoStr;
       }
 
-      // 感謝数は感謝1〜3の非空数で再計算
+      // 感謝1〜3を原本ヘッダーから強制補正（数値混入や取り違え対策）
+      _applyGratitudesFix(
+        normalizedHeader: normalizedHeader,
+        originalHeader: hdr,
+        srcRow: src,
+        rowOut: normalized,
+      );
+
+      // 感謝数は最終的に非空 3件のカウントで再計算
       final g1 = normalized[14].toString().trim();
       final g2 = normalized[15].toString().trim();
       final g3 = normalized[16].toString().trim();
-      final gratitudeCount = [g1, g2, g3].where((s) => s.isNotEmpty).length;
-      normalized[13] = gratitudeCount.toString();
+      normalized[13] = [g1, g2, g3].where((s) => s.isNotEmpty).length.toString();
 
+      // デバッグログ
+      final dateStr = normalized[0].toString();
+      debugPrint('[MAP] $dateStr sleepEase="$vSleepEase" deep="$vDeepSleep" '
+          'wake="$vWakeFeel" moti="$vMoti"');
+
+      // 以降：上書き/追加の判定〜 mapByDate へ反映
       final date = normalized[0].toString().trim();
       if (date.isEmpty) {
         debugPrint('⚠️ skip: empty date @row $i');
         continue;
       }
-
       if (mapByDate.containsKey(date)) {
         if (overwrite) {
           overwritten++;
           mapByDate[date] = normalized;
         } else {
-          continue; // スキップ運用
+          continue;
         }
       } else {
         inserted++;
@@ -315,11 +318,16 @@ class LegacyImportService {
       }
 
       final memo = normalized[17].toString();
-      debugPrint('🔎 $date memo="${memo.length > 40 ? memo.substring(0, 40) + '…' : memo}" g=[$g1,$g2,$g3] cnt=$gratitudeCount');
+      debugPrint('🔎 $date memo="${memo.length > 40 ? memo.substring(0, 40) + '…' : memo}" '
+          'g=[$g1,$g2,$g3]');
     }
+// PATCH A: end
 
 
-    // 7) 日付昇順で保存（ヘッダー先頭）
+
+
+
+// 7) 日付昇順で保存（ヘッダー先頭）
     final out = <List<dynamic>>[];
     out.add(_targetHeader());
     final keys = mapByDate.keys.toList()
@@ -328,22 +336,23 @@ class LegacyImportService {
       out.add(mapByDate[k]!);
     }
 
-    // ★ ここで “保存する直前” に #15〜#17 を原本から強制上書き
-    for (int r = 1; r < out.length; r++) { // r=0 はヘッダーなので 1 から
+
+
+    // ★ ここで “保存する直前” に #15〜#17（感謝1/2/3）を原本から強制上書き
+    for (int r = 1; r < out.length; r++) { // r=0 はヘッダー
       final rowOut = out[r];
       final srcRow = (r < rows.length) ? rows[r] : const <dynamic>[];
       _applyGratitudesFix(
         normalizedHeader: normalizedHeader,
-        originalHeader: hdr,                  // ← 先に作った入力ヘッダー
+        originalHeader: hdr,
         srcRow: srcRow,
         rowOut: rowOut,
       );
-
     }
 
-// --- ここから追加：保存直前の最終矯正（#15〜#17） ---
+// --- 追加：保存直前の最終矯正（#15〜#17） ---
     final headerOut = out.first.map((e) => e.toString()).toList();
-    final headerSrc = rows.first.map((e) => e.toString()).toList(); // 原本ヘッダー（rows[0]）
+    final headerSrc = rows.first.map((e) => e.toString()).toList();
 
     for (int r = 1; r < out.length; r++) {
       final rowOut = out[r];
@@ -358,11 +367,12 @@ class LegacyImportService {
       final g2v = (rowOut[g2i] ?? '').toString().trim();
       final g3v = (rowOut[g3i] ?? '').toString().trim();
 
-      final looksBad =
-          _isNumericStr(g1v) || _isNumericStr(g2v) || _isNumericStr(g3v);
+      bool _isNumericStr(String s) =>
+          RegExp(r'^[+-]?\d+(\.\d+)?$').hasMatch(s.trim());
+      final looksBad = _isNumericStr(g1v) || _isNumericStr(g2v) || _isNumericStr(g3v);
 
       if (looksBad) {
-        // 1) 原本ヘッダーからの復元を試みる（取れた分だけ上書き）
+        // 1) 原本ヘッダーから復元（取れた分だけ上書き）
         _applyGratitudesFromSourceHeader(
           headerSrc: headerSrc,
           srcRow: srcRow,
@@ -370,7 +380,7 @@ class LegacyImportService {
           headerOut: headerOut,
         );
 
-        // 2) それでも数値のままなら、末尾から非数値を3つ拾って上書き
+        // 2) まだ数値なら、末尾から非数値テキスト3つを拾って上書き
         final ng1 = (rowOut[g1i] ?? '').toString().trim();
         final ng2 = (rowOut[g2i] ?? '').toString().trim();
         final ng3 = (rowOut[g3i] ?? '').toString().trim();
@@ -384,66 +394,51 @@ class LegacyImportService {
       }
     }
 
-
-// --- 最終ガード：#15〜#17 と memo(#18) を必ず正しい位置にそろえる ---
+// --- 最終ガード：列数合わせ & 感謝数の再計算 & memo救済 ---
         {
-      final headerOut = out.first.map((e) => e.toString()).toList();
-      final gi1 = headerOut.indexOf('感謝1');   // 15
-      final gi2 = headerOut.indexOf('感謝2');   // 16
-      final gi3 = headerOut.indexOf('感謝3');   // 17
-      final mi  = headerOut.indexOf('memo');    // 18
+      final gi1 = headerOut.indexOf('感謝1');
+      final gi2 = headerOut.indexOf('感謝2');
+      final gi3 = headerOut.indexOf('感謝3');
+      final mi  = headerOut.indexOf('memo');
+      final cti = headerOut.indexOf('感謝数');
+
+      String _t(dynamic v) =>
+          (v ?? '').toString().replaceAll('\r', ' ').replaceAll('\n', ' ').trim();
+      bool _isNum(String s) => RegExp(r'^[+-]?\d+(\.\d+)?$').hasMatch(s);
 
       for (int r = 1; r < out.length; r++) {
         final row = out[r];
 
-        // 行長が足りない／多すぎる場合も安全に 18 列へそろえる
         if (row.length < headerOut.length) {
           row.addAll(List.filled(headerOut.length - row.length, ''));
-        } else if (row.length > headerOut.length) {
+        } else {
           while (row.length > headerOut.length) row.removeLast();
         }
-
-        // 取り出し（null/改行を吸収）
-        String _t(dynamic v) =>
-            (v ?? '').toString().replaceAll('\r', ' ').replaceAll('\n', ' ').trim();
 
         var g1 = _t(row[gi1]);
         var g2 = _t(row[gi2]);
         var g3 = _t(row[gi3]);
         var memo = _t(row[mi]);
 
-        // もし感謝欄に数値(例: 3/4/3)が入っていて、memo にテキストが来ているなら
-        // 「memo→感謝3」へ移して、memo は空にする
-        bool _isNum(String s) => RegExp(r'^[+-]?\d+(\.\d+)?$').hasMatch(s);
         final looksWrong = (_isNum(g1) || _isNum(g2) || _isNum(g3)) && memo.isNotEmpty;
-
         if (looksWrong) {
-          // 感謝1/2/3 のどれかが空で、memo がテキストなら g3 を優先して埋める
-          if (g3.isEmpty || _isNum(g3)) {
-            g3 = memo;
-            memo = '';
-          } else if (g2.isEmpty || _isNum(g2)) {
-            g2 = memo;
-            memo = '';
-          } else if (g1.isEmpty || _isNum(g1)) {
-            g1 = memo;
-            memo = '';
-          }
+          if (g3.isEmpty || _isNum(g3)) { g3 = memo; memo = ''; }
+          else if (g2.isEmpty || _isNum(g2)) { g2 = memo; memo = ''; }
+          else if (g1.isEmpty || _isNum(g1)) { g1 = memo; memo = ''; }
         }
 
-        // 書き戻し
         row[gi1] = g1;
         row[gi2] = g2;
         row[gi3] = g3;
         row[mi]  = memo;
 
-        // 感謝数は非空の数で再計算
         final cnt = [g1, g2, g3].where((e) => e.isNotEmpty).length;
-        final cti = headerOut.indexOf('感謝数'); // 14
         if (cti >= 0) row[cti] = cnt.toString();
       }
     }
 // --- 最終ガードここまで ---
+
+
 
 
 
@@ -622,6 +617,61 @@ class LegacyImportService {
     if (idxHourRawDest  >= 0 && hRaw != 0.0) out[idxHourRawDest] = hRaw.toString(); // #8
     if (idxMinRawDest   >= 0 && mRaw != 0.0) out[idxMinRawDest]  = mRaw.toString(); // #9
 
+
+    // === 10〜14列（寝付き/深い睡眠/目覚め/モチベ/感謝数）を “列名候補” から確定コピーする ===
+
+// 宛先インデックス（新フォーマットの#10〜#14）
+    final idxSleepEaseDest   = normalizedHeader.indexOf('寝付きの満足度'); // #10
+    final idxDeepSleepDest   = normalizedHeader.indexOf('深い睡眠感');     // #11
+    final idxWakeFeelDest    = normalizedHeader.indexOf('目覚め感');       // #12
+    final idxMotiDest        = normalizedHeader.indexOf('モチベーション'); // #13
+    final idxThanksCntDest   = normalizedHeader.indexOf('感謝数');         // #14
+
+    int _findByNames(List<String> names) {
+      for (final n in names) {
+        final i = originalHeader.indexOf(n);
+        if (i >= 0) return i;
+      }
+      return -1;
+    }
+
+    String _pickByNames(List<String> names) {
+      final i = _findByNames(names);
+      if (i >= 0 && i < src.length) return _cell(src[i]).trim();
+      return '';
+    }
+
+// 旧CSVでの表記ゆれ候補
+    final sleepEaseVal = _pickByNames(['寝付きの満足度','寝付き満足度','寝付の満足度','寝つきの満足度']);
+    final deepSleepVal = _pickByNames(['深い睡眠感','深い眠り感','深い睡眠 の 感']); // 後方互換のため緩め
+    final wakeFeelVal  = _pickByNames(['目覚め感','目覚めの感','目覚め満足度']);
+    final motiVal      = _pickByNames(['モチベーション','ﾓﾁﾍﾞｰｼｮﾝ','モチベ']);
+    final thanksCntVal = _pickByNames(['感謝数','感謝 件数']);
+
+// 宛先に上書き（ブランクはスキップ）
+// 数値かどうかはアプリ側で範囲チェックしているのでここではそのまま渡す
+    if (idxSleepEaseDest >= 0 && sleepEaseVal.isNotEmpty) {
+      out[idxSleepEaseDest] = sleepEaseVal;
+    }
+    if (idxDeepSleepDest >= 0 && deepSleepVal.isNotEmpty) {
+      out[idxDeepSleepDest] = deepSleepVal;
+    }
+    if (idxWakeFeelDest >= 0 && wakeFeelVal.isNotEmpty) {
+      out[idxWakeFeelDest] = wakeFeelVal;
+    }
+    if (idxMotiDest >= 0 && motiVal.isNotEmpty) {
+      out[idxMotiDest] = motiVal;
+    }
+    if (idxThanksCntDest >= 0 && thanksCntVal.isNotEmpty) {
+      out[idxThanksCntDest] = thanksCntVal;
+    }
+
+// デバッグ（_normalizeRow 内では out[0] が日付）
+    final _dateForLog = (out.isNotEmpty ? out[0] : '').toString();
+    debugPrint('[MAP] $_dateForLog sleepEase="$sleepEaseVal" deep="$deepSleepVal" wake="$wakeFeelVal" '
+        'moti="$motiVal" thanks="$thanksCntVal"');
+
+
     // === ★ ここから追記：感謝1/2/3を原本ヘッダーから強制上書き（数値混入の矯正） ===
 
     String _cleanQuote(String s) {
@@ -732,6 +782,27 @@ class LegacyImportService {
         .replaceAll('\n', ' ')
         .trim();
   }
+
+
+  /// 複数候補のヘッダー名から最初に見つかった列を返す（見つからなければ ""）
+  static String _cellAny({
+    required List<dynamic> row,
+    required List<dynamic> header,
+    required List<String> candidates,
+  }) {
+    for (final name in candidates) {
+      final i = header.indexOf(name);
+      if (i >= 0 && i < row.length) {
+        final v = row[i];
+        return (v == null) ? "" : v.toString();
+      }
+    }
+    return "";
+  }
+
+
+
+
 
 
 }

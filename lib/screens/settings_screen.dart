@@ -37,6 +37,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<bool> _expanded = [];
   List<bool> _selected = [];
 
+// 既存の state フィールド群の下あたりに追加
+  List<String> _header = [];
+
+
+
+
+
   /// （開発用）この端末ローカルの Pro 状態をリセット
   Future<void> _debugClearLocalPurchaseState() async {
       final prefs = await SharedPreferences.getInstance();
@@ -294,9 +301,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _csvData = [];
         _expanded = [];
         _selected = [];
+        _header = [];
       });
       return;
     }
+// ▼ 追加：ヘッダーを保持（文字列化）
+    _header = rows.first.map((c) => c.toString().trim()).toList();
+
+
+
+
 
     // データ行 → 空行除外 → 日付を正規化 → DateTime で降順ソート
     final data = rows
@@ -322,6 +336,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _expanded = List.filled(data.length, false);
       _selected = List.generate(_csvData.length, (_) => false);
     });
+  }
+// クラス内に追加（_loadCSV の外）
+  int _findIndexByNames(List<String> candidates) {
+    for (int i = 0; i < _header.length; i++) {
+      final h = _header[i];
+      for (final name in candidates) {
+        if (h == name) return i;
+        // 表記ゆれ対策：「寝付き満足度」/「寝付きの満足度」などは含有でも許容
+        if (h.contains(name)) return i;
+      }
+    }
+    return -1;
+  }
+
+  String _cellByIdx(List<dynamic> row, int idx) {
+    if (idx < 0 || idx >= row.length) return '';
+    return row[idx].toString();
   }
 
 
@@ -462,14 +493,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onPressed: () => setState(() => _expanded[i] = !_expanded[i]),
                           ),
                         ),
+
                         if (_expanded[i])
                           Padding(
-                            padding: const EdgeInsets.only(left: 16),
+                            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [for (var cell in _csvData[i]) Text(cell.toString())],
+                              children: () {
+                                final r = _csvData[i];
+
+                                // ---------------------- PATCH B1: begin ----------------------
+                                final fields = <MapEntry<String, List<String>>>[
+                                  MapEntry('幸せ感レベル', ['幸せ感レベル']),
+                                  MapEntry('ストレッチ時間', ['ストレッチ時間']),
+                                  MapEntry('ウォーキング時間', ['ウォーキング時間']),
+                                  MapEntry('睡眠の質', ['睡眠の質']),
+                                  MapEntry('睡眠時間（時間）', ['睡眠時間（時間）']),
+                                  MapEntry('睡眠時間（分）', ['睡眠時間（分）']),
+                                  // 表記ゆれ対策：「寝付き満足度」「寝付きの満足度」
+                                  MapEntry('寝付き満足度', ['寝付き満足度','寝付きの満足度']),
+                                  MapEntry('深い睡眠感', ['深い睡眠感']),
+                                  MapEntry('目覚め感', ['目覚め感']),
+                                  MapEntry('モチベーション', ['モチベーション']),
+                                  MapEntry('感謝数', ['感謝数']),
+                                  MapEntry('感謝1', ['感謝1']),
+                                  MapEntry('感謝2', ['感謝2']),
+                                  MapEntry('感謝3', ['感謝3']),
+                                ];
+// ---------------------- PATCH B1: end ----------------------
+
+                                // ラベル: 値 のテキスト一覧を作る
+                                final widgets = <Widget>[];
+                                for (final f in fields) {
+                                  final idx = _findIndexByNames(f.value);
+                                  final val = _cellByIdx(r, idx);
+                                  if (val.isEmpty) continue; // 取れない/空はスキップ
+                                  widgets.add(Text('${f.key}: $val'));
+                                }
+
+                                // // 3つの感謝は改行区切りで見やすく（任意）
+                                // final g1 = _cellByIdx(r, _findIndexByNames(['感謝1']));
+                                // final g2 = _cellByIdx(r, _findIndexByNames(['感謝2']));
+                                // final g3 = _cellByIdx(r, _findIndexByNames(['感謝3']));
+                                // if (g1.isNotEmpty || g2.isNotEmpty || g3.isNotEmpty) {
+                                //   widgets.add(const SizedBox(height: 8));
+                                //   widgets.add(const Text('🙏 3つの感謝'));
+                                //   if (g1.isNotEmpty) widgets.add(Text('1. $g1'));
+                                //   if (g2.isNotEmpty) widgets.add(Text('2. $g2'));
+                                //   if (g3.isNotEmpty) widgets.add(Text('3. $g3'));
+                                // }
+
+                                return widgets;
+                              }(),
                             ),
                           ),
+
+
+
                       ],
                     ),
                   Row(
