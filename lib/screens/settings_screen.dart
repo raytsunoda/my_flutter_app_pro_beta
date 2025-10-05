@@ -21,6 +21,13 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  // ← 既存の state フィールド群の下に追加
+  List<String> _header = [];
+
+  List<String> _headerNorm = []; // 追加：正規化版ヘッダー
+
+
+
   // ───────── 通知時刻 ─────────
   TimeOfDay _morningTime = const TimeOfDay(hour: 8, minute: 0);
   TimeOfDay _eveningTime = const TimeOfDay(hour: 20, minute: 0);
@@ -37,10 +44,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<bool> _expanded = [];
   List<bool> _selected = [];
 
-// 既存の state フィールド群の下あたりに追加
-  List<String> _header = [];
-
-
+// 安全にセルを取り出す（候補ヘッダを上から順に試す＋空ならフォールバック）
+  String _cellOr(List<String> header, List<String> row, List<String> candidates, {String? fallback}) {
+    int _idxFor(String name) => header.indexWhere((h) => h.contains(name));
+    for (final cand in candidates) {
+      final idx = _idxFor(cand);
+      if (idx >= 0 && idx < row.length) {
+        final v = row[idx].trim();
+        if (v.isNotEmpty) return v;
+      }
+    }
+    return (fallback ?? '').trim();
+  }
 
 
 
@@ -305,12 +320,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
       return;
     }
+
+
+// // ▼ ヘッダー名の正規化：空白/タブを除去し、「の」を落として比較の揺れを吸収
+//   String _normalizeHeaderName(String s) {
+//     return s
+//         .replaceAll(RegExp(r'\s+'), '')  // 全/半角スペース・タブ除去
+//         .replaceAll('の', '')            // 「寝付きの満足度」⇔「寝付き満足度」を同一視
+//         .trim();
+//   }
+
+
 // ▼ 追加：ヘッダーを保持（文字列化）
     _header = rows.first.map((c) => c.toString().trim()).toList();
 
+    // ▼ 追加：正規化版ヘッダーも保持
+    _headerNorm = _header.map(_normalizeHeaderName).toList();
 
 
-
+// デバッグ: 取り込んだヘッダー確認
+    debugPrint('[SETTINGS] header: ${_header.join(",")}');
 
     // データ行 → 空行除外 → 日付を正規化 → DateTime で降順ソート
     final data = rows
@@ -337,23 +366,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _selected = List.generate(_csvData.length, (_) => false);
     });
   }
-// クラス内に追加（_loadCSV の外）
-  int _findIndexByNames(List<String> candidates) {
-    for (int i = 0; i < _header.length; i++) {
-      final h = _header[i];
-      for (final name in candidates) {
-        if (h == name) return i;
-        // 表記ゆれ対策：「寝付き満足度」/「寝付きの満足度」などは含有でも許容
-        if (h.contains(name)) return i;
-      }
+
+
+// ▼ ヘッダー名の正規化：空白/タブを除去し、「の」を落として比較の揺れを吸収
+  String _normalizeHeaderName(String s) {
+    return s
+        .replaceAll(RegExp(r'\s+'), '')  // 全/半角スペース・タブ除去
+        .replaceAll('の', '')            // 「寝付きの満足度」⇔「寝付き満足度」を同一視
+        .trim();
+  }
+
+
+
+
+
+
+
+// === SETTINGS: helpers begin ===
+  /// ヘッダー候補から列indexを引く（表記ゆれに強い・正規化比較）
+  /// ※ List<String> 固定だと呼び出し側が List<dynamic> の時に型エラーになるため、動的受けに変更
+  int _findIndexByNames(List names) { // ← ここを List<String> から List に変更
+    for (final n in names) {
+      final key = _normalizeHeaderName(n.toString()); // ← toStringで吸収
+      final idx = _headerNorm.indexOf(key);
+      if (idx >= 0) return idx;
     }
     return -1;
   }
-
-  String _cellByIdx(List<dynamic> row, int idx) {
-    if (idx < 0 || idx >= row.length) return '';
-    return row[idx].toString();
+  // --- PATCH: helper (index fallback) ---
+  int _indexOrFallback(List<String> candidates, int fallbackIndex) {
+    final idx = _findIndexByNames(candidates);
+    if (idx >= 0 && idx < _header.length) return idx;
+    // ヘッダー長を越えない範囲なら既知の列位置（0起算）でフォールバック
+    return (fallbackIndex >= 0 && fallbackIndex < _header.length)
+        ? fallbackIndex
+        : -1;
   }
+
+  /// indexが-1なら空文字、そうでなければ値を返す（dynamic行に対応）
+  String _cellByIdx(List row, int idx) {
+    if (idx < 0 || idx >= row.length) return '';
+    final v = row[idx];
+    // 数値/文字/空白の混在に備えて厳密にトリム
+    return v == null ? '' : v.toString().trim();
+  }
+// === SETTINGS: helpers end ===
+
 
 
   Future<void> _saveCsvData() async {
@@ -365,19 +423,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'ストレッチ時間',
       'ウォーキング時間',
       '睡眠の質',
-      //'睡眠時間（時間換算）',
-      //'睡眠時間（分換算）',
+      '睡眠時間（時間換算）',
+      '睡眠時間（分換算）',
       '睡眠時間（時間）',
       '睡眠時間（分）',
-      '寝付き満足度',
+      '寝付きの満足度',
       '深い睡眠感',
       '目覚め感',
       'モチベーション',
       '感謝数',
       '感謝1',
       '感謝2',
-      '感謝3'
+      '感謝3',
+      'memo',
     ];
+
 
     final csvString = const ListToCsvConverter().convert([header, ..._csvData]);
     await file.writeAsBytes(const Utf8Encoder().convert('\u{FEFF}$csvString'));
@@ -500,9 +560,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: () {
+// ---------------------- PATCH B2: begin (robust details mapper) ----------------------
                                 final r = _csvData[i];
 
-                                // ---------------------- PATCH B1: begin ----------------------
+// 一度だけ詳細ログ（該当日付・列数・ヘッダー）を出す
+                                debugPrint('[DETAIL] date=${_cellByIdx(r, _findIndexByNames(['日付']))} '
+                                    'cols=${r.length} header=${_header.join("|")}');
+
+// 表示したい列（表記ゆれに強い）
                                 final fields = <MapEntry<String, List<String>>>[
                                   MapEntry('幸せ感レベル', ['幸せ感レベル']),
                                   MapEntry('ストレッチ時間', ['ストレッチ時間']),
@@ -510,8 +575,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   MapEntry('睡眠の質', ['睡眠の質']),
                                   MapEntry('睡眠時間（時間）', ['睡眠時間（時間）']),
                                   MapEntry('睡眠時間（分）', ['睡眠時間（分）']),
-                                  // 表記ゆれ対策：「寝付き満足度」「寝付きの満足度」
-                                  MapEntry('寝付き満足度', ['寝付き満足度','寝付きの満足度']),
+
+                                  // ★「寝付きの満足度 / 寝付き満足度」どちらでも対応
+                                  MapEntry('寝付きの満足度', ['寝付きの満足度', '寝付き満足度']),
+
                                   MapEntry('深い睡眠感', ['深い睡眠感']),
                                   MapEntry('目覚め感', ['目覚め感']),
                                   MapEntry('モチベーション', ['モチベーション']),
@@ -520,35 +587,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   MapEntry('感謝2', ['感謝2']),
                                   MapEntry('感謝3', ['感謝3']),
                                 ];
-// ---------------------- PATCH B1: end ----------------------
 
-                                // ラベル: 値 のテキスト一覧を作る
                                 final widgets = <Widget>[];
                                 for (final f in fields) {
-                                  final idx = _findIndexByNames(f.value);
-                                  final val = _cellByIdx(r, idx);
-                                  if (val.isEmpty) continue; // 取れない/空はスキップ
+                                  int idx = _findIndexByNames(f.value);
+                                  String val = _cellByIdx(r, idx);
+
+                                   if (f.key == '寝付きの満足度') {
+                                  //   // まず候補名で取ってみる
+                                  //   idx = _indexOrFallback(['寝付きの満足度', '寝付き満足度'], 9);
+                                  //   val = _cellByIdx(r, idx);
+                                  //
+                                  //   // それでも空なら、「睡眠時間（分）」の直後をフォールバックとして採用
+                                  //   if (val.isEmpty) {
+                                  //     final base = _findIndexByNames(['睡眠時間（分)','睡眠時間（分）']); // 全角カッコ両対応
+                                  //     if (base >= 0 && base + 1 < r.length) {
+                                  //       idx = base + 1;
+                                  //       val = _cellByIdx(r, idx);
+                                  //     }
+                                  //   }
+                                  //
+                                  //   // デバッグ（1行だけ出ればOK）
+                                  //   debugPrint('[DETAIL:fallAsleep] idx=$idx val="$val" '
+                                  //
+    //       '(basePlusOne=${(_findIndexByNames(['睡眠時間（分)','睡眠時間（分）']) + 1)})');
+                                  // 1) 列名で取得（「寝付きの満足度」「寝付き満足度」どちらでもOK）
+                                  final idxCand = _findIndexByNames(['寝付きの満足度', '寝付き満足度']);
+                                  // 2) ダメなら「睡眠時間（分）」の “直後” をフォールバック
+                                  final idxBase = _findIndexByNames(['睡眠時間（分）', '睡眠時間(分)']);
+                                  idx = (idxCand >= 0) ? idxCand : (idxBase >= 0 ? idxBase + 1 : -1);
+                                  val = _cellByIdx(r, idx);
+
+                                  // 🔎 一時デバッグ：採用位置と生値を確認（展開時に1回だけでOK）
+                                  debugPrint('[DETAIL:fallAsleep] cand=$idxCand base=$idxBase use=$idx '
+                                      'raw=${(idx>=0 && idx<r.length)? r[idx] : null}');
+
+
+                                  } else {
+                                    // それ以外は従来通り
+                                    if (val.isEmpty) {
+                                      // 万一に備えて一般フォールバック（既知列へ）も使っておくと堅い
+                                      final fallbackMap = {
+                                        '幸せ感レベル': 1,
+                                        'ストレッチ時間': 2,
+                                        'ウォーキング時間': 3,
+                                        '睡眠の質': 4,
+                                        '睡眠時間（時間）': 7,
+                                        '睡眠時間（分）': 8,
+                                        '深い睡眠感': 10,
+                                        '目覚め感': 11,
+                                        'モチベーション': 12,
+                                        '感謝数': 13,
+                                        '感謝1': 14,
+                                        '感謝2': 15,
+                                        '感謝3': 16,
+                                      };
+                                      final fb = fallbackMap[f.key];
+                                      if (fb != null) {
+                                        idx = _indexOrFallback(f.value, fb);
+                                        val = _cellByIdx(r, idx);
+                                      }
+                                    }
+                                  }
+
+                                  if (val.isEmpty) continue;
                                   widgets.add(Text('${f.key}: $val'));
                                 }
 
-                                // // 3つの感謝は改行区切りで見やすく（任意）
-                                // final g1 = _cellByIdx(r, _findIndexByNames(['感謝1']));
-                                // final g2 = _cellByIdx(r, _findIndexByNames(['感謝2']));
-                                // final g3 = _cellByIdx(r, _findIndexByNames(['感謝3']));
-                                // if (g1.isNotEmpty || g2.isNotEmpty || g3.isNotEmpty) {
-                                //   widgets.add(const SizedBox(height: 8));
-                                //   widgets.add(const Text('🙏 3つの感謝'));
-                                //   if (g1.isNotEmpty) widgets.add(Text('1. $g1'));
-                                //   if (g2.isNotEmpty) widgets.add(Text('2. $g2'));
-                                //   if (g3.isNotEmpty) widgets.add(Text('3. $g3'));
-                                // }
-
                                 return widgets;
+// ---------------------- PATCH B2: end ----------------------
+
                               }(),
                             ),
                           ),
-
-
 
                       ],
                     ),
@@ -742,4 +853,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+
+
 }
