@@ -12,6 +12,50 @@ import 'package:my_flutter_app_pro/services/ai_comment_exporter.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:my_flutter_app_pro/services/legacy_import_service.dart';
 
+
+// ==== helpers (robust cell access) ====
+int _findIndexByNames(List<String> names, List<String> header) {
+  for (final n in names) {
+    final i = header.indexOf(n);
+    if (i >= 0) return i;
+  }
+  return -1;
+}
+
+String _cellByIdx(List<dynamic> row, int idx) {
+  if (idx < 0 || idx >= row.length) return '';
+  final v = row[idx];
+  return (v ?? '').toString().trim();
+}
+
+String _cellByName(List<dynamic> row, List<String> header, List<String> names) {
+  final i = _findIndexByNames(names, header);
+  return _cellByIdx(row, i);
+}
+// =====================================
+
+
+
+
+// === DEBUG HELPERS (once) ===
+String _runes(String s) => s.runes.map((r) => 'U+${r.toRadixString(16).toUpperCase()}').join(' ');
+void _dumpHeaderWithCodes(List<String> header) {
+  debugPrint('[HEADER:CODES] count=${header.length}');
+  for (int i = 0; i < header.length; i++) {
+    final h = header[i];
+    debugPrint('  [$i] "$h" (${_runes(h)})');
+  }
+}
+void _dumpRowWithCodes(List<dynamic> r) {
+  debugPrint('[ROW:CODES] len=${r.length}');
+  for (int i = 0; i < r.length; i++) {
+    final v = (r[i] ?? '').toString();
+    debugPrint('  [$i] "$v" (${_runes(v)})');
+  }
+}
+
+
+
 // ===== CSV helpers (safe cell access) =====
 int _headerIndexOfAny(List<String> header, List<String> candidates) {
     for (var i = 0; i < header.length; i++) {
@@ -577,11 +621,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             // ---------------------- PATCH B2: begin (robust details mapper) ----------------------
                                 final r = _csvData[i];
 
-                            // （行単位の大量デバッグは止める）
-                            debugPrint('[DETAIL] date=${_cellByIdx(r, _findIndexByNames(['日付']))} cols=${r.length} header=${_header.join("|")}');
-                            debugPrint('[DETAIL:rowDump] len=${r.length} row=${r.map((e) => '"${(e ?? '').toString()}"').join('|')}');
+                                final rowDate = _cellByIdx(r, _findIndexByNames(['日付']));
+                                debugPrint('[DETAIL] date=$rowDate cols=${r.length} header=${_header.join("|")}');
+                                debugPrint('[DETAIL:rowDump] len=${r.length} row=${r.map((e) => '"${(e ?? '').toString()}"').join('|')}');
 
-                            // 表示したい列（表記ゆれに強い）
+// 追加（先頭の1レコードだけで十分）
+                                if (rowDate == '2025/03/07') {
+                                  _dumpHeaderWithCodes(_header);
+                                  _dumpRowWithCodes(r);
+                                }
+
+                                // 表示したい列（表記ゆれに強い）
                                 final fields = <MapEntry<String, List<String>>>[
 
                                   MapEntry('幸せ感レベル', ['幸せ感レベル']),
@@ -614,45 +664,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   int idx = _findIndexByNames(f.value);
                                   String val = _cellByIdx(r, idx);
 
-                                  if (f.key == '寝付きの満足度') {
-                                    // -------- 列名→値のマップ化で確実に取得（_header のみを使用）--------
-                                    final headers = _header;
-                                    String _getByName(String name) {
-                                      final i = headers.indexOf(name);
-                                      if (i >= 0 && i < r.length) {
-                                        final v = (r[i] ?? '').toString().trim();
-                                        return v;
-                                      }
-                                      return '';
-                                    }
-                                    // 「寝付きの満足度 / 寝付き満足度」の両対応
-                                    final raw1 = _getByName('寝付きの満足度');
-                                    final raw2 = _getByName('寝付き満足度');
-                                    String raw  = raw1.isNotEmpty ? raw1 : raw2;
 
-                                    // ★ 「寝付き満足度」専用デバッグ（最初の 1 回だけ）
-                                    if (!_loggedFallAsleep) {
-                                      final usedName = raw1.isNotEmpty ? '寝付きの満足度' : (raw2.isNotEmpty ? '寝付き満足度' : 'N/A');
-                                      final usedIdx  = usedName == '寝付きの満足度'
-                                          ? headers.indexOf('寝付きの満足度')
-                                          : headers.indexOf('寝付き満足度');
-                                      debugPrint('[DETAIL:fallAsleep] name=$usedName idx=$usedIdx val="$raw"');
-                                      _loggedFallAsleep = true;
-                                    }
+                                 // SPECIAL CASE: fallAsleep (robust) — 列名ゆれ & 空欄救済
+                                 if (f.key == '寝付きの満足度') {
+                                   // 1) ヘッダー配列（null ではない想定）
+                                   final headers = _header;
 
-                                    // ★ フォールバック：直前列（= 寝付き満足度想定）を予備値
-                                    if (raw.isEmpty) {
-                                      final deepIdx = _findIndexByNames(['深い睡眠感']);
-                                      final guessIdx = (deepIdx > 0) ? deepIdx - 1 : -1;
-                                      final guess = _cellByIdx(r, guessIdx);
-                                      if (guess.isNotEmpty) {
-                                        debugPrint('[DETAIL:fallAsleep][fallback-prev] deepIdx=$deepIdx guessIdx=$guessIdx guess="$guess"');
-                                        raw = guess;
-                                      }
-                                    }
+                                   // 2) 列名で安全に取得（"寝付きの満足度" / "寝付き満足度" の両対応）
+                                   int _idxByNames(List<String> names) {
+                                     for (final n in names) {
+                                       final i = headers.indexOf(n);
+                                       if (i >= 0) return i;
+                                     }
+                                     return -1;
+                                   }
+                                   String _cell(List row, int i) {
+                                     if (i >= 0 && i < row.length) {
+                                       return (row[i] ?? '').toString().trim();
+                                     }
+                                     return '';
+                                   }
 
-                                    val = raw; // 最終値
-                                  } else {
+                                   final idxA = _idxByNames(['寝付きの満足度', '寝付き満足度']); // CSV #10 想定
+                                   var raw = _cell(r, idxA);
+
+                                   // 3) 空欄救済：深い睡眠感の直前列を予備値として採用
+                                   if (raw.isEmpty) {
+                                     final deepIdx = headers.indexOf('深い睡眠感'); // CSV #11 想定
+                                     final guessIdx = (deepIdx > 0) ? deepIdx - 1 : -1; // = fallAsleep 列のはず
+                                     final guess = _cell(r, guessIdx);
+                                     if (guess.isNotEmpty) {
+                                       debugPrint('[DETAIL:fallAsleep][fallback-prev] deepIdx=$deepIdx guessIdx=$guessIdx guess="$guess"');
+                                       raw = guess;
+                                     }
+                                   }
+
+                                   // 4) デバッグ（1行のみ）
+                                   final usedName = (idxA >= 0 && headers[idxA] == '寝付き満足度')
+                                       ? '寝付き満足度' : (idxA >= 0 ? '寝付きの満足度' : 'N/A');
+                                   debugPrint('[DETAIL:fallAsleep] name=$usedName idx=${idxA >= 0 ? idxA : (headers.indexOf("深い睡眠感") - 1)} val="$raw"');
+
+                                   // 5) 最終代入（空なら後続の _addIfNotEmpty で弾かれる）
+                                   val = raw;
+                                 }
+
+
+                                else {
 
                                     // それ以外は従来通り
                                     if (val.isEmpty) {
