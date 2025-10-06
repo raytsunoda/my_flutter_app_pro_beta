@@ -12,6 +12,20 @@ import 'package:my_flutter_app_pro/services/ai_comment_exporter.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:my_flutter_app_pro/services/legacy_import_service.dart';
 
+// ===== CSV helpers (safe cell access) =====
+int _headerIndexOfAny(List<String> header, List<String> candidates) {
+    for (var i = 0; i < header.length; i++) {
+      if (candidates.contains(header[i])) return i;
+    }
+    return -1;
+  }
+
+String _cellOr(List<String> row, List<String> header, List<String> candidates) {
+    final idx = _headerIndexOfAny(header, candidates);
+    if (idx < 0) return '';
+    return idx < row.length ? row[idx] : '';
+  }
+
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -404,7 +418,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// indexが-1なら空文字、そうでなければ値を返す（dynamic行に対応）
-  String _cellByIdx(List row, int idx) {
+  String _cellByIdx(List<dynamic> row, int idx) {
     if (idx < 0 || idx >= row.length) return '';
     final v = row[idx];
     // 数値/文字/空白の混在に備えて厳密にトリム
@@ -566,7 +580,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 // 一度だけ詳細ログ（該当日付・列数・ヘッダー）を出す
                                 debugPrint('[DETAIL] date=${_cellByIdx(r, _findIndexByNames(['日付']))} '
                                     'cols=${r.length} header=${_header.join("|")}');
-
+// 展開直後の1回だけ、行の中身を全部見るためのダンプ
+                                debugPrint('[DETAIL:rowDump] len=${r.length} row=${r.map((e) => '"${(e ?? '').toString()}"').join('|')}');
 // 表示したい列（表記ゆれに強い）
                                 final fields = <MapEntry<String, List<String>>>[
                                   MapEntry('幸せ感レベル', ['幸せ感レベル']),
@@ -593,37 +608,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   int idx = _findIndexByNames(f.value);
                                   String val = _cellByIdx(r, idx);
 
-                                   if (f.key == '寝付きの満足度') {
-                                  //   // まず候補名で取ってみる
-                                  //   idx = _indexOrFallback(['寝付きの満足度', '寝付き満足度'], 9);
-                                  //   val = _cellByIdx(r, idx);
-                                  //
-                                  //   // それでも空なら、「睡眠時間（分）」の直後をフォールバックとして採用
-                                  //   if (val.isEmpty) {
-                                  //     final base = _findIndexByNames(['睡眠時間（分)','睡眠時間（分）']); // 全角カッコ両対応
-                                  //     if (base >= 0 && base + 1 < r.length) {
-                                  //       idx = base + 1;
-                                  //       val = _cellByIdx(r, idx);
-                                  //     }
-                                  //   }
-                                  //
-                                  //   // デバッグ（1行だけ出ればOK）
-                                  //   debugPrint('[DETAIL:fallAsleep] idx=$idx val="$val" '
-                                  //
-    //       '(basePlusOne=${(_findIndexByNames(['睡眠時間（分)','睡眠時間（分）']) + 1)})');
-                                  // 1) 列名で取得（「寝付きの満足度」「寝付き満足度」どちらでもOK）
-                                  final idxCand = _findIndexByNames(['寝付きの満足度', '寝付き満足度']);
-                                  // 2) ダメなら「睡眠時間（分）」の “直後” をフォールバック
-                                  final idxBase = _findIndexByNames(['睡眠時間（分）', '睡眠時間(分)']);
-                                  idx = (idxCand >= 0) ? idxCand : (idxBase >= 0 ? idxBase + 1 : -1);
-                                  val = _cellByIdx(r, idx);
+                                  if (f.key == '寝付きの満足度') {
+                                  // -------- 列名→値のマップ化で確実に取得（_header のみを使用）--------
+                                  // ⚠️ _settingsHeader は存在しないため参照しない
+                                  //    _header は非 null なので '?.' も不要
+                                  final headers = _header;
+                                  String _getByName(String name) {
+                                    final i = headers.indexOf(name);
+                                    if (i >= 0 && i < r.length) {
+                                      final v = (r[i] ?? '').toString().trim();
+                                      return v;
+                                    }
+                                    return '';
+                                  }
+                                  // 「寝付きの満足度 / 寝付き満足度」の両対応
+                                  final raw1 = _getByName('寝付きの満足度');
+                                  final raw2 = _getByName('寝付き満足度');
+                                  String raw  = raw1.isNotEmpty ? raw1 : raw2;
 
-                                  // 🔎 一時デバッグ：採用位置と生値を確認（展開時に1回だけでOK）
-                                  debugPrint('[DETAIL:fallAsleep] cand=$idxCand base=$idxBase use=$idx '
-                                      'raw=${(idx>=0 && idx<r.length)? r[idx] : null}');
+                                  // 一時デバッグ（必ず1行出る）
+                                  final usedName = raw1.isNotEmpty ? '寝付きの満足度' : (raw2.isNotEmpty ? '寝付き満足度' : 'N/A');
+                                  final usedIdx  = usedName == '寝付きの満足度'
+                                                      ? headers.indexOf('寝付きの満足度')
+                                                      : headers.indexOf('寝付き満足度');
+                                  debugPrint('[DETAIL:fallAsleep] name=$usedName idx=$usedIdx val="$raw"');
+
+                                              // ★ フォールバック：
+                                              // CSV 行でこの列だけ空になっているケースに備え、
+                                              // 「深い睡眠感」の直前列（= 寝付き満足度のはず）を予備値として採用
+                                              if (raw.isEmpty) {
+                                                final deepIdx = _findIndexByNames(['深い睡眠感']);
+                                                final guessIdx = (deepIdx > 0) ? deepIdx - 1 : -1;
+                                                final guess = _cellByIdx(r, guessIdx);
+                                                if (guess.isNotEmpty) {
+                                                  debugPrint('[DETAIL:fallAsleep][fallback-prev] deepIdx=$deepIdx guessIdx=$guessIdx guess="$guess"');
+                                                  raw = guess;
+                                                }
+                                              }
 
 
-                                  } else {
+
+
+
+
+                                  val = raw; // 最終値として採用（空なら後段の _addIfNotEmpty で弾かれる）
+                                } else {
                                     // それ以外は従来通り
                                     if (val.isEmpty) {
                                       // 万一に備えて一般フォールバック（既知列へ）も使っておくと堅い
@@ -852,6 +881,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+// 任意の候補名のうち最初に一致したヘッダのインデックスを返す。なければ -1。
+  int _headerIndexOfAny(List<String> header, List<String> candidates) {
+    for (final c in candidates) {
+      final idx = header.indexOf(c);
+      if (idx >= 0) return idx;
+    }
+    return -1;
   }
 
 
