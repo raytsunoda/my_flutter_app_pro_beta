@@ -574,16 +574,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: () {
-// ---------------------- PATCH B2: begin (robust details mapper) ----------------------
+                            // ---------------------- PATCH B2: begin (robust details mapper) ----------------------
                                 final r = _csvData[i];
 
-// 一度だけ詳細ログ（該当日付・列数・ヘッダー）を出す
-                                debugPrint('[DETAIL] date=${_cellByIdx(r, _findIndexByNames(['日付']))} '
-                                    'cols=${r.length} header=${_header.join("|")}');
-// 展開直後の1回だけ、行の中身を全部見るためのダンプ
-                                debugPrint('[DETAIL:rowDump] len=${r.length} row=${r.map((e) => '"${(e ?? '').toString()}"').join('|')}');
-// 表示したい列（表記ゆれに強い）
+                            // （行単位の大量デバッグは止める）
+                            debugPrint('[DETAIL] date=${_cellByIdx(r, _findIndexByNames(['日付']))} cols=${r.length} header=${_header.join("|")}');
+                            debugPrint('[DETAIL:rowDump] len=${r.length} row=${r.map((e) => '"${(e ?? '').toString()}"').join('|')}');
+
+                            // 表示したい列（表記ゆれに強い）
                                 final fields = <MapEntry<String, List<String>>>[
+
                                   MapEntry('幸せ感レベル', ['幸せ感レベル']),
                                   MapEntry('ストレッチ時間', ['ストレッチ時間']),
                                   MapEntry('ウォーキング時間', ['ウォーキング時間']),
@@ -603,55 +603,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   MapEntry('感謝3', ['感謝3']),
                                 ];
 
+                                // ループ外にバッファ（ループ中に UI リストを直接いじらない）
                                 final widgets = <Widget>[];
+
+                                // 「寝付き満足度」専用デバッグは 1 回だけ
+                                var _loggedFallAsleep = false;
+
                                 for (final f in fields) {
+
                                   int idx = _findIndexByNames(f.value);
                                   String val = _cellByIdx(r, idx);
 
                                   if (f.key == '寝付きの満足度') {
-                                    // --- SPECIAL CASE: fallAsleep (robust / normalized header) ---
-                                    int _idxOfAnyNorm(List<String> names) {
-                                      for (final n in names) {
-                                        final key = _normalizeHeaderName(n);
-                                        final i = _headerNorm.indexOf(key);
-                                        if (i >= 0) return i;
+                                    // -------- 列名→値のマップ化で確実に取得（_header のみを使用）--------
+                                    final headers = _header;
+                                    String _getByName(String name) {
+                                      final i = headers.indexOf(name);
+                                      if (i >= 0 && i < r.length) {
+                                        final v = (r[i] ?? '').toString().trim();
+                                        return v;
                                       }
-                                      return -1;
+                                      return '';
+                                    }
+                                    // 「寝付きの満足度 / 寝付き満足度」の両対応
+                                    final raw1 = _getByName('寝付きの満足度');
+                                    final raw2 = _getByName('寝付き満足度');
+                                    String raw  = raw1.isNotEmpty ? raw1 : raw2;
+
+                                    // ★ 「寝付き満足度」専用デバッグ（最初の 1 回だけ）
+                                    if (!_loggedFallAsleep) {
+                                      final usedName = raw1.isNotEmpty ? '寝付きの満足度' : (raw2.isNotEmpty ? '寝付き満足度' : 'N/A');
+                                      final usedIdx  = usedName == '寝付きの満足度'
+                                          ? headers.indexOf('寝付きの満足度')
+                                          : headers.indexOf('寝付き満足度');
+                                      debugPrint('[DETAIL:fallAsleep] name=$usedName idx=$usedIdx val="$raw"');
+                                      _loggedFallAsleep = true;
                                     }
 
-                                    // 正規化ヘッダーで確実に列位置を決定（表記ゆれ・不可視文字対策）
-                                    int idx = _idxOfAnyNorm(const ['寝付きの満足度', '寝付き満足度']);
-                                    String raw = _cellByIdx(r, idx).trim();
-
-                                    // 値が空なら、近傍 or 構造から救済（idx±1, 深い睡眠感の直前, 想定レンジ8..10）
+                                    // ★ フォールバック：直前列（= 寝付き満足度想定）を予備値
                                     if (raw.isEmpty) {
                                       final deepIdx = _findIndexByNames(['深い睡眠感']);
-                                      final candidates = <int>{
-                                        if (idx >= 0) idx - 1,
-                                        if (idx >= 0) idx + 1,
-                                        if (deepIdx > 0) deepIdx - 1,
-                                        8, 9, 10,
-                                      }.where((k) => k >= 0 && k < r.length);
-                                      for (final k in candidates) {
-                                        final s = _cellByIdx(r, k).trim();
-                                        if (s.isNotEmpty &&
-                                            RegExp(r'^[+-]?\d+(\.\d+)?$').hasMatch(s)) {
-                                          raw = s;
-                                          idx = k;
-                                          break;
-                                        }
+                                      final guessIdx = (deepIdx > 0) ? deepIdx - 1 : -1;
+                                      final guess = _cellByIdx(r, guessIdx);
+                                      if (guess.isNotEmpty) {
+                                        debugPrint('[DETAIL:fallAsleep][fallback-prev] deepIdx=$deepIdx guessIdx=$guessIdx guess="$guess"');
+                                        raw = guess;
                                       }
                                     }
 
-                                    final nameForLog =
-                                        (idx >= 0 && idx < _header.length) ? _header[idx] : 'N/A';
-                                    debugPrint('[DETAIL:fallAsleep] idx=$idx name=$nameForLog val="$raw"');
-
-                                    // 既存の同名エントリがあれば除去してから確定値を入れる
-                                    fields.removeWhere((e) =>
-                                        e.key == '寝付きの満足度' || e.key == '寝付き満足度');
-                                    val = raw; // 空なら後段の _addIfNotEmpty が弾く
+                                    val = raw; // 最終値
                                   } else {
+
                                     // それ以外は従来通り
                                     if (val.isEmpty) {
                                       // 万一に備えて一般フォールバック（既知列へ）も使っておくと堅い
