@@ -296,9 +296,11 @@ class LegacyImportService {
 
       // デバッグログ
       final dateStr = normalized[0].toString();
+      // debugPrint('[MAP] $dateStr sleepEase="$vSleepEase" deep="$vDeepSleep" '
+      //     'wake="$vWakeFeel" moti="$vMoti"');
+            // 統一：thanks も出す（重複が気になるときは下の _normalizeRow 内をコメントアウト）
       debugPrint('[MAP] $dateStr sleepEase="$vSleepEase" deep="$vDeepSleep" '
-          'wake="$vWakeFeel" moti="$vMoti"');
-
+              'wake="$vWakeFeel" moti="$vMoti" thanks="${normalized[13]}"');
 
       // 以降：上書き/追加の判定〜 mapByDate へ反映
       final date = normalized[0].toString().trim();
@@ -670,7 +672,7 @@ class LegacyImportService {
 // デバッグ（_normalizeRow 内では out[0] が日付）
     final _dateForLog = (out.isNotEmpty ? out[0] : '').toString();
     debugPrint('[MAP] $_dateForLog sleepEase="$sleepEaseVal" deep="$deepSleepVal" wake="$wakeFeelVal" '
-        'moti="$motiVal" thanks="$thanksCntVal"');
+        'moti="$motiVal" thanks="$thanksCntVal" ');
 
 
     // === ★ ここから追記：感謝1/2/3を原本ヘッダーから強制上書き（数値混入の矯正） ===

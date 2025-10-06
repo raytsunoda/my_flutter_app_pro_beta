@@ -609,50 +609,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   String val = _cellByIdx(r, idx);
 
                                   if (f.key == '寝付きの満足度') {
-                                  // -------- 列名→値のマップ化で確実に取得（_header のみを使用）--------
-                                  // ⚠️ _settingsHeader は存在しないため参照しない
-                                  //    _header は非 null なので '?.' も不要
-                                  final headers = _header;
-                                  String _getByName(String name) {
-                                    final i = headers.indexOf(name);
-                                    if (i >= 0 && i < r.length) {
-                                      final v = (r[i] ?? '').toString().trim();
-                                      return v;
+                                    // --- SPECIAL CASE: fallAsleep (robust / normalized header) ---
+                                    int _idxOfAnyNorm(List<String> names) {
+                                      for (final n in names) {
+                                        final key = _normalizeHeaderName(n);
+                                        final i = _headerNorm.indexOf(key);
+                                        if (i >= 0) return i;
+                                      }
+                                      return -1;
                                     }
-                                    return '';
-                                  }
-                                  // 「寝付きの満足度 / 寝付き満足度」の両対応
-                                  final raw1 = _getByName('寝付きの満足度');
-                                  final raw2 = _getByName('寝付き満足度');
-                                  String raw  = raw1.isNotEmpty ? raw1 : raw2;
 
-                                  // 一時デバッグ（必ず1行出る）
-                                  final usedName = raw1.isNotEmpty ? '寝付きの満足度' : (raw2.isNotEmpty ? '寝付き満足度' : 'N/A');
-                                  final usedIdx  = usedName == '寝付きの満足度'
-                                                      ? headers.indexOf('寝付きの満足度')
-                                                      : headers.indexOf('寝付き満足度');
-                                  debugPrint('[DETAIL:fallAsleep] name=$usedName idx=$usedIdx val="$raw"');
+                                    // 正規化ヘッダーで確実に列位置を決定（表記ゆれ・不可視文字対策）
+                                    int idx = _idxOfAnyNorm(const ['寝付きの満足度', '寝付き満足度']);
+                                    String raw = _cellByIdx(r, idx).trim();
 
-                                              // ★ フォールバック：
-                                              // CSV 行でこの列だけ空になっているケースに備え、
-                                              // 「深い睡眠感」の直前列（= 寝付き満足度のはず）を予備値として採用
-                                              if (raw.isEmpty) {
-                                                final deepIdx = _findIndexByNames(['深い睡眠感']);
-                                                final guessIdx = (deepIdx > 0) ? deepIdx - 1 : -1;
-                                                final guess = _cellByIdx(r, guessIdx);
-                                                if (guess.isNotEmpty) {
-                                                  debugPrint('[DETAIL:fallAsleep][fallback-prev] deepIdx=$deepIdx guessIdx=$guessIdx guess="$guess"');
-                                                  raw = guess;
-                                                }
-                                              }
+                                    // 値が空なら、近傍 or 構造から救済（idx±1, 深い睡眠感の直前, 想定レンジ8..10）
+                                    if (raw.isEmpty) {
+                                      final deepIdx = _findIndexByNames(['深い睡眠感']);
+                                      final candidates = <int>{
+                                        if (idx >= 0) idx - 1,
+                                        if (idx >= 0) idx + 1,
+                                        if (deepIdx > 0) deepIdx - 1,
+                                        8, 9, 10,
+                                      }.where((k) => k >= 0 && k < r.length);
+                                      for (final k in candidates) {
+                                        final s = _cellByIdx(r, k).trim();
+                                        if (s.isNotEmpty &&
+                                            RegExp(r'^[+-]?\d+(\.\d+)?$').hasMatch(s)) {
+                                          raw = s;
+                                          idx = k;
+                                          break;
+                                        }
+                                      }
+                                    }
 
+                                    final nameForLog =
+                                        (idx >= 0 && idx < _header.length) ? _header[idx] : 'N/A';
+                                    debugPrint('[DETAIL:fallAsleep] idx=$idx name=$nameForLog val="$raw"');
 
-
-
-
-
-                                  val = raw; // 最終値として採用（空なら後段の _addIfNotEmpty で弾かれる）
-                                } else {
+                                    // 既存の同名エントリがあれば除去してから確定値を入れる
+                                    fields.removeWhere((e) =>
+                                        e.key == '寝付きの満足度' || e.key == '寝付き満足度');
+                                    val = raw; // 空なら後段の _addIfNotEmpty が弾く
+                                  } else {
                                     // それ以外は従来通り
                                     if (val.isEmpty) {
                                       // 万一に備えて一般フォールバック（既知列へ）も使っておくと堅い
