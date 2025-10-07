@@ -12,6 +12,8 @@ import 'package:my_flutter_app_pro/services/ai_comment_exporter.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:my_flutter_app_pro/services/legacy_import_service.dart';
 
+import 'dart:ui' show FontFeature;// 等幅数字用
+
 
 // ==== helpers (robust cell access) ====
 int _findIndexByNames(List<String> names, List<String> header) {
@@ -81,8 +83,11 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   // ← 既存の state フィールド群の下に追加
   List<String> _header = [];
-
   List<String> _headerNorm = []; // 追加：正規化版ヘッダー
+// 数字を等幅で表示するための共通スタイル
+  final TextStyle _numStyle = const TextStyle(
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
 
 
 
@@ -737,8 +742,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     }
                                   }
 
-                                  if (val.isEmpty) continue;
-                                  widgets.add(Text('${f.key}: $val'));
+                                          if (val.isEmpty) continue;
+                                          // 幸せ感レベルは小数1桁に整形してから表示
+                                          if (f.key == '幸せ感レベル') {
+                                            final d = double.tryParse(val);
+                                            if (d != null) val = d.toStringAsFixed(1);
+                                          }
+                                          // 左右整列用の _kv を使って描画
+                                          widgets.add(_kv(f.key, val));
                                 }
 
                                 return widgets;
@@ -948,6 +959,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     return -1;
   }
+
+  Widget _kv(String label, String value) {
+    // 感謝1/2/3 は右寄せにせず、左寄せで「感謝1：xxx」の1行表示にする
+    if (label.startsWith('感謝')) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2.0),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            '$label：$value',
+            softWrap: true,
+          ),
+        ),
+      );
+    }
+
+    // それ以外は従来どおり（数値は等幅フォント＋右寄せ）
+    final v = value.trim();
+    final isNumeric = double.tryParse(v) != null;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 左：ラベル（左寄せ・改行可）
+          Expanded(
+            child: Text(
+              label,
+              softWrap: true,
+            ),
+          ),
+          const SizedBox(width: 8),
+          // 右：値（右寄せ・数字は等幅）
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 80),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                style: isNumeric ? _numStyle : null,
+                softWrap: true,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
 
 }
