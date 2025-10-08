@@ -13,8 +13,8 @@ import '../config/purchase_config.dart';
 
 // ==== 追加：プロダクトID定義 ====
 class PurchaseIds {
-  static const monthly  = 'pro_monthly_300';
-  static const lifetime = 'pro_lifetime_5000';
+  static const monthly  = 'pro_monthly_500';
+  static const lifetime = 'pro_lifetime_5100';
   static const ids = {monthly, lifetime};
 }
 
