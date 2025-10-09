@@ -77,10 +77,12 @@ class PurchaseService {
         );
         return;
       }
+      PLog.info('buy: start productId=$productId price=${details.price}${details.currencyCode}');
       final param = PurchaseParam(productDetails: details);
       // サブスク/非消費型は buyNonConsumable を使う（in_app_purchase の流儀）
       await InAppPurchase.instance.buyNonConsumable(purchaseParam: param);
       // 成否は purchaseStream 側で反映。hasPro が切り替わればUIが更新されます。
+      PLog.trace('buy: OS sheet presented (result via purchaseStream)');
     }
 
 
@@ -98,9 +100,22 @@ class PurchaseService {
     // 商品問い合わせ（販売開始前でも errors にはならないのでOK）
     final resp = await _iap.queryProductDetails(PurchaseIds.ids);
     products = resp.productDetails;
+    for (final p in products) {
+      PLog.ok('product loaded: id=${p.id} title=${p.title} '
+          'price=${p.price} currency=${p.currencyCode} raw=${p.rawPrice}');
+    }
+    if (products.isEmpty) {
+      PLog.warn('product loaded: 0 item(s). App Store Connect 反映待ち/ID不一致の可能性');
+    }
+
 
     // 購入/復元のストリーム
-    _sub = _iap.purchaseStream.listen(_onPurchaseUpdated, onError: (e) {});
+    _sub = _iap.purchaseStream.listen((events) {
+      PLog.info('stream: got ${events.length} event(s)');
+      _onPurchaseUpdated(events);
+    }, onError: (e, st) {
+      PLog.err('stream error: $e\n$st');
+    });
 
     // ローカルの状態（復元相当）を読む
     final sp = await SharedPreferences.getInstance();
@@ -153,9 +168,22 @@ class PurchaseService {
     return c.future;
   }
 
-
+  int? _lastTxn; // クラスフィールドに追加
   Future<void> _onPurchaseUpdated(List<PurchaseDetails> list) async {
     for (final pd in list) {
+      final ts = int.tryParse(pd.transactionDate ?? '');
+      if (ts != null && (_lastTxn == null || ts > _lastTxn!)) {
+        final dt = DateTime.fromMillisecondsSinceEpoch(ts);
+        PLog.info('TXN at $dt (epoch=$ts)');
+        _lastTxn = ts;
+      }
+      PLog.trace('update: '
+          'status=${pd.status} '
+          'product=${pd.productID} '
+          'pendingComplete=${pd.pendingCompletePurchase} '
+          'transactionDate=${pd.transactionDate} '
+          'source=${pd.verificationData.source}');
+      // 既存switch…（そのまま）
       switch (pd.status) {
         case PurchaseStatus.purchased:
         case PurchaseStatus.restored:
@@ -179,6 +207,7 @@ class PurchaseService {
   }
   /// OSの購読管理画面を開く
   Future<void> openManage() async {
+    PLog.info('manage: open subscriptions screen');
     try {
       if (Platform.isIOS) {
         final add = InAppPurchase.instance
@@ -212,6 +241,7 @@ class PurchaseService {
   Future<void> restoreWithUI(BuildContext context) async {
     if (_restoring) return;
     _restoring = true;
+    PLog.info('restore: begin (with UI)');
 
     // 進捗ダイアログ（キャンセル不可）
     await showDialog(
@@ -220,6 +250,7 @@ class PurchaseService {
       builder: (_) => const Center(
         child: CircularProgressIndicator(),
       ),
+
     );
 
     // 実復元
@@ -243,6 +274,7 @@ class PurchaseService {
         ],
       ),
     );
+    PLog.ok('restore: ${ok ? "success" : "no purchases found"}');
   }
 
   /// 実際の復元処理（タイムアウトつき）
@@ -279,4 +311,22 @@ class PurchaseService {
   }
 
 
+}
+class PLog {
+  static const _r = '\x1B[31m'; // red
+  static const _g = '\x1B[32m'; // green
+  static const _y = '\x1B[33m'; // yellow
+  static const _b = '\x1B[34m'; // blue
+  static const _m = '\x1B[35m'; // magenta
+  static const _c = '\x1B[36m'; // cyan
+  static const _k = '\x1B[90m'; // gray
+  static const _x = '\x1B[0m';  // reset
+
+  static bool enabled = true;   // オフにしたいときは false
+
+  static void info(String m)  { if (enabled && kDebugMode) print('$_c[iap] INFO $_x$m'); }
+  static void ok(String m)    { if (enabled && kDebugMode) print('$_g[iap] OK   $_x$m'); }
+  static void warn(String m)  { if (enabled && kDebugMode) print('$_y[iap] WARN $_x$m'); }
+  static void err(String m)   { if (enabled && kDebugMode) print('$_r[iap] ERR  $_x$m'); }
+  static void trace(String m) { if (enabled && kDebugMode) print('$_k[iap] ...  $_x$m'); }
 }
