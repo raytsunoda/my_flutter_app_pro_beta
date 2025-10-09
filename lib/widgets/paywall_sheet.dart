@@ -133,15 +133,27 @@ class _PaywallSheetState extends State<PaywallSheet> {
 
                 // 有効化モードのときだけ購入ボタンを表示
                 if (mode == PaywallMode.enable) ...[
+                  // 月額ボタン
                   ElevatedButton(
-                    onPressed: monthly == null ? null : () => PurchaseService.I.buy(monthly),
+                    onPressed: monthly == null
+                        ? null
+                        : () {
+                      PLog.info('tap: monthly');
+                      PurchaseService.I.buy(monthly);
+                    },
                     child: Text(
                       monthly == null ? '¥500 / 月（準備中）' : '${monthly.price} / 月で有効化',
                     ),
                   ),
                   const SizedBox(height: 8),
+                  // 買い切りボタン
                   ElevatedButton(
-                    onPressed: lifetime == null ? null : () => PurchaseService.I.buy(lifetime),
+                    onPressed: lifetime == null
+                        ? null
+                        : () {
+                      PLog.info('tap: lifetime');
+                      PurchaseService.I.buy(lifetime);
+                    },
                     child: Text(
                       lifetime == null ? '¥5,100（買い切り・準備中）' : '${lifetime.price} で買い切り有効化',
                     ),
@@ -153,12 +165,20 @@ class _PaywallSheetState extends State<PaywallSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // 「購入を復元」
                     TextButton(
-                      onPressed: _restoring ? null : _onRestore,
+                      onPressed: _restoring
+                          ? null
+                          : () async {
+                        PLog.info('tap: restore');
+                        await _onRestore();
+                      },
                       child: const Text('購入を復元'),
                     ),
+                    // 「購読管理」
                     TextButton(
                       onPressed: () async {
+                        PLog.info('tap: manage');
                         HapticFeedback.selectionClick();
                         await PurchaseService.I.openManage();
                       },
