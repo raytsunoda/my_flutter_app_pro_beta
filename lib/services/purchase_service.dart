@@ -206,36 +206,37 @@ class PurchaseService {
     await sp.setBool('hasPro', v);
   }
   /// OSの購読管理画面を開く
-  Future<void> openManage() async {
-    PLog.info('manage: open subscriptions screen');
-    try {
-      if (Platform.isIOS) {
-        final add = InAppPurchase.instance
-            .getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
-        try {
-          // 新しめの iOS だけにある API を試す（未対応なら例外）
-          await (add as dynamic).showManageSubscriptionsSheet();
-          return;
-        } catch (e) {
-          debugPrint('[manage] showManageSubscriptionsSheet failed: $e');
-          // フォールバックURL
-          final uri = Uri.parse('https://apps.apple.com/account/subscriptions');
+
+    Future<void> openManage() async {
+      PLog.info('manage: open subscriptions screen');
+      try {
+        if (Platform.isIOS) {
+          final add = InAppPurchase.instance
+              .getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
+          try {
+            // 新しめの iOS だけにある API を試す（未対応なら例外）
+            await (add as dynamic).showManageSubscriptionsSheet();
+            return;
+          } catch (e) {
+            debugPrint('[manage] showManageSubscriptionsSheet failed: $e');
+            // フォールバックURL
+            final uri = Uri.parse('https://apps.apple.com/account/subscriptions');
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+            return;
+          }
+        } else {
+          final uri = Uri.parse('https://play.google.com/store/account/subscriptions');
           await launchUrl(uri, mode: LaunchMode.externalApplication);
           return;
         }
-      } else {
-        final uri = Uri.parse('https://play.google.com/store/account/subscriptions');
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return;
+      } catch (e, st) {
+        debugPrint('[manage] fatal: $e\n$st');
+        final fallback = Platform.isIOS
+            ? Uri.parse('https://apps.apple.com/account/subscriptions')
+            : Uri.parse('https://play.google.com/store/account/subscriptions');
+        await launchUrl(fallback, mode: LaunchMode.externalApplication);
       }
-    } catch (e, st) {
-      debugPrint('[manage] fatal: $e\n$st');
-      final fallback = Platform.isIOS
-          ? Uri.parse('https://apps.apple.com/account/subscriptions')
-          : Uri.parse('https://play.google.com/store/account/subscriptions');
-      await launchUrl(fallback, mode: LaunchMode.externalApplication);
     }
-  }
 
   /// モーダルで進捗を出しつつ、必ず結果ダイアログを出す復元
   Future<void> restoreWithUI(BuildContext context) async {
@@ -322,7 +323,7 @@ class PLog {
   static const _k = '\x1B[90m'; // gray
   static const _x = '\x1B[0m';  // reset
 
-  static bool enabled = true;   // オフにしたいときは false
+  static bool enabled = const bool.fromEnvironment('LOG_IAP', defaultValue: true);
 
   static void info(String m)  { if (enabled && kDebugMode) print('$_c[iap] INFO $_x$m'); }
   static void ok(String m)    { if (enabled && kDebugMode) print('$_g[iap] OK   $_x$m'); }
