@@ -5,21 +5,50 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
 import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart'; // iOS 管理画面用
-import 'package:url_launcher/url_launcher.dart';
+//import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/purchase_config.dart';
+import 'package:url_launcher/url_launcher_string.dart';
+import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
+// ...
+/*
+/// OSの購読管理画面を開く（URL遷移に一本化）
+Future<void> openManage() async {
+  PLog.info('manage: open subscriptions screen');
+  try {
+    final url = Platform.isIOS
+        ? 'https://apps.apple.com/account/subscriptions'
+        : 'https://play.google.com/store/account/subscriptions';
+    if (await canLaunchUrlString(url)) {
+      await launchUrlString(url, mode: LaunchMode.externalApplication);
+    } else {
+      PLog.error('manage: cannot open $url');
+    }
+  } catch (e, st) {
+    debugPrint('[manage] fatal: $e\n$st');
+    final url = Platform.isIOS
+        ? 'https://apps.apple.com/account/subscriptions'
+        : 'https://play.google.com/store/account/subscriptions';
+    await launchUrlString(url, mode: LaunchMode.externalApplication);
+  }
+}
+*/
 // Fallback / Android
 
 // ==== 追加：プロダクトID定義 ====
 class PurchaseIds {
-  static const monthly  = 'pro_monthly_500';
-  static const lifetime = 'pro_lifetime_5100';
-  static const ids = {monthly, lifetime};
+  // App Store Connect > サブスクリプションで作った製品ID
+  static const monthly  = 'pro_monthly_500_auto';
+  static const yearly = 'pro_yearly_4800_auto';
+  static const ids = {monthly, yearly};
 }
 
 
 class PurchaseService {
+
+
+
 
   // 開発用：ビルドフラグでも強制Pro
   static const bool _kForceProFromBuild =
@@ -44,72 +73,64 @@ class PurchaseService {
   // 取得した商品をキャッシュ
   final Map<String, ProductDetails> _products = {};
 
+  // ストアから商品を読み込み（起動時に呼ぶ）
+  Future<void> loadProducts() async {
+    try {
+      final resp = await _iap.queryProductDetails(PurchaseIds.ids);
+      products = resp.productDetails;
+      _products
+        ..clear()
+        ..addEntries(products.map((p) => MapEntry(p.id, p)));
+      for (final p in products) {
+        PLog.ok('product loaded: id=${p.id} title=${p.title} price=${p.price} currency=${p.currencyCode} raw=${p.rawPrice}');
+      }
+      if (_products.isEmpty) {
+        PLog.warn('product loaded: 0 item(s). ID不一致/反映待ちの可能性');
+      }
+    } catch (e) {
+      PLog.err('loadProducts failed: $e');
+    }
+  }
 
+  // 任意のIDで買えるヘルパ（UIから使いやすい）
+  Future<void> buyById(BuildContext context, String productId) async {
+    final details = _products[productId];
+    if (details == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('購入情報の取得中です。数秒後に再度お試しください。')),
+        );
+      }
+      return;
+    }
+    PLog.info('buy: start id=$productId price=${details.price}${details.currencyCode}');
+    final param = PurchaseParam(productDetails: details);
+    await _iap.buyNonConsumable(purchaseParam: param); // サブスクもOK
+    PLog.trace('buy: sheet presented');
+  }
 
   Future<void> init() async {
-
-      // --- 開発用：Proを強制付与（.env or --dart-define）---
-      if (PurchaseConfig.DEV_FORCE_PRO || _kForceProFromBuild) {
-        debugPrint('[Purchase] FORCE_PRO enabled (env/build). gating OFF.');
-        hasPro.value = true; // ← 既存の ValueNotifier<bool> を想定
-        return; // 以降の課金初期化はスキップ
-      }
-
-
-// 起動時に呼ぶ（init() の「FORCE_PROのreturn」より後でOK）
-    Future<void> loadProducts() async {
-      try {
-        final resp = await InAppPurchase.instance.queryProductDetails(PurchaseIds.ids);
-        _products
-          ..clear()
-          ..addEntries(resp.productDetails.map((p) => MapEntry(p.id, p)));
-      } catch (e) {
-        // 失敗してもアプリは継続。ボタン側で未取得時の案内を出す
-      }
+    if (PurchaseConfig.DEV_FORCE_PRO || _kForceProFromBuild) {
+      debugPrint('[Purchase] FORCE_PRO enabled (env/build). gating OFF.');
+      hasPro.value = true;
+      return;
     }
 
-    /// 共通購入ヘルパー（購買UIはOS側が表示）
-    Future<void> buy(BuildContext context, String productId) async {
-      final details = _products[productId];
-      if (details == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('購入情報を取得できませんでした。少し待って再度お試しください')),
-        );
-        return;
-      }
-      PLog.info('buy: start productId=$productId price=${details.price}${details.currencyCode}');
-      final param = PurchaseParam(productDetails: details);
-      // サブスク/非消費型は buyNonConsumable を使う（in_app_purchase の流儀）
-      await InAppPurchase.instance.buyNonConsumable(purchaseParam: param);
-      // 成否は purchaseStream 側で反映。hasPro が切り替わればUIが更新されます。
-      PLog.trace('buy: OS sheet presented (result via purchaseStream)');
-    }
-
-
-
-
-
-
-      // （ここから先は既存の課金初期化ロジックのまま）
-
-
-
-      // ストア利用可否
     available = await _iap.isAvailable();
 
-    // 商品問い合わせ（販売開始前でも errors にはならないのでOK）
+    // 商品ロード（↑のヘルパを使用）
+    await loadProducts();
+
+    // （重複だが安全のため）もう一度直接問い合わせ
     final resp = await _iap.queryProductDetails(PurchaseIds.ids);
     products = resp.productDetails;
     for (final p in products) {
-      PLog.ok('product loaded: id=${p.id} title=${p.title} '
-          'price=${p.price} currency=${p.currencyCode} raw=${p.rawPrice}');
+      PLog.ok('product loaded: id=${p.id} title=${p.title} price=${p.price} currency=${p.currencyCode} raw=${p.rawPrice}');
     }
     if (products.isEmpty) {
       PLog.warn('product loaded: 0 item(s). App Store Connect 反映待ち/ID不一致の可能性');
     }
 
-
-    // 購入/復元のストリーム
     _sub = _iap.purchaseStream.listen((events) {
       PLog.info('stream: got ${events.length} event(s)');
       _onPurchaseUpdated(events);
@@ -117,7 +138,6 @@ class PurchaseService {
       PLog.err('stream error: $e\n$st');
     });
 
-    // ローカルの状態（復元相当）を読む
     final sp = await SharedPreferences.getInstance();
     hasPro.value = sp.getBool('hasPro') ?? false;
   }
@@ -207,36 +227,26 @@ class PurchaseService {
   }
   /// OSの購読管理画面を開く
 
-    Future<void> openManage() async {
-      PLog.info('manage: open subscriptions screen');
-      try {
-        if (Platform.isIOS) {
-          final add = InAppPurchase.instance
-              .getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
-          try {
-            // 新しめの iOS だけにある API を試す（未対応なら例外）
-            await (add as dynamic).showManageSubscriptionsSheet();
-            return;
-          } catch (e) {
-            debugPrint('[manage] showManageSubscriptionsSheet failed: $e');
-            // フォールバックURL
-            final uri = Uri.parse('https://apps.apple.com/account/subscriptions');
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-            return;
-          }
-        } else {
-          final uri = Uri.parse('https://play.google.com/store/account/subscriptions');
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-          return;
-        }
-      } catch (e, st) {
-        debugPrint('[manage] fatal: $e\n$st');
-        final fallback = Platform.isIOS
-            ? Uri.parse('https://apps.apple.com/account/subscriptions')
-            : Uri.parse('https://play.google.com/store/account/subscriptions');
-        await launchUrl(fallback, mode: LaunchMode.externalApplication);
+  /// OSの購読管理画面を開く（URL遷移に一本化）
+  Future<void> openManage() async {
+    PLog.info('manage: open subscriptions screen');
+    try {
+      final url = Platform.isIOS
+          ? 'https://apps.apple.com/account/subscriptions'
+          : 'https://play.google.com/store/account/subscriptions';
+      if (await canLaunchUrlString(url)) {
+        await launchUrlString(url, mode: LaunchMode.externalApplication);
+      } else {
+        PLog.err('manage: cannot open $url');
       }
+    } catch (e, st) {
+      debugPrint('[manage] fatal: $e\n$st');
+      final url = Platform.isIOS
+          ? 'https://apps.apple.com/account/subscriptions'
+          : 'https://play.google.com/store/account/subscriptions';
+      await launchUrlString(url, mode: LaunchMode.externalApplication);
     }
+  }
 
   /// モーダルで進捗を出しつつ、必ず結果ダイアログを出す復元
   Future<void> restoreWithUI(BuildContext context) async {
@@ -313,6 +323,11 @@ class PurchaseService {
 
 
 }
+
+
+
+
+
 class PLog {
   static const _r = '\x1B[31m'; // red
   static const _g = '\x1B[32m'; // green

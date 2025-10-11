@@ -45,9 +45,9 @@ class _PaywallSheetState extends State<PaywallSheet> {
         title: Text('この画面について'),
         content: Text(
           '・Proを有効化：AIパートナーのひとこと等の機能を使えるようにします。\n'
-              '・料金：月額プランは¥500/月、買い切りプランは¥5,100です。\n'
-              '・購入を復元：機種変更や再インストール時に、過去の購入を端末に戻します（重複課金なし）。\n'
-              '・購読管理：iOS/Androidのサブスクリプション管理画面を開きます。',
+              '月額プランは¥500/月（自動更新）、年額プランは¥4,800/年（自動更新）です。\n'
+              '購入を復元：機種変更や再インストール時に、過去の購入を端末に戻します（重複課金なし）。\n'
+              '購読管理：iOS/Androidのサブスクリプション管理画面を開きます。',
         ),
       ),
     );
@@ -85,12 +85,12 @@ class _PaywallSheetState extends State<PaywallSheet> {
     final title = mode == PaywallMode.enable ? 'Proを有効化' : 'アプリ内課金の管理';
     final desc = mode == PaywallMode.enable
         ? 'Proを有効化すると「AIパートナーのひとこと」が使えるようになります。\n'
-        '料金：月額プランは¥500/月、買い切りプランは¥5,100です。'
+        '料金：月額プランは¥500/月（自動更新）、年額プランは¥4,800/年（自動更新）です。'
         : '機種変更・再インストール時は「購入を復元」をご利用ください（重複課金は発生しません）。'
         '購読の解約・切替は「購読管理」から行えます。';
 
     // ストアから必要な ProductDetails をまとめて取得
-    final ids = <String>{ PurchaseIds.monthly, PurchaseIds.lifetime };
+    final ids = <String>{ PurchaseIds.monthly, PurchaseIds.yearly };
 
     return SafeArea(
       child: Padding(
@@ -102,7 +102,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
               for (final d in (snap.data?.productDetails ?? <ProductDetails>[])) d.id: d
             };
             final monthly = byId[PurchaseIds.monthly];
-            final lifetime = byId[PurchaseIds.lifetime];
+            final yearly = byId[PurchaseIds.yearly];
 
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -142,20 +142,20 @@ class _PaywallSheetState extends State<PaywallSheet> {
                       PurchaseService.I.buy(monthly);
                     },
                     child: Text(
-                      monthly == null ? '¥500 / 月（準備中）' : '${monthly.price} / 月で有効化',
+                      monthly == null ? '¥500 / 月（準備中）' : '${monthly.price} / 月で月額プラン有効化',
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // 買い切りボタン
+                  // 年額プランボタン
                   ElevatedButton(
-                    onPressed: lifetime == null
+                    onPressed: yearly == null
                         ? null
                         : () {
-                      PLog.info('tap: lifetime');
-                      PurchaseService.I.buy(lifetime);
+                      PLog.info('tap: yearly');
+                      PurchaseService.I.buy(yearly);
                     },
                     child: Text(
-                      lifetime == null ? '¥5,100（買い切り・準備中）' : '${lifetime.price} で買い切り有効化',
+                      yearly == null ? '¥4,800（年額プラン・準備中）' : '${yearly.price} /年で年額プラン有効化',
                     ),
                   ),
                   const SizedBox(height: 8),

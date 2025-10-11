@@ -270,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen> {
               opacity: 0.70,
               child: Text(
                 '料金：月額¥500（自動更新／月単位で解約可）。'
-                    '買い切りプラン¥5,100です。',
+                    '年額プラン¥4,800です。',
                 style: Theme.of(context).textTheme.labelSmall,
               ),
             ),
