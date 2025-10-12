@@ -151,23 +151,25 @@ class PurchaseService {
     await _iap.buyNonConsumable(purchaseParam: param); // サブスク/買切りの両方で可
   }
 
+  /// 進捗UIなしの復元（UI側でスピナーを出す想定）
   Future<bool> restore() async {
-    try {
-      // iOS/Android 共通：復元リクエスト
-      await InAppPurchase.instance.restorePurchases();
-
-      // 購入ストリームの反映を少し待って hasPro を見る
-      final ok = await _waitForProFlag();
-      debugPrint('[restore] result hasPro=$ok');
-      return ok;
-    } on PlatformException catch (e) {
-      debugPrint('[restore] PlatformException ${e.code}: ${e.message}');
-      return false;
-    } catch (e, st) {
-      debugPrint('[restore] error: $e\n$st');
-      return false;
-    }
+    PLog.info('restore: begin');
+    final ok = await _restoreInternal();
+    PLog.info('restore: end ok=$ok (hasPro=${hasPro.value})');
+    return ok;
   }
+
+
+  /// ValueListenable<bool> の true を待つ補助（timeout は Any 側で管理）
+  Future<bool> _waitHasProTrue(Duration maxWait) async {
+    final start = DateTime.now();
+    while (DateTime.now().difference(start) < maxWait) {
+      if (hasPro.value) return true;
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    }
+    return false;
+  }
+
   /// hasPro に切り替わるのを最長3秒待って判定
   Future<bool> _waitForProFlag({Duration timeout = const Duration(seconds: 3)}) async {
     if (hasPro.value) return true;
@@ -263,15 +265,14 @@ class PurchaseService {
     _restoring = true;
     PLog.info('restore: begin (with UI)');
 
-    // 進捗ダイアログ（キャンセル不可）
-    await showDialog(
+    // 進捗ダイアログ（キャンセル不可）← await しない
+    showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-
+      useRootNavigator: true,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
+
 
     // 実復元
     final ok = await _restoreInternal();
@@ -341,8 +342,11 @@ class PLog {
   static const _r = '\x1B[31m'; // red
   static const _g = '\x1B[32m'; // green
   static const _y = '\x1B[33m'; // yellow
-  static const _b = '\x1B[34m'; // blue
-  static const _m = '\x1B[35m'; // magenta
+  // ignore: unused_field
+  static const _b = '\x1B[34m';
+// ignore: unused_field
+  static const _m = '\x1B[35m';
+
   static const _c = '\x1B[36m'; // cyan
   static const _k = '\x1B[90m'; // gray
   static const _x = '\x1B[0m';  // reset
