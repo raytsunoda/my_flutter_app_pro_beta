@@ -207,16 +207,25 @@ class PurchaseService {
       switch (pd.status) {
         case PurchaseStatus.purchased:
         case PurchaseStatus.restored:
+          PLog.info('grant pro: product=${pd.productID} status=${pd.status}');
           await _setPro(true);
           break;
+
         case PurchaseStatus.error:
         case PurchaseStatus.canceled:
         case PurchaseStatus.pending:
           break;
       }
       if (pd.pendingCompletePurchase) {
-        await _iap.completePurchase(pd);
+        try {
+          PLog.info('completePurchase: ${pd.productID} (txn=${pd.transactionDate})');
+          await _iap.completePurchase(pd);
+          PLog.ok('completePurchase done: ${pd.productID}');
+        } catch (e, st) {
+          PLog.err('completePurchase failed: $e\n$st');
+        }
       }
+
     }
   }
 

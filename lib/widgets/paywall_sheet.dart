@@ -52,9 +52,9 @@ class _PaywallSheetState extends State<PaywallSheet> {
       ),
     );
   }
-
-  // 復元の実処理（成功/未該当どちらでも必ずダイアログ表示）
-  Future<void> _onRestore() async {
+/*
+  // ※ restore はサービス側に一本化しました（UI進捗＆結果ダイアログ付き）。
+// Future<void> _onRestore() async { /* unused */ }
     setState(() => _restoring = true);
     bool restored = false;
     try {
@@ -78,7 +78,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
       ),
     );
   }
-
+*/
   @override
   Widget build(BuildContext context) {
     final mode = widget.mode;
@@ -98,11 +98,35 @@ class _PaywallSheetState extends State<PaywallSheet> {
         child: FutureBuilder<ProductDetailsResponse>(
           future: InAppPurchase.instance.queryProductDetails(ids),
           builder: (context, snap) {
-            final byId = {
-              for (final d in (snap.data?.productDetails ?? <ProductDetails>[])) d.id: d
-            };
+            // ★ まずはログに必ず出す（何も起きていないのを防ぐ）
+            debugPrint('[paywall] FB state=${snap.connectionState} '
+                'items=${snap.data?.productDetails.length ?? 0} '
+                'notFound=${snap.data?.notFoundIDs}');
+
+            // ★ 読み込み中はインジケータを返す（“準備中”と区別）
+            if (snap.connectionState == ConnectionState.waiting &&
+                (snap.data?.productDetails.isEmpty ?? true)) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            // 取得できた ProductDetails 一覧
+            final products = (snap.data?.productDetails ?? <ProductDetails>[]);
+
+            // id => details
+            final byId = { for (final d in products) d.id: d };
             final monthly = byId[PurchaseIds.monthly];
-            final yearly = byId[PurchaseIds.yearly];
+            final yearly  = byId[PurchaseIds.yearly];
+
+            // デバッグ用：通貨 / 取得ID / 見つからないID（空でもテキスト化）
+            final currencyDebug = [
+              if (monthly != null) monthly.currencyCode,
+              if (yearly  != null) yearly.currencyCode,
+            ].toSet().join(' / ');
+            final gotIds   = products.map((e) => e.id).join(', ');
+            final notFound = (snap.data?.notFoundIDs ?? const <String>[]).join(', ');
 
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -129,7 +153,23 @@ class _PaywallSheetState extends State<PaywallSheet> {
                   desc,
                   style: TextStyle(color: Colors.black.withValues(alpha: 0.7)),
                 ),
+                // ★ 必ず1行出す（空でも状態が分かる）
+                // const SizedBox(height: 6),
+                // Container(
+                //   padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                //   decoration: BoxDecoration(
+                //     color: Colors.black.withValues(alpha: 0.05),
+                //     borderRadius: BorderRadius.circular(6),
+                //   ),
+                //   child: Text(
+                //     'state=${snap.connectionState}  '
+                //         'got=[$gotIds]  notFound=[$notFound]  currency=[$currencyDebug]  '
+                //         'err=${snap.error ?? 'none'}',
+                //     style: TextStyle(fontSize: 11, color: Colors.black.withValues(alpha: 0.6)),
+                //   ),
+                // ),
                 const SizedBox(height: 16),
+
 
                 // 有効化モードのときだけ購入ボタンを表示
                 if (mode == PaywallMode.enable) ...[
@@ -171,8 +211,9 @@ class _PaywallSheetState extends State<PaywallSheet> {
                           ? null
                           : () async {
                         PLog.info('tap: restore');
-                        await _onRestore();
+                        await PurchaseService.I.restoreWithUI(context);
                       },
+
                       child: const Text('購入を復元'),
                     ),
                     // 「購読管理」
