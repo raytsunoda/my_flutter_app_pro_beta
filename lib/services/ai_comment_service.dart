@@ -126,21 +126,50 @@ class AiCommentService {
     );
 
 // --- 呼びかけ名ヘルパ（常に「さん」付きに正規化） ---
+  // --- 呼びかけ名ヘルパ（常に「さん」付きに正規化） ---
   static Future<String> _callName() async {
-    try {
-      final who = await _resolveDisplayName(); // 既存
-      final base = who.trim().isEmpty ? 'ユーザー' : who.trim();
-      return base.endsWith('さん') ? base : '$baseさん';
-    } catch (_) {
-      return 'ユーザーさん';
-    }
+    final raw = (await _resolveDisplayName()).trim();
+    if (raw.isEmpty) return 'ユーザーさん'; // 未設定時の既定
+
+    // 末尾が「さん」以外なら付与（「様」「くん」「ちゃん」などが既に付いているなら、そのままでも良いが
+    // 今回は統一のため原則「さん」に正規化）
+    final normalized = raw.endsWith('さん') ? raw : '$rawさん';
+
+    return normalized;
   }
 
-  // --- 念のため出力をサニタイズ（「あなた」を呼び名に差し替え） ---
+
+  // --- 念のため出力をサニタイズ（「あなた」を呼び名に置換・重複敬称を整形） ---
   static String _enforceCallName(String text, String callName) {
-    if (text.isEmpty) return text;
-    return text.replaceAll('あなた', callName);
+    var s = text;
+
+    // 「あなた」「あなたさん」「貴方」など代表的な呼称を網羅置換（「あなた方」は除外）
+    final patterns = <RegExp>[
+      RegExp(r'(?m)^\s*あなたさん', multiLine: true),
+      RegExp(r'(?m)^\s*あなた(?!方)', multiLine: true),
+      RegExp(r'あなたさん'),
+      RegExp(r'あなた(?!方)'),
+      RegExp(r'貴方さん'),
+      RegExp(r'貴方(?!方)'),
+      RegExp(r'貴女さん'),
+      RegExp(r'貴女(?!方)'),
+      RegExp(r'\b[Yy]ou\b'), // 英語混入対策
+      RegExp(r'君'), RegExp(r'きみ'),
+    ];
+
+    for (final p in patterns) {
+      s = s.replaceAll(p, callName);
+    }
+
+    // 二重敬称「さんさん」を1つに
+    s = s.replaceAll(RegExp(r'さんさん'), 'さん');
+
+    // 句読点や空白の連続を軽く整える（任意）
+    s = s.replaceAll(RegExp(r'[\u3000 ]{2,}'), ' ');
+
+    return s;
   }
+
 
   // 指定 EOM（例：2025/08/31）の月次レコードを 1 件返す（あれば）
   static Future<Map<String, dynamic>?> findMonthlyByDate(DateTime dt) async {
@@ -1648,8 +1677,11 @@ return added;
   }
   static Future<String> _resolveDisplayName() async {
     final name = await UserPrefs.getDisplayName();
-    return (name == null || name.trim().isEmpty) ? 'あなた' : name.trim();
+    // 未設定時に「あなた」を返さない（呼びかけ汚染源を断つ）
+    return (name == null || name.trim().isEmpty) ? '' : name.trim();
   }
+
+
 
 
 }

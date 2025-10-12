@@ -14,4 +14,12 @@ class UserPrefs {
     final p = await SharedPreferences.getInstance();
     await p.setString(_kDisplayName, name.trim());
   }
+  // 末尾に「さん」を付けた表示名を返す（未設定は null）
+  static Future<String?> getDisplayNameWithSan() async {
+    final v = await getDisplayName();
+    if (v == null || v.trim().isEmpty) return null;
+    final t = v.trim();
+    return t.endsWith('さん') ? t : '$tさん';
+  }
+
 }
