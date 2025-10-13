@@ -145,17 +145,19 @@ class AiCommentService {
 
     // 「あなた」「あなたさん」「貴方」など代表的な呼称を網羅置換（「あなた方」は除外）
     final patterns = <RegExp>[
-      RegExp(r'(?m)^\s*あなたさん', multiLine: true),
-      RegExp(r'(?m)^\s*あなた(?!方)', multiLine: true),
+      RegExp(r'^\s*あなたさん', multiLine: true),
+      RegExp(r'^\s*あなた(?!方)', multiLine: true),
       RegExp(r'あなたさん'),
       RegExp(r'あなた(?!方)'),
       RegExp(r'貴方さん'),
       RegExp(r'貴方(?!方)'),
       RegExp(r'貴女さん'),
       RegExp(r'貴女(?!方)'),
-      RegExp(r'\b[Yy]ou\b'), // 英語混入対策
-      RegExp(r'君'), RegExp(r'きみ'),
+      RegExp(r'\b[Yy]ou\b'),
+      RegExp(r'君'),
+      RegExp(r'きみ'),
     ];
+
 
     for (final p in patterns) {
       s = s.replaceAll(p, callName);
@@ -707,7 +709,14 @@ ${callName} 個人に刺さる短いコメントを**200文字以内**で日本�
         final text =
         (data['comment'] ?? data['text'] ?? '').toString().trim();
         if (text.isNotEmpty) {
-          final withName = _enforceCallName(text, callName);
+          // 呼びかけ差し替えで例外が出てもUIを止めない
+          String withName;
+          try {
+            withName = _enforceCallName(text, callName);
+          } catch (e, st) {
+            debugPrint('[enforceCallName] ignore: $e\n$st');
+            withName = text;
+          }
           // thanks（= 感謝1〜3）から最低1つは本文で触れるよう保険をかける
           final withGratitude = _ensureGratitudeMention(
             withName,
@@ -715,15 +724,12 @@ ${callName} 個人に刺さる短いコメントを**200文字以内**で日本�
           );
           return withGratitude;
         }
-
       }
+
     } catch (_) {
       // 握りつぶし → 下のフォールバックに任せる
     }
     return '';
-
-
-
 
   }
 
@@ -911,15 +917,16 @@ $memosLine
       final base = generatedCommentRaw.isNotEmpty
           ? generatedCommentRaw
           : 'コメント取得に失敗しました。';
-
-// callName は _callName() 側で「さん」付与済み想定（呼び捨て防止）
-// 「あなた」等を呼び名に置換し、二重「さんさん」を整形
-      final withName = _enforceCallName(base, callName);
-
-// 感謝1〜3のいずれかが本文で触れられていない場合は、追伸で1つだけ補う（保険）
-      final withGratitude = _ensureGratitudeMention(withName, pickedMemos);
-      final generatedComment = withGratitude;
-
+// 呼びかけ差し替えは例外で固まらないように保護
+      String withName;
+      try {
+        withName = _enforceCallName(base, callName);
+      } catch (e) {
+        debugPrint('[enforceCallName] ignore: $e');
+        withName = base;
+      }
+// 感謝1〜3のいずれかが本文で触れられていない場合の保険
+      final generatedComment = _ensureGratitudeMention(withName, pickedGratitudes);
 
       await CsvLoader.appendAiCommentLog(
         date: endDateStr,
