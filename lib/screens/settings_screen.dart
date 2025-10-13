@@ -11,9 +11,8 @@ import 'package:path/path.dart' as p; // ファイル名表示用
 import 'package:my_flutter_app_pro/services/ai_comment_exporter.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:my_flutter_app_pro/services/legacy_import_service.dart';
-
 import 'dart:ui' show FontFeature;// 等幅数字用
-
+import 'package:my_flutter_app_pro/utils/user_prefs.dart';
 
 // ==== helpers (robust cell access) ====
 int _findIndexByNames(List<String> names, List<String> header) {
@@ -89,6 +88,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     fontFeatures: [FontFeature.tabularFigures()],
   );
 
+// 呼びかけ名（表示名）
+  final _displayNameCtrl = TextEditingController();
 
 
   // ───────── 通知時刻 ─────────
@@ -148,6 +149,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadNotificationTimes();
     _loadPreferences();
     _loadCSV();
+    // ▼ 呼びかけ名の初期値
+    UserPrefs.getDisplayName().then((v) {
+      if (!mounted) return;
+      _displayNameCtrl.text = (v ?? '').trim();
+      setState(() {});
+    });
+  }
+  @override
+  void dispose() {
+    _displayNameCtrl.dispose();
+    super.dispose();
   }
 
   // ──────────────────────────────────── 通知
@@ -339,6 +351,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ],
     );
   }
+
+
+
+
+
 
   // 既出ならこのまま流用OK
   String _normYmd(String s) {
@@ -593,6 +610,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           ExpansionTile(title: const Text('通知設定'), children: [_buildTimePickerSection()]),
           _buildWeightSection(),
+
+// ▼▼ ここから追加：呼びかけ名セクション ▼▼
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('呼びかけ名（さん付けで呼びます）'),
+            subtitle: TextField(
+              controller: _displayNameCtrl,
+              decoration: const InputDecoration(
+                hintText: '例：太郎（空なら「ユーザー」）',
+              ),
+            ),
+            trailing: ElevatedButton(
+              onPressed: () async {
+                await UserPrefs.setDisplayName(_displayNameCtrl.text);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('呼びかけ名を保存しました')),
+                );
+                setState(() {});
+              },
+              child: const Text('保存'),
+            ),
+          ),
+          const Divider(),
+// ▲▲ 追加ここまで ▲▲
+
+
+
+
           ExpansionTile(title: const Text('保存データの管理'), children: [
             if (_csvData.isEmpty)
               const Padding(
@@ -656,6 +702,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   MapEntry('感謝1', ['感謝1']),
                                   MapEntry('感謝2', ['感謝2']),
                                   MapEntry('感謝3', ['感謝3']),
+                                  // ▼ これを追加（表記ゆれ想定）
+                                  MapEntry('今日のひとことメモ', ['memo', 'メモ', '今日のひとことメモ']),
                                 ];
 
                                 // ループ外にバッファ（ループ中に UI リストを直接いじらない）
@@ -712,6 +760,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                    // 5) 最終代入（空なら後続の _addIfNotEmpty で弾かれる）
                                    val = raw;
                                  }
+
 
 
                                 else {
@@ -961,6 +1010,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _kv(String label, String value) {
+// ①「今日のひとことメモ」は複数行で折り返し表示（左寄せ）
+    if (label == '今日のひとことメモ') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('今日のひとことメモ', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              softWrap: true,
+              // maxLines: null を指定したい場合は Text.rich 等だと不要。通常 Text は改行可能です。
+            ),
+          ],
+        ),
+      );
+    }
+
+
+
     // 感謝1/2/3 は右寄せにせず、左寄せで「感謝1：xxx」の1行表示にする
     if (label.startsWith('感謝')) {
       return Padding(
@@ -1008,6 +1078,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+
+
   }
 
 
