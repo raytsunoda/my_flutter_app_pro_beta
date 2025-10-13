@@ -169,6 +169,22 @@ class AiCommentService {
 
     return s;
   }
+// --- 出力に「感謝」の言及が無ければ1つだけ追記する（保険） ---
+  static String _ensureGratitudeMention(String text, List<String> candidates) {
+    // candidates: pickedMemos など（感謝1〜3を含む候補）
+    final first = candidates.firstWhere(
+          (e) => e.trim().isNotEmpty,
+      orElse: () => '',
+    );
+    if (first.isEmpty) return text;
+
+    final alreadyMentions =
+        text.contains('感謝') || text.contains(first) || RegExp(r'ありがとう').hasMatch(text);
+
+    return alreadyMentions ? text : '$text\n\n追伸：今日は「$first」に感謝ですね。';
+  }
+
+
 
 
   // 指定 EOM（例：2025/08/31）の月次レコードを 1 件返す（あれば）
@@ -634,9 +650,19 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
 
     final callName = await _callName();
     final prompt = '''
-${callName} へ。あなたは共感的なAIカウンセラーです。以下の当日情報から、励ましと具体的な一歩を含むコメントを**200文字以内**で日本語で作成してください。
-呼びかけは常に「${callName}」で統一し、「あなた」は使わないでください。
- 
+${callName} へ。
+
+あなたは共感的なAIカウンセラーです。以下の**当日情報**を根拠に、薄味な一般論を避け、
+${callName} 個人に刺さる短いコメントを**200文字以内**で日本語で作成してください。
+
+【必須ルール】
+- 必ず「感謝1〜3」のうち**最低1つ**を引用し、本文中に「◯◯に感謝」の形で言及する
+- 具体的な**次の一歩**を**1つだけ**、20文字程度で提示する（箇条書きでも可）
+- 「素晴らしい」は**幸せ感レベルが80以上のときのみ**使用可（数値だけの賛辞は禁止）
+- 呼びかけは常に「${callName}」。**「あなた」「あなたさん」は使わない**
+- 絵文字・顔文字・過度な敬語・説教調は使わない
+
+【当日情報】
 📅 日付: $ymdLabel
 😊 幸せ感レベル: $scoreStr
 😴 睡眠の質: ${sleepQ.toStringAsFixed(0)}（%）
@@ -644,8 +670,14 @@ ${callName} へ。あなたは共感的なAIカウンセラーです。以下の
 🧘 ストレッチ: ${stretch.toStringAsFixed(0)}分
 🙏 感謝: ${thanksStr.isEmpty ? '（未入力）' : thanksStr}
 📝 メモ: $memoStr
+{memosForPrompt}
 
-ポイント: 事実を尊重しつつ、無理のない実践提案を1つ入れてください。
+出力フォーマット例：
+- 導入1文（${callName} を呼びかけ）
+- 感謝の引用を1つ（◯◯に感謝）
+- 次の一歩（20文字程度、1つだけ）
+
+ポイント: 短く、地に足のついた言葉で。事実を尊重しつつ、無理のない実践提案を1つ入れてください。
 ''';
 
     try {
@@ -675,8 +707,15 @@ ${callName} へ。あなたは共感的なAIカウンセラーです。以下の
         final text =
         (data['comment'] ?? data['text'] ?? '').toString().trim();
         if (text.isNotEmpty) {
-          return _enforceCallName(text, callName);
+          final withName = _enforceCallName(text, callName);
+          // thanks（= 感謝1〜3）から最低1つは本文で触れるよう保険をかける
+          final withGratitude = _ensureGratitudeMention(
+            withName,
+            thanks.where((t) => t.trim().isNotEmpty).toList(),
+          );
+          return withGratitude;
         }
+
       }
     } catch (_) {
       // 握りつぶし → 下のフォールバックに任せる
@@ -813,17 +852,38 @@ ${callName} へ。あなたは共感的なAIカウンセラーです。以下の
 ''';
 
     final callName = await _callName();
+
+// 感謝は2〜3件、メモは2件ほどに絞って“厚み”を担保
+    final pickedForPrompt = pickedGratitudes.take(3).toList();
+    final gratitudeLine = pickedForPrompt.isNotEmpty
+        ? pickedForPrompt.map((g) => '・' + g).join('\n')
+        : '（未入力）';
+
+    final memosForPromptTop = pickedMemos.take(2).map((m) => '・' + m).join('\n');
+    final memosLine = memosForPromptTop.isNotEmpty ? memosForPromptTop : '（未入力）';
+
+    final label = (type == 'weekly') ? 'この1週間' : 'この1か月';
+
     final prompt = '''
-+${callName} へ。あなたはカウンセラーAIです。以下の情報をもとに、共感的で優しいコメントを**200文字以内**で作成してください。
+${callName}、${label}をふり返って短い応援メッセージを日本語で作成してください。**200文字以内**。
+口調はやさしく、根拠（実データ・感謝・メモ）に1回は触れてください。
 
+【概要（自動要約）】
 $graphSummary
-🙏 感謝内容（抽出）: ${pickedGratitudes.isNotEmpty ? pickedGratitudes.join(', ') : '（未入力）'}
-🗒 メモ（抽出）:
-${memosForPrompt.isNotEmpty ? memosForPrompt : '（未入力）'}
 
-+幸せ感レベルを最も重視してください。
-+呼びかけは常に「${callName}」で統一し、「あなた」は使わないでください。
- ''';
+【感謝（引用候補）】
+$gratitudeLine
+
+【メモ（要点）】
+$memosLine
+
+【出力要件】
+- 冒頭の呼びかけは「${callName}」。以後も「あなた」は使わない
+- 幸せ感レベルは**自然な言い方**を優先（例：「50台」「60台」など。小数は避ける）
+- 次に取れる一歩を**1つだけ**、20文字程度で具体的に
+- 事実に根ざし、過度な賛辞や断定は避ける
+''';
+
 
     final response = await http.post(
       Uri.parse(_aiEndpoint),
@@ -845,23 +905,36 @@ ${memosForPrompt.isNotEmpty ? memosForPrompt : '（未入力）'}
       final data = jsonDecode(response.body);
       final generatedCommentRaw =
       (data['comment'] ?? data['text'] ?? '').toString().trim();
-      final generatedComment =
-      _enforceCallName(generatedCommentRaw.isNotEmpty
+
+
+      // 生成テキスト（空ならエラーメッセージ）
+      final base = generatedCommentRaw.isNotEmpty
           ? generatedCommentRaw
-          : 'コメント取得に失敗しました。', callName);
+          : 'コメント取得に失敗しました。';
+
+// callName は _callName() 側で「さん」付与済み想定（呼び捨て防止）
+// 「あなた」等を呼び名に置換し、二重「さんさん」を整形
+      final withName = _enforceCallName(base, callName);
+
+// 感謝1〜3のいずれかが本文で触れられていない場合は、追伸で1つだけ補う（保険）
+      final withGratitude = _ensureGratitudeMention(withName, pickedMemos);
+      final generatedComment = withGratitude;
+
 
       await CsvLoader.appendAiCommentLog(
         date: endDateStr,
         type: type,
         comment: generatedComment,
-        score: _averageScore(happinessList).toStringAsFixed(1),
-        sleep: _averageScore(sleepList).toStringAsFixed(1),
-        walk: _averageScore(walkList).toStringAsFixed(1),
+        // 小数の不自然な見えを避けるため 0桁丸め
+        score: _averageScore(happinessList).round().toString(),
+        sleep: _averageScore(sleepList).round().toString(),
+        walk: _averageScore(walkList).round().toString(),
         gratitude1: pickedGratitudes.isNotEmpty ? pickedGratitudes[0] : '',
         gratitude2: pickedGratitudes.length > 1 ? pickedGratitudes[1] : '',
         gratitude3: pickedGratitudes.length > 2 ? pickedGratitudes[2] : '',
         memo: pickedMemos.isNotEmpty ? pickedMemos.first : '',
       );
+
       return generatedComment;
     } else {
       return 'コメントの取得に失敗しました。';
