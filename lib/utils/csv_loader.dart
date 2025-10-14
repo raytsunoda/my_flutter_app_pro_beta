@@ -28,6 +28,9 @@ class CsvLoader {
     return File('${dir.path}/HappinessLevelDB1_v2.csv');
   }
 
+
+
+
   static Future<List<List<String>>> loadCsvDataBetween(DateTime start, DateTime end) async {
     final rows = await loadCsvRows();
     final dateFormat = DateFormat('yyyy/MM/dd');
@@ -1067,6 +1070,146 @@ class CsvLoader {
     } catch (e, st) {
       print('[CSV DEBUG] error: $e\n$st');
     }
+  }
+
+  /// 既存CSVに対して、取り込みCSVを「空で上書きしない」方針で安全マージします。
+  /// - 既存に無い日付は新規追加
+  /// - 既存にある日付はフィールド毎に非空優先（空文字は上書きしない）
+  /// - 感謝数は 感謝1〜3 の非空件数から再計算
+  /// - 最終的に公式ヘッダ順＆日付昇順で保存
+  static Future<void> importCsvSafely(File pickedFile) async {
+    // ★ 関数の先頭ログ（リクエストされた “開始ログ”）
+    debugPrint('[IMPORT] importCsvSafely: begin file=${pickedFile.path}');
+
+    // 1) 取り込むCSVを Map<List> に（列名ゆれに強い）
+    final importedMaps = await loadCsvAsMaps(pickedFile);
+    if (importedMaps.isEmpty) {
+      debugPrint('[IMPORT] no rows in picked file');
+      return;
+    }
+
+    // 2) 既存CSVを読み出して Map に（公式ヘッダ順に近づける）
+    final existingMatrix = await loadLatestCsvData('HappinessLevelDB1_v2.csv');
+    final existingHeader = existingMatrix.isNotEmpty
+        ? existingMatrix.first.map((e) => e.toString()).toList()
+        : header;
+    final existingRows = <Map<String, String>>[];
+
+    for (final row in existingMatrix.skip(1)) {
+      final m = <String, String>{};
+      for (int i = 0; i < existingHeader.length && i < row.length; i++) {
+        m[existingHeader[i]] = row[i].toString();
+      }
+      final ymd = (m['日付'] ?? '').trim();
+      if (ymd.isNotEmpty) {
+        existingRows.add(m);
+      }
+    }
+
+    // 3) 日付正規化ヘルパ（yyyy/MM/dd）
+    String _normYmd(String s) {
+      final t = s.trim();
+      if (t.isEmpty) return '';
+      final only = t.replaceAll(RegExp(r'[^0-9]'), '');
+      if (only.length < 8) return t; // どうしても無理なら原文
+      final y = only.substring(0, 4);
+      final m = only.substring(4, 6);
+      final d = only.substring(6, 8);
+      return '$y/$m/$d';
+    }
+
+    // 4) 既存を日付キーで索引化
+    final byDate = <String, Map<String, String>>{};
+    for (final r in existingRows) {
+      final key = _normYmd(r['日付'] ?? '');
+      if (key.isEmpty) continue;
+      byDate[key] = {
+        for (final h in header) h: (r[h] ?? '').toString(),
+        '日付': key,
+      };
+    }
+
+    // 5) 取り込み側：正規化（あなたの normalizeRow を再利用）
+    Map<String, String> _toCanon(Map<String, String> raw) {
+      final n = normalizeRow(raw); // date, score, stretch, walk, sleep_quality, memo, gratitude1..3 など
+      return <String, String>{
+        '日付'                 : (n['date'] ?? '').toString(),
+        '幸せ感レベル'         : (n['score'] ?? '').toString(),
+        'ストレッチ時間'       : (n['stretch'] ?? '').toString(),
+        'ウォーキング時間'     : (n['walk'] ?? '').toString(),
+        '睡眠の質'             : (n['sleep_quality'] ?? '').toString(),
+        '睡眠時間（時間換算）' : (n['sleep_h'] ?? '').toString(),
+        '睡眠時間（分換算）'   : (n['sleep_m'] ?? '').toString(),
+        '睡眠時間（時間）'     : (n['sleep_h'] ?? '').toString(),  // 旧列互換（残してOK）
+        '睡眠時間（分）'       : (n['sleep_m'] ?? '').toString(),
+        '寝付き満足度'         : (n['fall_asleep'] ?? '').toString(),
+        '深い睡眠感'           : (n['deep_sleep'] ?? '').toString(),
+        '目覚め感'             : (n['wake_feel'] ?? '').toString(),
+        'モチベーション'       : (n['motivation'] ?? '').toString(),
+        '感謝数'               : (n['gratitude_count'] ?? '').toString(),
+        '感謝1'                : (n['gratitude1'] ?? '').toString(),
+        '感謝2'                : (n['gratitude2'] ?? '').toString(),
+        '感謝3'                : (n['gratitude3'] ?? '').toString(),
+        'memo'                 : (n['memo'] ?? '').toString(),
+      };
+    }
+
+    // 6) マージ規則（空文字で既存を潰さない／memo/感謝は情報量多い方）
+    Map<String, String> _mergeRow(Map<String, String> base, Map<String, String> inc) {
+      final out = Map<String, String>.from(base);
+      for (final k in header) {
+        final cur = (out[k] ?? '').trim();
+        final add = (inc[k] ?? '').trim();
+        if (add.isEmpty) {
+          // 空は上書き禁止
+          continue;
+        }
+        if (k == 'memo') {
+          if (add.length > cur.length) out[k] = add;
+        } else if (k == '感謝1' || k == '感謝2' || k == '感謝3') {
+          if (cur.isEmpty || add.length > cur.length) out[k] = add;
+        } else {
+          if (cur.isEmpty) out[k] = add;
+        }
+      }
+      // 感謝数を再計算
+      out['感謝数'] = gratitudeCountFromRow(out).toString();
+      return out;
+    }
+
+    // 7) 取り込みCSVを既存へ反映
+    for (final raw in importedMaps) {
+      final incCanon = _toCanon(raw);
+      final ymd = _normYmd(incCanon['日付'] ?? '');
+      if (ymd.isEmpty) continue;
+
+      if (byDate.containsKey(ymd)) {
+        // ★ 既存日付にマージ直前ログ（指定された“分岐直前ログ(1)”）
+        debugPrint('[IMPORT] merge existing $ymd (no blank overwrite)');
+        byDate[ymd] = _mergeRow(byDate[ymd]!, incCanon);
+      } else {
+        // ★ 新規追加直前ログ（指定された“分岐直前ログ(2)”）
+        debugPrint('[IMPORT] add new $ymd');
+        final fixed = Map<String, String>.from(incCanon);
+        fixed['感謝数'] = gratitudeCountFromRow(fixed).toString();
+        fixed['日付'] = ymd; // 念のため正規化後で上書き
+        byDate[ymd] = fixed;
+      }
+    }
+
+    // 8) 日付昇順で整形→保存
+    final dates = byDate.keys.toList()..sort();
+    final rows = <List<String>>[List<String>.from(header)];
+    for (final d in dates) {
+      final m = byDate[d]!;
+      rows.add(header.map((h) => (m[h] ?? '').toString()).toList());
+    }
+
+    final file = await getCsvFile();
+    final csvText = const ListToCsvConverter().convert(rows);
+    await file.writeAsString(csvText, flush: true);
+
+    debugPrint('[IMPORT] importCsvSafely: done; rows=${rows.length - 1}');
   }
 
 

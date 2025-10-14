@@ -13,6 +13,8 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:my_flutter_app_pro/services/legacy_import_service.dart';
 import 'dart:ui' show FontFeature;// 等幅数字用
 import 'package:my_flutter_app_pro/utils/user_prefs.dart';
+import 'package:file_picker/file_picker.dart';
+
 
 // ==== helpers (robust cell access) ====
 int _findIndexByNames(List<String> names, List<String> header) {
@@ -424,18 +426,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _importCsv() async {
-    // ファイル選択して旧CSVを取り込み
-    final summary = await LegacyImportService.importFromFilePicker(context);
-    if (summary == null) return;
+    // 0) ユーザーにCSVを選んでもらう
+    final res = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+    );
+    if (res == null || res.files.single.path == null) return;
 
-    // 取り込み後に一覧を再読込
+    final file = File(res.files.single.path!);
+
+    // 1) CsvLoader 側の“安全マージ”で取り込み（空で上書きしない・感謝数は再計算）
+    debugPrint('[IMPORT] importCsvSafely: begin file=${file.path}');
+    await CsvLoader.importCsvSafely(file);
+
+    // 2) 端末ログ（安心ログ）
+    debugPrint('[IMPORT] importCsvSafely: done');
+
+    // 3) UIを最新化
     await _loadCSV();
-
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('CSVの取り込みが完了しました（一覧を更新）')),
+
+    // 4) ユーザー向けにも完了ダイアログ
+    await showDialog<void>(
+      context: context,
+      builder: (_) => const AlertDialog(
+        title: Text('取り込み完了'),
+        content: Text('CSVを安全マージで取り込みました（既存の非空は維持・感謝数は再計算）。'),
+      ),
     );
   }
+
 
 
 
