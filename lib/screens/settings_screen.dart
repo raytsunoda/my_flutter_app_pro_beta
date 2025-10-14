@@ -866,22 +866,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           ),
                                         );
                                       } else {
-                                        widgets.add(
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(vertical: 2),
-                                            child: Row(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                SizedBox(
-                                                  width: 120,
-                                                  child: Text(k, style: const TextStyle(color: Colors.black54)),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Expanded(child: Text(val.isEmpty ? '—' : val)),
-                                              ],
-                                            ),                                      ),
-                                        );
-                                      }
+                                              widgets.add(
+                                                    Padding(
+                                                          padding: const EdgeInsets.symmetric(vertical: 2),
+                                                      child: Row(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          SizedBox(width: 120,
+                                                            child: Text(k, style: const TextStyle(color: Colors.black54)),
+                                                 ),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(child: Text(val.isEmpty ? '—' : val)),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }
+
                                     }
 
                                     return widgets;
@@ -946,7 +947,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SnackBar(content: Text('CSVを安全に取り込みました')),
               );
             },
-          ),
+         ),
             // ここは本番では非表示。開発時のみ使います。
           if (kDebugMode)
             ListTile(
@@ -1064,12 +1065,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
 
-
-
-
-
-
-
           // 🔧 デバッグモード限定 開発者ツール遷移ボタン
           if (kDebugMode) ...[
             const Divider(),
@@ -1083,10 +1078,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           ],
-
-
-
-
         ],
       ),
     );
