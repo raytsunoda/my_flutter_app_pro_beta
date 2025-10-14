@@ -692,25 +692,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(title: const Text("設定")),
       body: ListView(children: [
         // 見出し → 内容：通知設定
-          _sectionHeader(Icons.notifications, '通知設定'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: _buildTimePickerSection(),
-          ),
-          const Divider(),
+        // 折りたたみ：通知設定
+        _sectionTile(
+          icon: Icons.notifications,
+          title: '通知設定',
+          child: _buildTimePickerSection(),
+          initiallyExpanded: false, // ← 初期は閉じる
+        ),
 
-// 見出し → 内容：重み設定
-          _sectionHeader(Icons.tune, '重み設定'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: _buildWeightSectionBody(),
-          ),
-          const Divider(),
+// 折りたたみ：重み設定
+        _sectionTile(
+          icon: Icons.tune,
+          title: '重み設定',
+          child: _buildWeightSectionBody(),
+          initiallyExpanded: false,
+        ),
 
-// 見出し → 内容：呼びかけ名
-          _sectionHeader(Icons.badge, '呼びかけ名'),
-          _callNameTile(),
-          const Divider(),
+// 折りたたみ：呼びかけ名
+        _sectionTile(
+          icon: Icons.badge,
+          title: '呼びかけ名',
+          child: _buildCallNameEditor(), // ← 入力UIの本体を使う
+          initiallyExpanded: false,
+        ),
 
 
         ExpansionTile(
