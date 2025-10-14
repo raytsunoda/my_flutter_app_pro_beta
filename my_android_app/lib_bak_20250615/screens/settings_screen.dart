@@ -344,4 +344,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+  class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _SectionHeader({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+  final style = Theme.of(context).textTheme.titleMedium?.copyWith(
+  fontWeight: FontWeight.w600,
+  );
+  return Padding(
+  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+  child: Row(
+  children: [
+  Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+  const SizedBox(width: 8),
+  Text(text, style: style),
+  ],
+  ),
+  );
+  }
+  }
 }
+
+
+

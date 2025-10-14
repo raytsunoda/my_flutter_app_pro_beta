@@ -77,6 +77,10 @@ class SettingsScreen extends StatefulWidget {
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
+
+
+
+
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
@@ -119,6 +123,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     }
     return (fallback ?? '').trim();
+  }
+// 見出し（左にアイコン・太字タイトル）を出す共通ウィジェット
+  Widget _sectionHeader(IconData icon, String title) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+    );
   }
 
 
@@ -307,10 +318,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildWeightSection() {
+// 重み設定：ExpansionTile なしで中身だけ描く版
+  Widget _buildWeightSectionBody() {
     final total = _weightSleep + _weightStretch + _weightWalking + _weightAppreciation;
-    return ExpansionTile(
-      title: const Text('重み設定'),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(
           padding: EdgeInsets.all(8.0),
@@ -347,11 +359,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
             child: const Text('保存'),
           ),
-        )
+        ),
       ],
     );
   }
 
+// 見出し→折りたたみ可能な共通セクション
+  Widget _sectionTile({
+    required IconData icon,
+    required String title,
+    required Widget child,
+    bool initiallyExpanded = true,
+  }) {
+    return ExpansionTile(
+      initiallyExpanded: initiallyExpanded,
+      leading: Icon(icon),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w600), // 見出しは太字
+      ),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: child,
+        ),
+      ],
+    );
+  }
+  Widget _buildCallNameEditor() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('呼びかけ名（さん付けで呼びます）'),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            const Icon(Icons.person, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: _displayNameCtrl, // 既存のControllerを利用
+                decoration: const InputDecoration(
+                  hintText: '例：太郎（空なら「ユーザーさん」）',
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              onPressed: () async {
+                final name = _displayNameCtrl.text.trim();
+                await UserPrefs.setDisplayName(name); // 既存の保存関数
+                if (mounted) {
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(const SnackBar(content: Text('呼びかけ名を保存しました')));
+                  setState(() {}); // 再描画
+                }
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _importCsv() async {
+    // ファイル選択して旧CSVを取り込み
+    final summary = await LegacyImportService.importFromFilePicker(context);
+    if (summary == null) return;
+
+    // 取り込み後に一覧を再読込
+    await _loadCSV();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('CSVの取り込みが完了しました（一覧を更新）')),
+    );
+  }
 
 
 
@@ -606,40 +690,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("設定")),
-      body: ListView(
-        children: [
-          ExpansionTile(title: const Text('通知設定'), children: [_buildTimePickerSection()]),
-          _buildWeightSection(),
-
-// ▼▼ ここから追加：呼びかけ名セクション ▼▼
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('呼びかけ名（さん付けで呼びます）'),
-            subtitle: TextField(
-              controller: _displayNameCtrl,
-              decoration: const InputDecoration(
-                hintText: '例：太郎（空なら「ユーザー」）',
-              ),
-            ),
-            trailing: ElevatedButton(
-              onPressed: () async {
-                await UserPrefs.setDisplayName(_displayNameCtrl.text);
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('呼びかけ名を保存しました')),
-                );
-                setState(() {});
-              },
-              child: const Text('保存'),
-            ),
+      body: ListView(children: [
+        // 見出し → 内容：通知設定
+          _sectionHeader(Icons.notifications, '通知設定'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: _buildTimePickerSection(),
           ),
           const Divider(),
-// ▲▲ 追加ここまで ▲▲
+
+// 見出し → 内容：重み設定
+          _sectionHeader(Icons.tune, '重み設定'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: _buildWeightSectionBody(),
+          ),
+          const Divider(),
+
+// 見出し → 内容：呼びかけ名
+          _sectionHeader(Icons.badge, '呼びかけ名'),
+          _callNameTile(),
+          const Divider(),
 
 
-
-
-          ExpansionTile(title: const Text('保存データの管理'), children: [
+        ExpansionTile(
+          leading: const Icon(Icons.folder_copy_outlined),
+          title: const Text(
+          '保存データの管理',
+          style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          children: [
             if (_csvData.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(8.0),
@@ -843,18 +923,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 
     // 本番導線（常時表示）
-    ListTile(
-    leading: const Icon(Icons.settings_backup_restore),
-    title: const Text('データ移行'),
-    subtitle: const Text('旧アプリのCSVを取り込む'),
-
-    onTap: () async {
-    final summary = await LegacyImportService.importFromFilePicker(context);
-    if (summary == null) return;
-    // 取り込み後、画面をリフレッシュしたい場合は setState() 等で再読込
-
-                  },
-            ),
+    // ListTile(
+    // leading: const Icon(Icons.settings_backup_restore),
+    // title: const Text('データ移行'),
+    // subtitle: const Text('旧アプリのCSVを取り込む'),
+    //
+    // onTap: () async {
+    // final summary = await LegacyImportService.importFromFilePicker(context);
+    // if (summary == null) return;
+    // // 取り込み後、画面をリフレッシュしたい場合は setState() 等で再読込
+    //
+    //               },
+    //         ),
+        ListTile(
+          leading: const Icon(Icons.refresh),               // 左端アイコン追加
+          title: const Text(
+            'データ移行',
+            style: TextStyle(fontWeight: FontWeight.w600),  // タイトルを太字
+          ),
+          subtitle: const Text('旧アプリのCSVを取り込む'),
+          onTap: _importCsv, // ← 既存の処理に合わせて
+        ),
 
           // ここは本番では非表示。開発時のみ使います。
           if (kDebugMode)
@@ -1080,6 +1169,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
 
+  }
+  Widget _callNameTile() {
+    return ListTile(
+      leading: const Icon(Icons.person),
+      title: const Text('呼びかけ名（さん付けで呼びます）'),
+      subtitle: TextField(
+        controller: _displayNameCtrl,
+        decoration: const InputDecoration(
+          hintText: '例：太郎（空なら「ユーザー」）',
+        ),
+      ),
+      trailing: ElevatedButton(
+        onPressed: () async {
+          await UserPrefs.setDisplayName(_displayNameCtrl.text);
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('呼びかけ名を保存しました')),
+          );
+          setState(() {});
+        },
+        child: const Text('保存'),
+      ),
+    );
   }
 
 
