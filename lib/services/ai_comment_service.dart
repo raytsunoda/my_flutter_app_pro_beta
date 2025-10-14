@@ -117,6 +117,30 @@ DateTime _monthlyVisibleCutoff(DateTime now) =>
 
 
 class AiCommentService {
+// 例：既存の実装名が違うならエイリアスでも可
+  static Future<void> deleteCommentsForDates(List<String> ymdList) async {
+    // ← あなたが作った削除実装をここで呼ぶ or 本体をここに置く
+    await _deleteHistoryForDatesInternal(ymdList);
+  }
+  /// ai_comment_log.csv から、指定 yyyy/MM/dd の全タイプ(daily/weekly/monthly)を削除
+    static Future<void> _deleteHistoryForDatesInternal(List<String> ymdList) async {
+        final targets = ymdList.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+        if (targets.isEmpty) return;
+
+        final rows = await CsvLoader.loadAiCommentLog();
+        final filtered = rows.where((r) {
+          final d = (r['date'] ?? '').toString().trim();
+          return !targets.contains(d);
+        }).toList();
+
+        if (filtered.length != rows.length) {
+          await CsvLoader.writeAiCommentLog(filtered);
+          debugPrint('[AI LOG] delete ${rows.length - filtered.length} rows for ${targets.join(", ")}');
+        }
+      }
+
+
+
 
   // アプリは鍵を持たず、サーバのプロキシにPOSTする
   // App Store ビルドでも確実に動くように本番URLをデフォルト埋め込み
@@ -1786,6 +1810,57 @@ return added;
     return (name == null || name.trim().isEmpty) ? '' : name.trim();
   }
 
+  /// 保存データ（日付）に対応するAIコメントの履歴/キャッシュを削除する。
+  /// ymd は 'YYYY/MM/DD' 形式を想定。
+  static Future<void> deleteCommentsByDates(Iterable<String> ymds) async {
+    final set = ymds.where((e) => e.trim().isNotEmpty).toSet();
+    if (set.isEmpty) return;
+
+    final dir = await getApplicationDocumentsDirectory();
+    final base = dir.path;
+    // 本アプリで使っているAIコメント保存ファイル（両系統を対象）
+    const kinds = ['daily', 'weekly', 'monthly'];
+    const bases = ['ai_comment_history_', 'ai_comments_']; // 既存実装に合わせて両方
+
+    for (final k in kinds) {
+      for (final b in bases) {
+        final f = File('$base/$b$k.json');
+        if (!await f.exists()) continue;
+
+        try {
+          final raw = await f.readAsString();
+          if (raw.trim().isEmpty) continue;
+          final List<dynamic> list = jsonDecode(raw) as List<dynamic>;
+
+          bool changed = false;
+          final filtered = <dynamic>[];
+          for (final e in list) {
+            // 既存のキー表記に幅を持たせる
+            final d = (e is Map)
+                ? (e['displayDate'] ??
+                e['date'] ??
+                e['ymd'] ??
+                e['day'] ??
+                '')
+                : '';
+            if (set.contains(d)) {
+              changed = true; // この行は捨てる（=削除）
+            } else {
+              filtered.add(e);
+            }
+          }
+
+          if (changed) {
+            await f.writeAsString(const JsonEncoder.withIndent('  ').convert(filtered));
+            // ログ（任意）
+            // debugPrint('[AI-HISTORY] purged $k for ${set.join(", ")} in $b$k.json');
+          }
+        } catch (_) {
+          // 壊れたJSONは握りつぶす（安全側）
+        }
+      }
+    }
+  }
 
 
 

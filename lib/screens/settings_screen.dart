@@ -14,6 +14,7 @@ import 'package:my_flutter_app_pro/services/legacy_import_service.dart';
 import 'dart:ui' show FontFeature;// 等幅数字用
 import 'package:my_flutter_app_pro/utils/user_prefs.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:my_flutter_app_pro/services/ai_comment_service.dart';
 
 
 // ==== helpers (robust cell access) ====
@@ -551,6 +552,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
+// ▼ 追加：保存データ一覧を再読込する小ヘルパ
+  Future<void> _reloadSavedDates() async {
+    await _loadCSV();
+    if (!mounted) return;
+    setState(() {});
+  }
+
+
 
 // ▼ ヘッダー名の正規化：空白/タブを除去し、「の」を落として比較の揺れを吸収
   String _normalizeHeaderName(String s) {
@@ -661,7 +670,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     _selected = List<bool>.filled(_csvData.length, false);
     await _saveCsvData();
-    setState(() {});
+      // ▼ 追加: 同日付のAIコメント（daily/weekly/monthly）をまとめて削除
+      try {
+        // datesToDelete は既に Set<String>（yyyy/MM/dd）になっています
+        await AiCommentService.deleteCommentsForDates(datesToDelete.toList());
+      } catch (e) {
+        debugPrint('[DELETE AI COMMENT] failed: $e');
+      }
+      setState(() {});
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -770,144 +786,107 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         if (_expanded[i])
                           Padding(
                             padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: () {
-                            // ---------------------- PATCH B2: begin (robust details mapper) ----------------------
-                                final r = _csvData[i];
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: () {
+    // ---------------------- PATCH B2: begin (robust details mapper) ----------------------
+                                    final r = _csvData[i];
 
-                                final rowDate = _cellByIdx(r, _findIndexByNames(['日付']));
-                                debugPrint('[DETAIL] date=$rowDate cols=${r.length} header=${_header.join("|")}');
-                                debugPrint('[DETAIL:rowDump] len=${r.length} row=${r.map((e) => '"${(e ?? '').toString()}"').join('|')}');
+                                    // 取り出し用のインデックス（表記ゆれに強い検索）
+                                    int idxOf(List names, int fallback) {
+                                      final idx = _findIndexByNames(names);
+                                      if (idx >= 0 && idx < r.length) return idx;
+                                      return (fallback >= 0 && fallback < r.length) ? fallback : -1;
+                                    }
 
-// 追加（先頭の1レコードだけで十分）
-                                if (rowDate == '2025/03/07') {
-                                  _dumpHeaderWithCodes(_header);
-                                  _dumpRowWithCodes(r);
-                                }
+                                    String v(List names, int fb) => _cellByIdx(r, idxOf(names, fb));
 
-                                // 表示したい列（表記ゆれに強い）
-                                final fields = <MapEntry<String, List<String>>>[
+                                    final ymd        = v(['日付'], 0);
+                                    final happy      = v(['幸せ感レベル'], 1);
+                                    final stretch    = v(['ストレッチ時間'], 2);
+                                    final walk       = v(['ウォーキング時間','ウォーキング'], 3);                                final sleepQ     = v(['睡眠の質'], 4);
+                                    final sleepHour  = v(['睡眠時間（時間換算）'], 5);
+                                    final sleepMinQ  = v(['睡眠時間（分換算）'], 6);
+                                    final sleepHourCol = v(['睡眠時間（時間）'], 7);
+                                    final sleepMinCol  = v(['睡眠時間（分）'], 8);
+                                    final sleepEase  = v(['寝付きの満足度','寝付き満足度'], 9);
+                                    final deepSleep  = v(['深い睡眠感'], 10);
+                                    final wakeFeel   = v(['目覚め感'], 11);
+                                    final motive     = v(['モチベーション'], 12);
+                                    final thanksCnt  = v(['感謝数'], 13);
+                                    final g1         = v(['感謝1'], 14);
+                                    final g2         = v(['感謝2'], 15);
+                                    final g3         = v(['感謝3'], 16);
+                                    final memo       = v(['memo','メモ','今日のひとことメモ'], 17);
 
-                                  MapEntry('幸せ感レベル', ['幸せ感レベル']),
-                                  MapEntry('ストレッチ時間', ['ストレッチ時間']),
-                                  MapEntry('ウォーキング時間', ['ウォーキング時間']),
-                                  MapEntry('睡眠の質', ['睡眠の質']),
-                                  MapEntry('睡眠時間（時間）', ['睡眠時間（時間）']),
-                                  MapEntry('睡眠時間（分）', ['睡眠時間（分）']),
+                                    final fields = <Map<String,String>>[
+                                      {'key':'幸せ感レベル', 'val': happy},
+                                      {'key':'ストレッチ時間', 'val': stretch},
+                                      {'key':'ウォーキング時間', 'val': walk},
+                                      {'key':'睡眠の質', 'val': sleepQ},
+                                      {'key':'睡眠時間（時間換算）', 'val': sleepHour},
+                                      {'key':'睡眠時間（分換算）', 'val': sleepMinQ},
+                                      {'key':'睡眠時間（時間）', 'val': sleepHourCol},
+                                      {'key':'睡眠時間（分）', 'val': sleepMinCol},
+                                      {'key':'寝付きの満足度', 'val': sleepEase},
+                                      {'key':'深い睡眠感', 'val': deepSleep},
+                                      {'key':'目覚め感', 'val': wakeFeel},
+                                      {'key':'モチベーション', 'val': motive},
+                                      {'key':'感謝数', 'val': thanksCnt},
+                                      {'key':'感謝1', 'val': g1},
+                                      {'key':'感謝2', 'val': g2},
+                                      {'key':'感謝3', 'val': g3},
+                                      {'key':'今日のひとことメモ', 'val': memo},
+                                    ];
 
-                                  // ★「寝付きの満足度 / 寝付き満足度」どちらでも対応
-                                  MapEntry('寝付きの満足度', ['寝付きの満足度', '寝付き満足度']),
+                                    final widgets = <Widget>[
+                                      Text(ymd, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                      const SizedBox(height: 8),
+                                    ];
 
-                                  MapEntry('深い睡眠感', ['深い睡眠感']),
-                                  MapEntry('目覚め感', ['目覚め感']),
-                                  MapEntry('モチベーション', ['モチベーション']),
-                                  MapEntry('感謝数', ['感謝数']),
-                                  MapEntry('感謝1', ['感謝1']),
-                                  MapEntry('感謝2', ['感謝2']),
-                                  MapEntry('感謝3', ['感謝3']),
-                                  // ▼ これを追加（表記ゆれ想定）
-                                  MapEntry('今日のひとことメモ', ['memo', 'メモ', '今日のひとことメモ']),
-                                ];
-
-                                // ループ外にバッファ（ループ中に UI リストを直接いじらない）
-                                final widgets = <Widget>[];
-
-                                // 「寝付き満足度」専用デバッグは 1 回だけ
-                                var _loggedFallAsleep = false;
-
-                                for (final f in fields) {
-
-                                  int idx = _findIndexByNames(f.value);
-                                  String val = _cellByIdx(r, idx);
-
-
-                                 // SPECIAL CASE: fallAsleep (robust) — 列名ゆれ & 空欄救済
-                                 if (f.key == '寝付きの満足度') {
-                                   // 1) ヘッダー配列（null ではない想定）
-                                   final headers = _header;
-
-                                   // 2) 列名で安全に取得（"寝付きの満足度" / "寝付き満足度" の両対応）
-                                   int _idxByNames(List<String> names) {
-                                     for (final n in names) {
-                                       final i = headers.indexOf(n);
-                                       if (i >= 0) return i;
-                                     }
-                                     return -1;
-                                   }
-                                   String _cell(List row, int i) {
-                                     if (i >= 0 && i < row.length) {
-                                       return (row[i] ?? '').toString().trim();
-                                     }
-                                     return '';
-                                   }
-
-                                   final idxA = _idxByNames(['寝付きの満足度', '寝付き満足度']); // CSV #10 想定
-                                   var raw = _cell(r, idxA);
-
-                                   // 3) 空欄救済：深い睡眠感の直前列を予備値として採用
-                                   if (raw.isEmpty) {
-                                     final deepIdx = headers.indexOf('深い睡眠感'); // CSV #11 想定
-                                     final guessIdx = (deepIdx > 0) ? deepIdx - 1 : -1; // = fallAsleep 列のはず
-                                     final guess = _cell(r, guessIdx);
-                                     if (guess.isNotEmpty) {
-                                       debugPrint('[DETAIL:fallAsleep][fallback-prev] deepIdx=$deepIdx guessIdx=$guessIdx guess="$guess"');
-                                       raw = guess;
-                                     }
-                                   }
-
-                                   // 4) デバッグ（1行のみ）
-                                   final usedName = (idxA >= 0 && headers[idxA] == '寝付き満足度')
-                                       ? '寝付き満足度' : (idxA >= 0 ? '寝付きの満足度' : 'N/A');
-                                   debugPrint('[DETAIL:fallAsleep] name=$usedName idx=${idxA >= 0 ? idxA : (headers.indexOf("深い睡眠感") - 1)} val="$raw"');
-
-                                   // 5) 最終代入（空なら後続の _addIfNotEmpty で弾かれる）
-                                   val = raw;
-                                 }
-
-
-
-                                else {
-
-                                    // それ以外は従来通り
-                                    if (val.isEmpty) {
-                                      // 万一に備えて一般フォールバック（既知列へ）も使っておくと堅い
-                                      final fallbackMap = {
-                                        '幸せ感レベル': 1,
-                                        'ストレッチ時間': 2,
-                                        'ウォーキング時間': 3,
-                                        '睡眠の質': 4,
-                                        '睡眠時間（時間）': 7,
-                                        '睡眠時間（分）': 8,
-                                        '深い睡眠感': 10,
-                                        '目覚め感': 11,
-                                        'モチベーション': 12,
-                                        '感謝数': 13,
-                                        '感謝1': 14,
-                                        '感謝2': 15,
-                                        '感謝3': 16,
-                                      };
-                                      final fb = fallbackMap[f.key];
-                                      if (fb != null) {
-                                        idx = _indexOrFallback(f.value, fb);
-                                        val = _cellByIdx(r, idx);
+                                    for (final f in fields) {
+                                      final k = f['key']!;
+                                      final val = (f['val'] ?? '').trim();
+                                      if (k == '今日のひとことメモ') {
+                                        widgets.add(
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 2),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(k, style: const TextStyle(color: Colors.black54)),
+                                                const SizedBox(height: 2),
+                                                // ← メモは複数行OK
+                                                Text(
+                                                  val.isEmpty ? '（未入力）' : val,
+                                                  softWrap: true,
+                                                ),
+                                              ],
+                                           ),
+                                          ),
+                                        );
+                                      } else {
+                                        widgets.add(
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 2),
+                                            child: Row(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                SizedBox(
+                                                  width: 120,
+                                                  child: Text(k, style: const TextStyle(color: Colors.black54)),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(child: Text(val.isEmpty ? '—' : val)),
+                                              ],
+                                            ),                                      ),
+                                        );
                                       }
                                     }
-                                  }
 
-                                          if (val.isEmpty) continue;
-                                          // 幸せ感レベルは小数1桁に整形してから表示
-                                          if (f.key == '幸せ感レベル') {
-                                            final d = double.tryParse(val);
-                                            if (d != null) val = d.toStringAsFixed(1);
-                                          }
-                                          // 左右整列用の _kv を使って描画
-                                          widgets.add(_kv(f.key, val));
-                                }
+                                    return widgets;
 
-                                return widgets;
-// ---------------------- PATCH B2: end ----------------------
-
+    // ---------------------- PATCH B2: end ----------------------
                               }(),
                             ),
                           ),
@@ -943,22 +922,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ]),
 
 
-
-
-
-    // 本番導線（常時表示）
-    // ListTile(
-    // leading: const Icon(Icons.settings_backup_restore),
-    // title: const Text('データ移行'),
-    // subtitle: const Text('旧アプリのCSVを取り込む'),
-    //
-    // onTap: () async {
-    // final summary = await LegacyImportService.importFromFilePicker(context);
-    // if (summary == null) return;
-    // // 取り込み後、画面をリフレッシュしたい場合は setState() 等で再読込
-    //
-    //               },
-    //         ),
         ListTile(
           leading: const Icon(Icons.refresh),               // 左端アイコン追加
           title: const Text(
@@ -966,10 +929,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextStyle(fontWeight: FontWeight.w600),  // タイトルを太字
           ),
           subtitle: const Text('旧アプリのCSVを取り込む'),
-          onTap: _importCsv, // ← 既存の処理に合わせて
-        ),
+            onTap: () async {
+              // 既存の「上書き保存」実装は全削除してOK。安全マージを直呼び。
+              final result = await FilePicker.platform.pickFiles(
+                type: FileType.custom,
+                allowedExtensions: ['csv'],
+              );
+              if (result == null || result.files.single.path == null) return;
 
-          // ここは本番では非表示。開発時のみ使います。
+              final file = File(result.files.single.path!);
+              await CsvLoader.importCsvSafely(file);
+
+              // 再読込（既存の関数を呼ぶ）
+              await _reloadSavedDates();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('CSVを安全に取り込みました')),
+              );
+            },
+          ),
+            // ここは本番では非表示。開発時のみ使います。
           if (kDebugMode)
             ListTile(
               leading: const Icon(Icons.file_upload_outlined),
