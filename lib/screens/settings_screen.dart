@@ -670,14 +670,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     _selected = List<bool>.filled(_csvData.length, false);
     await _saveCsvData();
-      // ▼ 追加: 同日付のAIコメント（daily/weekly/monthly）をまとめて削除
+    // ▼ 追加: 同日付のAIコメント（daily/weekly/月次）をまとめて削除
       try {
-        // datesToDelete は既に Set<String>（yyyy/MM/dd）になっています
         await AiCommentService.deleteCommentsForDates(datesToDelete.toList());
       } catch (e) {
         debugPrint('[DELETE AI COMMENT] failed: $e');
       }
-      setState(() {});
+      // ▼ 一覧を再読込してUI反映（setStateだけでなくCSVも再読み込み）
+      await _reloadSavedDates();
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -929,6 +929,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ],
                   ),
+
                 ],
               ),
           ]),

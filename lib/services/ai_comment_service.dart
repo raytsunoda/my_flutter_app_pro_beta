@@ -11,7 +11,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/user_prefs.dart';
-
+import 'package:path/path.dart' as p;
 
 
 
@@ -1861,7 +1861,36 @@ return added;
       }
     }
   }
+  static Future<void> deleteHistoryForDates(List<String> ymds) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final dailyPath   = p.join(dir.path, 'ai_comment_history_daily.json');
+      final weeklyPath  = p.join(dir.path, 'ai_comment_history_weekly.json');
+      final monthlyPath = p.join(dir.path, 'ai_comment_history_monthly.json');
 
+      Future<void> _prune(String path) async {
+        final f = File(path);
+        if (!await f.exists()) return;
+        final txt = await f.readAsString();
+        if (txt.trim().isEmpty) return;
+        final map = (jsonDecode(txt) as Map).map((k, v) => MapEntry(k.toString(), v));
+        var changed = false;
+        for (final d in ymds) {
+          if (map.remove(d) != null) changed = true;
+        }
+        if (changed) {
+          await f.writeAsString(const JsonEncoder.withIndent('  ').convert(map));
+          debugPrint('[AI] history pruned: $path -> removed ${ymds.length} day(s)');
+        }
+      }
+
+      await _prune(dailyPath);
+      await _prune(weeklyPath);
+      await _prune(monthlyPath);
+    } catch (e) {
+      debugPrint('[AI] deleteHistoryForDates error: $e');
+    }
+  }
 
 
 }
