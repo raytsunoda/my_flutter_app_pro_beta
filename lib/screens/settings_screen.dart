@@ -846,7 +846,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                                     for (final f in fields) {
                                       final k = f['key']!;
-                                      final val = (f['val'] ?? '').trim();
+                                      final rawVal = (f['val'] ?? '').trim();
+                                      // 表示用フォーマッタ：幸せ感レベルだけ小数1桁に丸める
+                                      final val = _formatDisplayValue(k, rawVal);
                                       if (k == '今日のひとことメモ') {
                                         widgets.add(
                                           Padding(
@@ -1194,6 +1196,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: const Text('保存'),
       ),
     );
+  }
+// 表示用フォーマッタ：幸せ感レベルだけ小数1桁に丸める
+  String _formatDisplayValue(String key, String raw) {
+    if (key == '幸せ感レベル') {
+      final d = double.tryParse(raw);
+      if (d != null) return d.toStringAsFixed(1); // 例: 77.5
+    }
+    return raw;
   }
 
 
