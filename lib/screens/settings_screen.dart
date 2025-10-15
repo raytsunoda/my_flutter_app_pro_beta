@@ -854,7 +854,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Text(k, style: const TextStyle(color: Colors.black54)),
+                                                // ラベルは必ず1行にする
+                                                Text(
+                                                  k,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(color: Colors.black54),
+                                              ),
                                                 const SizedBox(height: 2),
                                                 // ← メモは複数行OK
                                                 Text(
@@ -872,9 +878,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                                       child: Row(
                                                         crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
-                                                          SizedBox(width: 120,
-                                                            child: Text(k, style: const TextStyle(color: Colors.black54)),
-                                                 ),
+                                                          // ラベルは必ず1行にする
+                                                    Text(
+                                                      k,
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                      style: const TextStyle(color: Colors.black54),
+                                                  ),
                                                   const SizedBox(width: 8),
                                                   Expanded(child: Text(val.isEmpty ? '—' : val)),
                                                 ],
@@ -882,7 +892,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                             ),
                                           );
                                         }
-
                                     }
 
                                     return widgets;
