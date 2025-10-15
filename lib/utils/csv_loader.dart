@@ -20,6 +20,17 @@ int _idx(List<String> hdrs, String name, int fallbackIfMissing) {
   return (i >= 0) ? i : fallbackIfMissing;
 }
 
+// 空判定：null / '' / '-' を空とみなす
+bool _isEmptyCell(String? s) {
+  if (s == null) return true;
+  final t = s.trim();
+  return t.isEmpty || t == '-';
+}
+
+// 取り込み側が空なら既存を優先、取り込み側に値があれば採用
+String _preferNonEmpty(String current, String incoming) {
+  return _isEmptyCell(incoming) ? current : incoming;
+}
 
 
 class CsvLoader {
@@ -1177,25 +1188,39 @@ class CsvLoader {
       return out;
     }
 
-    // 7) 取り込みCSVを既存へ反映
-    for (final raw in importedMaps) {
-      final incCanon = _toCanon(raw);
-      final ymd = _normYmd(incCanon['日付'] ?? '');
-      if (ymd.isEmpty) continue;
+    // 7) 取り込みCSVを既存へ反映（空で上書きしない・未指定は触らない）
+        for (final raw in importedMaps) {
+          // 列名ゆれ→正規化（ja/en混在OK）
+          final incCanon = _toCanon(raw);
+          // 取り込み側の値で「null/''/'-'」はすべて空文字に統一しておく
+          incCanon.updateAll((k, v) => _isEmptyCell(v) ? '' : v.trim());
 
-      if (byDate.containsKey(ymd)) {
-        // ★ 既存日付にマージ直前ログ（指定された“分岐直前ログ(1)”）
-        debugPrint('[IMPORT] merge existing $ymd (no blank overwrite)');
-        byDate[ymd] = _mergeRow(byDate[ymd]!, incCanon);
-      } else {
-        // ★ 新規追加直前ログ（指定された“分岐直前ログ(2)”）
-        debugPrint('[IMPORT] add new $ymd');
-        final fixed = Map<String, String>.from(incCanon);
-        fixed['感謝数'] = gratitudeCountFromRow(fixed).toString();
-        fixed['日付'] = ymd; // 念のため正規化後で上書き
-        byDate[ymd] = fixed;
-      }
-    }
+          final ymd = _normYmd(incCanon['日付'] ?? '');
+          if (ymd.isEmpty) continue;
+
+          final exists = byDate.containsKey(ymd);
+          if (!exists) {
+            // 新規追加：公式ヘッダ順だけを埋め、空は ''（'-' は使わない）
+            final added = <String, String>{ for (final h in header) h: (incCanon[h] ?? '') };
+            added['日付'] = ymd;
+            // 感謝数は感謝1〜3の非空件数から再計算
+            added['感謝数'] = gratitudeCountFromRow(added).toString();
+            byDate[ymd] = added;
+            debugPrint('[IMPORT] add new $ymd');
+            continue;
+          }
+
+          // 既存あり → フィールド単位で「空で上書きしない」マージ
+          final dst = byDate[ymd]!;
+          for (final key in header) {
+            final incoming = (incCanon[key] ?? '');
+            final current  = (dst[key] ?? '');
+            dst[key] = _preferNonEmpty(current, incoming);
+          }
+          // 感謝数は感謝1〜3の内容から再計算（全て空のときだけ 0）
+          dst['感謝数'] = gratitudeCountFromRow(dst).toString();
+          debugPrint('[IMPORT] merge existing $ymd');
+        }
 
     // 8) 日付昇順で整形→保存
     final dates = byDate.keys.toList()..sort();
