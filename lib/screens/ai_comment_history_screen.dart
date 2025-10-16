@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/ai_comment_service.dart';
+import 'package:my_flutter_app_pro/ui/common_error_dialog.dart';
 
 class AiCommentHistoryScreen extends StatefulWidget {
   final int initialTab;
@@ -68,17 +69,18 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
     super.dispose();
   }
 
+  // ===== 置換開始: _reloadAllFromLog 全体をこの実装に差し替え =====
   Future<void> _reloadAllFromLog() async {
     setState(() => _isLoading = true);
 
-    // 日次・月次は従来通りの厳密ローダ
+    // 1) 日次・月次は従来の厳密ローダを使用
     final daily   = await AiCommentService.loadDailyHistoryStrict();
     final monthly = await AiCommentService.loadMonthlyHistoryStrict();
 
-    // 週次は「空の週も含めて」取得
+    // 2) 週次は「空の週も取得」版で読み込み
     final wkAll = await AiCommentService.loadWeeklyHistoryWithEmptySundays();
 
-    // カットオフ: 直近（当日を含む）の日曜日までだけ表示
+    // 当日を含む直近の日曜日（以降＝未来）は切り捨て
     DateTime _prevOrSameSunday(DateTime d) {
       final back = d.weekday % 7; // Sun=0, Mon=1...
       final localMidnight = DateTime(d.year, d.month, d.day);
@@ -94,7 +96,7 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
       return DateTime(y, m, d);
     }
 
-    // 未来は除外して、日付降順に整列
+    // 3) 未来分を除外し、表示は日付降順に
     final weekly = wkAll.where((r) {
       final dt = _parseYmd((r['date'] ?? '').toString());
       return dt != null && !dt.isAfter(cutoff);
@@ -109,9 +111,10 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
       _isLoading = false;
     });
 
-    // デバッグ概要
     debugPrint('[history] daily=${_daily.length}, weekly=${_weekly.length}, monthly=${_monthly.length}');
   }
+// ===== 置換終了 =====
+
 
 
   Future<void> _backfillCurrentTab() async {

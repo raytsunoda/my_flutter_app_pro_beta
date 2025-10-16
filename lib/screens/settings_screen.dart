@@ -15,6 +15,7 @@ import 'dart:ui' show FontFeature;// 等幅数字用
 import 'package:my_flutter_app_pro/utils/user_prefs.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:my_flutter_app_pro/services/ai_comment_service.dart';
+import 'package:my_flutter_app_pro/ui/common_error_dialog.dart'; // 先頭の import 群に追加
 
 
 // ==== helpers (robust cell access) ====

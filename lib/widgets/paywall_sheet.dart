@@ -174,31 +174,33 @@ class _PaywallSheetState extends State<PaywallSheet> {
 
                 // 有効化モードのときだけ購入ボタンを表示
                 if (mode == PaywallMode.enable) ...[
+
                   // 月額ボタン
                   ElevatedButton(
                     onPressed: monthly == null
                         ? null
                         : () {
                       PLog.info('tap: monthly');
-                      PurchaseService.I.buy(monthly);
+                      PurchaseService.I.buy(monthly);  // ← これだけでOK（内部でUI/結果処理）
                     },
                     child: Text(
                       monthly == null ? '¥500 / 月（準備中）' : '${monthly.price} / 月で月額プラン有効化',
                     ),
                   ),
-                  const SizedBox(height: 8),
+
                   // 年額プランボタン
                   ElevatedButton(
                     onPressed: yearly == null
                         ? null
                         : () {
                       PLog.info('tap: yearly');
-                      PurchaseService.I.buy(yearly);
+                      PurchaseService.I.buy(yearly);   // ← 同上
                     },
                     child: Text(
                       yearly == null ? '¥4,800（年額プラン・準備中）' : '${yearly.price} /年で年額プラン有効化',
                     ),
                   ),
+
                   const SizedBox(height: 8),
                 ],
 
@@ -208,11 +210,18 @@ class _PaywallSheetState extends State<PaywallSheet> {
                   children: [
                     // 「購入を復元」
                     TextButton(
-                      onPressed: _restoring
-                          ? null
-                          : () async {
-                        PLog.info('tap: restore');
-                        await PurchaseService.I.restoreWithUI(context);
+                      onPressed: () async {
+                        if (!mounted) return;
+                        try {
+                          setState(() => _restoring = true);
+                          await PurchaseService.I.restoreWithUI(context);
+                        } catch (e, st) {
+                          debugPrint('[restore] ui error: $e\n$st');
+                          if (mounted) await showCommonErrorDialog(context);
+                        } finally {
+                          if (!mounted) return;
+                          setState(() => _restoring = false);
+                        }
                       },
 
                       child: const Text('購入を復元'),
@@ -220,10 +229,14 @@ class _PaywallSheetState extends State<PaywallSheet> {
                     // 「購読管理」
                     TextButton(
                       onPressed: () async {
-                        PLog.info('tap: manage');
-                        HapticFeedback.selectionClick();
-                        await PurchaseService.I.openManage();
+                        try {
+                          await PurchaseService.I.openManage();
+                        } catch (e, st) {
+                          debugPrint('[manage] ui error: $e\n$st');
+                          if (mounted) await showCommonErrorDialog(context);
+                        }
                       },
+
                       child: const Text('購読管理'),
                     ),
                   ],

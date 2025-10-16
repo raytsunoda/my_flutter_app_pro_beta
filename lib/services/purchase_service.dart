@@ -93,6 +93,7 @@ class PurchaseService {
   }
 
   // 任意のIDで買えるヘルパ（UIから使いやすい）
+  // 任意のIDで買えるヘルパ（UIから使いやすい）
   Future<void> buyById(BuildContext context, String productId) async {
     final details = _products[productId];
     if (details == null) {
@@ -103,11 +104,24 @@ class PurchaseService {
       }
       return;
     }
-    PLog.info('buy: start id=$productId price=${details.price}${details.currencyCode}');
-    final param = PurchaseParam(productDetails: details);
-    await _iap.buyNonConsumable(purchaseParam: param); // サブスクもOK
-    PLog.trace('buy: sheet presented');
+
+    try {
+      PLog.info('buy: start id=$productId price=${details.price}${details.currencyCode}');
+      final param = PurchaseParam(productDetails: details);
+      await _iap.buyNonConsumable(purchaseParam: param); // サブスクもOK
+      PLog.trace('buy: sheet presented');
+    } catch (e, st) {
+      debugPrint('[buy] fatal: $e\n$st');
+      // ここは「サービス層」なので、UIダイアログは呼び出し元(UI)で表示します。
+      // （paywall_sheet.dart 側で try/catch + showCommonErrorDialog を実装済みにします）
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('購入に失敗しました。ネットワーク環境をご確認のうえ、もう一度お試しください。')),
+        );
+      }
+    }
   }
+
 
   Future<void> init() async {
     if (PurchaseConfig.DEV_FORCE_PRO || _kForceProFromBuild) {
