@@ -4,6 +4,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:my_flutter_app_pro/config/purchase_config.dart';
 import 'package:my_flutter_app_pro/services/purchase_service.dart';
 import 'package:my_flutter_app_pro/widgets/safety_notice.dart';
+import 'package:my_flutter_app_pro/ui/common_error_dialog.dart';
 
 enum PaywallMode { enable, manage }
 
