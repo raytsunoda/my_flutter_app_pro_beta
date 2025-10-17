@@ -1,0 +1,107 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "E7331FF8",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6753702775",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_developerTeamID" : "6587KAWUWA",
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 782395609.34999299,
+    "_locale" : "ja",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "JPN",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21803220",
+      "localizations" : [
+
+      ],
+      "name" : "ProPlanGroup",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "29.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6753883483",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "AIパートナーがあなたの毎日にそっと伴走し、心と身体の\"健康習慣\"づくりをサポートします",
+              "displayName" : "Pro年額プラン（自動更新）",
+              "locale" : "ja"
+            }
+          ],
+          "productID" : "pro_yearly_4800_auto",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Pro年額プラン",
+          "subscriptionGroupID" : "21803220",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "2.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6753876630",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "AIパートナーがあなたの毎日にそっと伴走し、心と身体の\"健康習慣\"づくりをサポートします",
+              "displayName" : "Pro月額プラン（自動更新）",
+              "locale" : "ja"
+            }
+          ],
+          "productID" : "pro_monthly_500_auto",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pro月額プラン",
+          "subscriptionGroupID" : "21803220",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

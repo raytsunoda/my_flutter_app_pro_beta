@@ -360,6 +360,29 @@ class PurchaseService {
   void debugDumpState() {
     debugPrint('[iap] STATE hasPro=${hasPro.value}');
   }
+// ===== DEBUG ONLY: ローカルで Pro 状態を一旦クリア =====
+  @visibleForTesting
+  void debugRevokeProLocal() async {
+    try {
+      // キャッシュしている購読情報をクリア
+      _activeProductId = null;        // 既存フィールド
+      _activeExpiry = null;           // 既存フィールド（DateTime? など）
+      hasPro.value = false;
+
+      // もし SharedPreferences 等に保存している場合はここで削除
+      // （キー名はあなたの実装に合わせて変更）
+      try {
+        final sp = await SharedPreferences.getInstance();
+        await sp.remove('proActiveProduct');
+        await sp.remove('proExpiry');
+        await sp.remove('hasPro');
+      } catch (_) {}
+
+      debugPrint('[iap][DEBUG] revoke local Pro state');
+    } catch (e, st) {
+      debugPrint('[iap][DEBUG] revoke error: $e\n$st');
+    }
+  }
 
 
 }

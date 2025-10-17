@@ -15,7 +15,7 @@ import 'package:my_flutter_app_pro/screens/data_migration_screen.dart'; // 追�
 import 'package:my_flutter_app_pro/config/purchase_config.dart';
 
 import 'services/purchase_service.dart';
-
+import 'package:package_info_plus/package_info_plus.dart';
 
 
 
@@ -24,7 +24,8 @@ final GlobalKey<NavigatorState> notificationNavigatorKey = GlobalKey<NavigatorSt
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  final p = await PackageInfo.fromPlatform();
+  debugPrint('[iap] BUNDLE=${p.packageName}');
   // 既存の初期化（プロジェクトの内容に合わせてそのまま残す）
   await CsvLoader().ensureCsvSeeded('HappinessLevelDB1_v2.csv');
   await CsvLoader.getAiCommentLogFile();

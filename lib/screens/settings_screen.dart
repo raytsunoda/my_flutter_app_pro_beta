@@ -18,7 +18,7 @@ import 'package:my_flutter_app_pro/services/ai_comment_service.dart';
 import 'package:my_flutter_app_pro/ui/common_error_dialog.dart'; // 先頭の import 群に追加
 import '../widgets/paywall_sheet.dart' show openPaywall, PaywallMode;
 import 'package:flutter/foundation.dart'; // ← 追加（kDebugMode用）
-
+import 'package:my_flutter_app_pro/services/purchase_service.dart';
 
 // ==== helpers (robust cell access) ====
 int _findIndexByNames(List<String> names, List<String> header) {
@@ -773,6 +773,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               // ※デバッグでワンタップ復元も残したい場合は、ここにもう1個 ListTile 追加可
             ],
+          ),
+        ],
+        if (kDebugMode) ...[
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () async {
+              PurchaseService.I.debugRevokeProLocal();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('DEBUG: Pro 状態をローカルで無効化しました')),
+                );
+                setState(() {}); // その場でUI更新
+              }
+            },
+            child: const Text('DEBUG: Pro状態を一旦無効化'),
           ),
         ],
 
