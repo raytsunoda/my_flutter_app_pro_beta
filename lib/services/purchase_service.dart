@@ -4,13 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
-import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart'; // iOS 管理画面用
+//import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart'; // iOS 管理画面用
 //import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/purchase_config.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
+//import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
 // ...
 /*
 /// OSの購読管理画面を開く（URL遷移に一本化）
@@ -69,6 +69,18 @@ class PurchaseService {
 
   /// アプリ全体で参照する Pro 権限（購読状態）
   final ValueNotifier<bool> hasPro = ValueNotifier<bool>(false);
+  // === 追加: Pro 状態の統一アクセサ ===
+  bool get isProSync => hasPro.value;
+  Future<bool> isPro() async => hasPro.value;
+
+  // Pro 有効状態をUIへ伝えるソース（UIは ValueListenableBuilder で監視）
+ // final ValueNotifier<bool> hasPro = ValueNotifier<bool>(false);
+
+// 参考情報（復元や期限表示に使う・未使用でもOK）
+  String? _activeProductId;     // 'pro_monthly_500_auto' など
+  DateTime? _activeExpiry;      // サンドボックス/本番の領収書から計算した期限
+
+
 
   // 取得した商品をキャッシュ
   final Map<String, ProductDetails> _products = {};
@@ -158,7 +170,7 @@ class PurchaseService {
 
   Future<void> dispose() async => _sub?.cancel();
 
-  Future<bool> isPro() async => hasPro.value;
+  //Future<bool> isPro() async => hasPro.value;
 
   Future<void> buy(ProductDetails p) async {
     final param = PurchaseParam(productDetails: p);
@@ -343,6 +355,10 @@ class PurchaseService {
       debugPrint('restore error: $e\n$st');
       return false;
     }
+  }
+// 追加：現在の課金状態をダンプするデバッグ用ヘルパ（簡易版）
+  void debugDumpState() {
+    debugPrint('[iap] STATE hasPro=${hasPro.value}');
   }
 
 
