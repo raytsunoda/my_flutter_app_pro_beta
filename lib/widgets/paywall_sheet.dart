@@ -6,6 +6,8 @@ import 'package:my_flutter_app_pro/services/purchase_service.dart';
 import 'package:my_flutter_app_pro/widgets/safety_notice.dart';
 import 'package:my_flutter_app_pro/ui/common_error_dialog.dart';
 
+
+
 enum PaywallMode { enable, manage }
 
 Future<void> openPaywall(BuildContext context, {required PaywallMode mode}) async {

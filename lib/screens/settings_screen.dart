@@ -16,6 +16,8 @@ import 'package:my_flutter_app_pro/utils/user_prefs.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:my_flutter_app_pro/services/ai_comment_service.dart';
 import 'package:my_flutter_app_pro/ui/common_error_dialog.dart'; // 先頭の import 群に追加
+import '../widgets/paywall_sheet.dart' show openPaywall, PaywallMode;
+import 'package:flutter/foundation.dart'; // ← 追加（kDebugMode用）
 
 
 // ==== helpers (robust cell access) ====
@@ -752,6 +754,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: _buildCallNameEditor(), // ← 入力UIの本体を使う
           initiallyExpanded: false,
         ),
+
+// --- 課金（管理・復元） -----------------------------------------
+// 本番では非表示。開発ビルドのみ表示する
+        if (kDebugMode) ...[
+          ExpansionTile(
+            leading: const Icon(Icons.workspace_premium_outlined),
+            title: const Text(
+              '課金（管理・復元）',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            children: [
+              ListTile(
+                title: const Text('サブスクリプションを管理'),
+                subtitle: const Text('「購入を復元」「購読管理（App Store）」を開く'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => openPaywall(context, mode: PaywallMode.manage),
+              ),
+              // ※デバッグでワンタップ復元も残したい場合は、ここにもう1個 ListTile 追加可
+            ],
+          ),
+        ],
 
 
         ExpansionTile(
