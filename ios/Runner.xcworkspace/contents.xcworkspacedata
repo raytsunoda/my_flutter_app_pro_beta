@@ -5,6 +5,9 @@
       location = "group:StoreKit.storekit">
    </FileRef>
    <FileRef
+      location = "group:StoreKit.storekit">
+   </FileRef>
+   <FileRef
       location = "group:Runner.xcodeproj">
    </FileRef>
    <FileRef
