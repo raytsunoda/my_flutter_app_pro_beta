@@ -1,6 +1,6 @@
 name: my_flutter_app_pro
 description: A new Flutter project.
-version: 1.0.6+7  # ← ✅ 追加（バージョン名 + ビルド番号）
+version: 1.0.7+8  # ← ✅ 追加（バージョン名 + ビルド番号）
 publish_to: 'none' # Flutter packages shouldn't be published
 
 environment:
