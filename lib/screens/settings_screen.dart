@@ -1324,24 +1324,37 @@ class _AiRegeneratePanelState extends State<_AiRegeneratePanel> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
+      bool ok = false;
+
       if (_kind == 'weekly') {
         final sun = _toSunday(_picked);
         final key = _fmt(sun);
         await AiCommentService.hardDeleteByDateType(key, 'weekly');
-        await AiCommentService.ensureWeeklySaved(sun);
+        final res = await AiCommentService.ensureWeeklySaved(sun);
+        ok = ((res['comment'] ?? '').toString().trim().isNotEmpty);
       } else {
         final eom = _toEom(_picked);
         final key = _fmt(eom);
         await AiCommentService.hardDeleteByDateType(key, 'monthly');
-        await AiCommentService.ensureMonthlySaved(eom);
+        final res = await AiCommentService.ensureMonthlySaved(eom);
+        ok = ((res['comment'] ?? '').toString().trim().isNotEmpty);
       }
+
       await widget.onDone();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ok ? '再生成しました' : '再生成に失敗しました（ネットワーク/サーバ）'),
+        ),
+      );
     } catch (e) {
       debugPrint('[AI REGEN] deleteThenRegen error: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

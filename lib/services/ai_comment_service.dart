@@ -958,23 +958,20 @@ $memosForPrompt
 ''';
 
     try {
-      final res = await http.post(
-        Uri.parse(_aiEndpoint),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'kind': type, // 'weekly'|'monthly'
-          'date': endDateStr,
-          'callName': callName,
-          'prompt': prompt,
-          'metrics': {
-            'avg_happiness': happyAvg,
-            'avg_sleepQ': sleepAvg,
-            'avg_walk': walkAvg,
-          },
-          'gratitude_cues': gratitudeCues,
-          'memos': pickedMemos,
-        }),
-      );
+      final res = await _postJsonWithRetry(_aiEndpoint, {
+        'kind': type, // 'weekly'|'monthly'
+        'date': endDateStr,
+        'callName': callName,
+        'prompt': prompt,
+        'metrics': {
+          'avg_happiness': happyAvg,
+          'avg_sleepQ': sleepAvg,
+          'avg_walk': walkAvg,
+        },
+        'gratitude_cues': gratitudeCues,
+        'memos': pickedMemos,
+      });
+
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
@@ -1891,6 +1888,49 @@ return added;
     } catch (e) {
       debugPrint('[AI] deleteHistoryForDates error: $e');
     }
+  }
+// === 追加：JSON POST（タイムアウト＋リトライ） ===
+  static Future<http.Response> _postJsonWithRetry(
+      String url,
+      Map<String, dynamic> body, {
+        int retries = 2,
+        Duration timeout = const Duration(seconds: 12),
+      }) async {
+    http.Client? client;
+    Object? lastError;
+    StackTrace? lastStack;
+
+    for (int attempt = 0; attempt <= retries; attempt++) {
+      try {
+        client = http.Client();
+        final res = await client
+            .post(
+          Uri.parse(url),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(body),
+        )
+            .timeout(timeout);
+        return res;
+      } catch (e, st) {
+        lastError = e;
+        lastStack = st;
+        debugPrint('[AI] POST retry #$attempt failed: $e');
+        if (attempt < retries) {
+          // backoff: 400ms, 800ms...
+          final backoff = Duration(milliseconds: 400 * (attempt + 1));
+          await Future.delayed(backoff);
+        }
+      } finally {
+        client?.close();
+      }
+    }
+    // すべて失敗
+    if (lastError != null) {
+      debugPrint('[AI] POST failed after retries: $lastError');
+      if (lastStack != null) debugPrintStack(stackTrace: lastStack);
+    }
+    // 疑似的に 599 を返す
+    return http.Response('', 599);
   }
 
 
