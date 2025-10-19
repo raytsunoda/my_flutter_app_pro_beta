@@ -866,7 +866,7 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
   static Future<String> getPeriodComment({
     required DateTime startDate,
     required DateTime endDate,
-    String type = 'weekly',
+    String type = 'weekly', // 'weekly' or 'monthly'
   }) async {
     final endDateStr = DateFormat('yyyy/MM/dd').format(endDate);
 
@@ -877,6 +877,7 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       return 'この${type == "weekly" ? "週" : "月"}のコメントは既に保存されています。';
     }
 
+    // 期間データの読み出し（従来ロジックを活用）
     final rows = await CsvLoader.loadCsvDataBetween(startDate, endDate);
 
     // 定量（そのままの値を平均化）
@@ -909,112 +910,94 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
         .toList();
     final memosForPrompt = pickedMemos.map((m) => '・$m').join('\n');
 
-    // 期間サマリ（従来通り）
-    final graphSummary = '''
-📅 期間: ${DateFormat('yyyy/MM/dd').format(startDate)} ～ ${DateFormat('yyyy/MM/dd').format(endDate)}
-幸せ感レベル: ${happinessList.join(', ')}
-睡眠の質: ${sleepList.join(', ')}
-ウォーキング: ${walkList.join(', ')}
-''';
+    // 期間サマリ（軽量）
+    String _avg(List<String> xs) {
+      final vs = xs.map((e) => double.tryParse(e) ?? double.nan).where((v) => v == v).toList();
+      if (vs.isEmpty) return '';
+      final avg = vs.reduce((a,b)=>a+b) / vs.length;
+      // 幸せ感は自然語を促すため、ここでは数値を晒しすぎない（表示はプロンプト上だけ）
+      return avg.toStringAsFixed(0);
+    }
+    final happyAvg = _avg(happinessList);
+    final sleepAvg = _avg(sleepList);
+    final walkAvg  = _avg(walkList);
+
+    // 感謝の原文を短いキューへ（原文コピペ防止）
+    String _toGratitudeCue(String s) {
+      final t = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+      if (t.isEmpty) return '';
+      final cut = t.split(RegExp(r'[、。]|は|が|を|に|で|と')).first.trim();
+      final short = cut.length > 12 ? '${cut.substring(0,12)}…' : cut;
+      return '$shortに感謝';
+    }
+    final gratitudeCues = pickedGratitudes.map(_toGratitudeCue).where((t) => t.isNotEmpty).toList();
 
     final callName = await _callName();
+    final titleJa = (type == 'weekly') ? '週次' : '月次';
+    final periodLabel =
+        '${DateFormat('yyyy/MM/dd').format(startDate)} ～ ${DateFormat('yyyy/MM/dd').format(endDate)}';
 
-// 感謝は2〜3件、メモは2件ほどに絞って“厚み”を担保
-    final pickedForPrompt = pickedGratitudes.take(3).toList();
-    final gratitudeLine = pickedForPrompt.isNotEmpty
-        ? pickedForPrompt.map((g) => '・' + g).join('\n')
-        : '（未入力）';
-
-    final memosForPromptTop = pickedMemos.take(2).map((m) => '・' + m).join('\n');
-    final memosLine = memosForPromptTop.isNotEmpty ? memosForPromptTop : '（未入力）';
-
-    final label = (type == 'weekly') ? 'この1週間' : 'この1か月';
-
-// 週次・月次も日次の“濃さ”に合わせて約1.5倍の厚みで生成
+    // ❶ “伴走トーン＆約1.5倍” のプロンプト（あなた禁止／構成＆最大300文字）
     final prompt = '''
-${callName} へ。あなたはユーザーの心に寄り添い、前向きな気持ちを支える共感的な「伴走型」のAIパートナーです。
-以下の**期間サマリ（定量）／感謝の候補（2〜3件）／メモの要点（最大2件）**を踏まえ、
-一般論ではなく ${callName} 個人の流れに寄り添う言葉でまとめてください。
-
-【期間】$label
-【概要（自動要約）】
-$graphSummary
-
-【感謝（引用候補から2件まで・原文コピペ禁止）】
-$gratitudeLine
-
-【メモ（要点から最大2件・要約可）】
-$memosLine
+${callName} へ。共感的で実践的なAIパートナーとして、以下の期間データを踏まえた${titleJa}コメントを作成します。一般論ではなく ${callName} 個人に寄り添う言葉でまとめてください。
 
 【出力仕様（厳守）】
 - 冒頭の呼びかけは必ず「${callName}」
-- 文量は優しいトーンで**日本語で最大300文字**（現状より約1.5倍の厚み）
-- 構成は「共感の導入 → 期間の特徴に1〜2点触れる（根拠に軽く言及） → 感謝の短い引用1つ → 次の一歩（1つだけ／20文字程度） → やさしい締め」
-- 「あなた」「あなたさん」は使わない。絵文字・顔文字・説教調・過度な賛辞は避ける。押しつけず、伴走トーン。
-- 幸せ感レベルの表現は**自然語**（例：「50台」「落ち着いている」等）。小数の直接言及は避ける
-- ネガティブや説教的な言葉は避ける
-- ユーザーの継続を応援する伴走者として語りかける
-- 次の一歩は**実行可能な小ささ**で1つだけ（例：『寝る前に3回深呼吸』 など）
+- 文量は優しいトーンで日本語で最大300文字（現状より約1.5倍）
+- 構成：「共感の導入 → 期間の特徴に1〜2点触れる（軽く根拠） → 感謝の短い引用1つ → 次の一歩（1つ／20文字程度） → やさしい締め」
+- 「あなた」「あなたさん」は使わない。絵文字/顔文字/説教調/過度な賛辞は禁止
+- 幸せ感レベルの表現は自然語（例：「50台」「落ち着いている」等）。小数の直接言及は避ける
+- ネガティブや説教的な言葉は避ける。伴走者として語りかける
+- 次の一歩は実行可能な小ささで1つだけ（例：「寝る前に3回深呼吸」）
+
+【期間】$periodLabel
+【傾向（平均目安）】幸せ感:$happyAvg / 睡眠:$sleepAvg / ウォーキング:$walkAvg
+【感謝の候補（要約用）】${gratitudeCues.isEmpty ? '（未入力）' : gratitudeCues.join(' / ')}
+【メモ要点（必要に応じて1〜2つ言及）】
+$memosForPrompt
 ''';
 
-
-    final response = await http.post(
-      Uri.parse(_aiEndpoint),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'kind': type, // 'weekly' or 'monthly'
-        'start': DateFormat('yyyy/MM/dd').format(startDate),
-        'end'  : DateFormat('yyyy/MM/dd').format(endDate),
-        'callName': callName,
-        'prompt': prompt,
-        // サーバ側が使える参考情報（任意）
-        'summary': graphSummary,
-        'gratitudes': pickedGratitudes,
-        'memos': pickedMemos,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final generatedCommentRaw =
-      (data['comment'] ?? data['text'] ?? '').toString().trim();
-
-
-      // 生成テキスト（空ならエラーメッセージ）
-      final base = generatedCommentRaw.isNotEmpty
-          ? generatedCommentRaw
-          : 'コメント取得に失敗しました。';
-// 呼びかけ差し替えは例外で固まらないように保護
-      String withName;
-      try {
-        withName = _enforceCallName(base, callName);
-      } catch (e) {
-        debugPrint('[enforceCallName] ignore: $e');
-        withName = base;
-      }
-// 感謝1〜3のいずれかが本文で触れられていない場合の保険
-      final generatedComment = _ensureGratitudeMention(withName, pickedGratitudes);
-
-      await CsvLoader.appendAiCommentLog(
-        date: endDateStr,
-        type: type,
-        comment: generatedComment,
-        // 小数の不自然な見えを避けるため 0桁丸め
-        score: _averageScore(happinessList).round().toString(),
-        sleep: _averageScore(sleepList).round().toString(),
-        walk: _averageScore(walkList).round().toString(),
-        gratitude1: pickedGratitudes.isNotEmpty ? pickedGratitudes[0] : '',
-        gratitude2: pickedGratitudes.length > 1 ? pickedGratitudes[1] : '',
-        gratitude3: pickedGratitudes.length > 2 ? pickedGratitudes[2] : '',
-        memo: pickedMemos.isNotEmpty ? pickedMemos.first : '',
+    try {
+      final res = await http.post(
+        Uri.parse(_aiEndpoint),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'kind': type, // 'weekly'|'monthly'
+          'date': endDateStr,
+          'callName': callName,
+          'prompt': prompt,
+          'metrics': {
+            'avg_happiness': happyAvg,
+            'avg_sleepQ': sleepAvg,
+            'avg_walk': walkAvg,
+          },
+          'gratitude_cues': gratitudeCues,
+          'memos': pickedMemos,
+        }),
       );
 
-      return generatedComment;
-    } else {
-      return 'コメントの取得に失敗しました。';
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        var text = (data['comment'] ?? data['text'] ?? '').toString().trim();
+        if (text.isNotEmpty) {
+          try {
+            text = _enforceCallName(text, callName);
+          } catch (e, st) {
+            debugPrint('[enforceCallName] ignore: $e\n$st');
+          }
+          text = _ensureGratitudeMention(text, gratitudeCues);
+          return text;
+        }
+      }
+    } catch (e, st) {
+      debugPrint('[getPeriodComment:$type] error: $e');
+      debugPrintStack(stackTrace: st);
     }
 
+    // 失敗時は空を返す（呼び出し元が保存をスキップ or フォールバックを適用）
+    return '';
   }
+
 
 
   static double _averageScore(List<String> list) {

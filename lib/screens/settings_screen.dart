@@ -755,6 +755,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           initiallyExpanded: false,
         ),
 
+// ＝＝ AIコメント（週次／月次）再生成 ＝＝
+        _sectionTile(
+          icon: Icons.auto_fix_high_outlined,
+          title: 'AIコメント（週次／月次）再生成',
+          initiallyExpanded: false,
+          child: _AiRegeneratePanel(onDone: () async {
+            // CSV/一覧の再読み込み（あなたの既存ヘルパ）
+            await _reloadSavedDates();
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('AIコメントを更新しました')),
+            );
+          }),
+        ),
+
+
 // --- 課金（管理・復元） -----------------------------------------
 // 本番では非表示。開発ビルドのみ表示する
         if (kDebugMode) ...[
@@ -1248,4 +1264,138 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 
 
+}
+class _AiRegeneratePanel extends StatefulWidget {
+  final Future<void> Function() onDone;
+  const _AiRegeneratePanel({required this.onDone});
+
+  @override
+  State<_AiRegeneratePanel> createState() => _AiRegeneratePanelState();
+}
+
+class _AiRegeneratePanelState extends State<_AiRegeneratePanel> {
+  DateTime _picked = DateTime.now();
+  String _kind = 'weekly'; // 'weekly' or 'monthly'
+  bool _busy = false;
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final first = DateTime(now.year - 3, 1, 1);
+    final last = DateTime(now.year + 1, 12, 31);
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _picked,
+      firstDate: first,
+      lastDate: last,
+    );
+    if (d != null) setState(() => _picked = d);
+  }
+
+  DateTime _toSunday(DateTime d) {
+    final wd = d.weekday % 7; // Sun=0
+    return DateTime(d.year, d.month, d.day).subtract(Duration(days: wd));
+  }
+
+  DateTime _toEom(DateTime d) => DateTime(d.year, d.month + 1, 0);
+
+  String _fmt(DateTime d) =>
+      '${d.year.toString().padLeft(4,'0')}/${d.month.toString().padLeft(2,'0')}/${d.day.toString().padLeft(2,'0')}';
+
+  Future<void> _deleteOnly() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      if (_kind == 'weekly') {
+        final sun = _toSunday(_picked);
+        await AiCommentService.hardDeleteByDateType(_fmt(sun), 'weekly');
+      } else {
+        final eom = _toEom(_picked);
+        await AiCommentService.hardDeleteByDateType(_fmt(eom), 'monthly');
+      }
+      await widget.onDone();
+    } catch (e) {
+      debugPrint('[AI REGEN] deleteOnly error: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _deleteThenRegen() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      if (_kind == 'weekly') {
+        final sun = _toSunday(_picked);
+        final key = _fmt(sun);
+        await AiCommentService.hardDeleteByDateType(key, 'weekly');
+        await AiCommentService.ensureWeeklySaved(sun);
+      } else {
+        final eom = _toEom(_picked);
+        final key = _fmt(eom);
+        await AiCommentService.hardDeleteByDateType(key, 'monthly');
+        await AiCommentService.ensureMonthlySaved(eom);
+      }
+      await widget.onDone();
+    } catch (e) {
+      debugPrint('[AI REGEN] deleteThenRegen error: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hint = (_kind == 'weekly')
+        ? '週次: 選択日の属する「日曜日」が対象（その週のキー）'
+        : '月次: 選択日の「月末」が対象（その月のキー）';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('対象を選択（週次はその週の日曜／月次は月末がキー）'),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            DropdownButton<String>(
+              value: _kind,
+              items: const [
+                DropdownMenuItem(value: 'weekly', child: Text('週次')),
+                DropdownMenuItem(value: 'monthly', child: Text('月次')),
+              ],
+              onChanged: _busy ? null : (v) => setState(() => _kind = v ?? 'weekly'),
+            ),
+            const SizedBox(width: 12),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _pickDate,
+              icon: const Icon(Icons.date_range),
+              label: Text(_fmt(_picked)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(hint, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            ElevatedButton.icon(
+              onPressed: _busy ? null : _deleteOnly,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('対象タイプのみ削除'),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton.icon(
+              onPressed: _busy ? null : _deleteThenRegen,
+              icon: const Icon(Icons.auto_fix_high),
+              label: const Text('削除 → 再生成'),
+            ),
+          ],
+        ),
+        if (_busy) const Padding(
+          padding: EdgeInsets.only(top: 8.0),
+          child: LinearProgressIndicator(minHeight: 2),
+        ),
+      ],
+    );
+  }
 }
