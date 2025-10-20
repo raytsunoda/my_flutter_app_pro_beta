@@ -438,18 +438,19 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
 
 
   // 週次（end=日曜）
+  // 週次（end=日曜）
   static Future<Map<String, String>> ensureWeeklySaved(DateTime lastSunday) async {
     final end   = DateTime(lastSunday.year, lastSunday.month, lastSunday.day);
     final start = end.subtract(const Duration(days: 6));
     final key   = DateFormat('yyyy/MM/dd').format(end);
 
-    // ① 先に「保存済み」を再利用（←ここを先頭へ）
+    // ① 先に「保存済み」を再利用
     final saved = await getSavedComment(date: key, type: 'weekly');
     if (saved != null && saved.trim().isNotEmpty) {
       return {'date': key, 'type': 'weekly', 'comment': saved};
     }
 
-    // ② 生成許可の判定（許可外なら“生成しない”が、保存済みがあれば上で返っている）
+    // ② 生成許可の判定（許可外なら“生成しない”）
     if (!_canCreateWeeklyFor(end, DateTime.now())) {
       return {'date': key, 'type': 'weekly', 'comment': ''};
     }
@@ -460,14 +461,22 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       return {'date': key, 'type': 'weekly', 'comment': ''};
     }
 
-    // ④ 新規生成
-    final text = await getPeriodComment(
+    // ④ 新規生成 → 生成できたら必ず保存（上書き）
+    final text = (await getPeriodComment(
       startDate: start,
       endDate: end,
       type: 'weekly',
-    );
-    return {'date': key, 'type': 'weekly', 'comment': text.trim()};
+    ))
+        .trim();
+
+    if (text.isNotEmpty) {
+      // ★ここで永続化（関数名はプロジェクトの実体に合わせてください）
+      await saveComment(date: key, type: 'weekly', comment: text);
+    }
+
+    return {'date': key, 'type': 'weekly', 'comment': text};
   }
+
 
 
 
@@ -551,13 +560,13 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     final start = DateTime(end.year, end.month, 1);
     final key   = DateFormat('yyyy/MM/dd').format(end);
 
-    // ① 保存済みがあれば最優先で返す（←先頭へ）
+    // ① 保存済みがあれば最優先で返す
     final saved = await getSavedComment(date: key, type: 'monthly');
     if (saved != null && saved.trim().isNotEmpty) {
       return {'date': key, 'type': 'monthly', 'comment': saved};
     }
 
-    // ② 生成許可（当月1日以降 & endが前月末）を満たさなければ生成しない
+    // ② 生成許可を満たさなければ生成しない
     if (!_canCreateMonthlyFor(end, DateTime.now())) {
       return {'date': key, 'type': 'monthly', 'comment': ''};
     }
@@ -568,13 +577,20 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       return {'date': key, 'type': 'monthly', 'comment': ''};
     }
 
-    // ④ 新規生成
-    final text = await getPeriodComment(
+    // ④ 新規生成 → 生成できたら必ず保存（上書き）
+    final text = (await getPeriodComment(
       startDate: start,
       endDate: end,
       type: 'monthly',
-    );
-    return {'date': key, 'type': 'monthly', 'comment': text.trim()};
+    ))
+        .trim();
+
+    if (text.isNotEmpty) {
+      // ★ここで永続化（関数名はプロジェクトの実体に合わせてください）
+      await saveComment(date: key, type: 'monthly', comment: text);
+    }
+
+    return {'date': key, 'type': 'monthly', 'comment': text};
   }
 
 
@@ -1931,6 +1947,43 @@ return added;
     }
     // 疑似的に 599 を返す
     return http.Response('', 599);
+  }
+  /// ai_comment_log.csv に (date,type) で upsert 保存する軽量ヘルパ
+  /// - 既存の同一 (date,type) 行があれば置き換え
+  /// - なければ追加
+  static Future<void> saveComment({
+    required String date,
+    required String type,   // 'daily' | 'weekly' | 'monthly'
+    required String comment,
+  }) async {
+    // 既存ログを読み込み
+    final rows = await CsvLoader.loadAiCommentLog(); // List<Map<String,String>>
+
+    // 同一キーを除いた配列を作る
+    final filtered = rows.where((r) {
+      final d = (r['date'] ?? '').toString().trim();
+      final t = (r['type'] ?? '').toString().trim().toLowerCase();
+      return !(d == date && t == type.toLowerCase());
+    }).toList();
+
+    // 追記（createdAt を入れておくと表示の安定に効く）
+    filtered.add({
+      'date': date,
+      'type': type.toLowerCase(),
+      'comment': comment,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+
+    // 日付降順 → createdAt 降順の簡易ソート
+    filtered.sort((a, b) {
+      final dd = (b['date'] ?? '').compareTo(a['date'] ?? '');
+      if (dd != 0) return dd;
+      return (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? '');
+    });
+
+    // 保存
+    await CsvLoader.writeAiCommentLog(filtered);
+    debugPrint('[AI LOG] saved ($type) $date (${comment.length} chars)');
   }
 
 
