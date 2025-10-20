@@ -37,6 +37,27 @@ bool _isEom(DateTime d)     => d.day == _eom(d).day;
 String _norm(String s) => s.replaceAll('\uFEFF', '').trim().toLowerCase();
 String _cleanDate(String s) => s.replaceAll('\uFEFF', '').trim();
 
+// === ADD: 正規化ユーティリティ ===
+String _normType(String s) => (s.trim().toLowerCase());
+bool _isWeekly(String s) => _normType(s) == 'weekly';
+bool _isMonthly(String s) => _normType(s) == 'monthly';
+bool _isDaily(String s) => _normType(s) == 'daily';
+
+// CSV 1行 -> {date, type, comment} へ（安全に）
+Map<String, String>? _toRow(Map<String, dynamic> m) {
+  final date = (m['date'] ?? '').toString().trim();
+  final type = _normType((m['type'] ?? '').toString());
+  final comment = (m['comment'] ?? '').toString();
+  if (date.isEmpty || type.isEmpty) return null;
+  return {'date': date, 'type': type, 'comment': comment};
+}
+
+
+
+
+
+
+
 // 期間 [start, end] にCSV実データが1件でもあるか？
 // 判定は「日付があり、かつ '幸せ感レベル' などの数値列が数値として読める
 // もしくは 'memo' が非空」のいずれか。
@@ -471,7 +492,8 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
 
     if (text.isNotEmpty) {
       // ★ここで永続化（関数名はプロジェクトの実体に合わせてください）
-      await saveComment(date: key, type: 'weekly', comment: text);
+      await saveComment(date: key, type: 'weekly', text: text);
+
     }
 
     return {'date': key, 'type': 'weekly', 'comment': text};
@@ -587,7 +609,8 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
 
     if (text.isNotEmpty) {
       // ★ここで永続化（関数名はプロジェクトの実体に合わせてください）
-      await saveComment(date: key, type: 'monthly', comment: text);
+      await saveComment(date: key, type: 'monthly', text: text);
+
     }
 
     return {'date': key, 'type': 'monthly', 'comment': text};
@@ -1024,21 +1047,21 @@ $memosForPrompt
   }
 
   /// CSVログから安全に取得
-  static Future<String?> getSavedComment({
-    required String date,
-    required String type,
-  }) async {
-    final file = await CsvLoader.getAiCommentLogFile();
-    if (!await file.exists()) return null;
+  static Future<String?> getSavedComment({required String date, required String type}) async {
+    final wantType = _normType(type);
+    final rows = (await CsvLoader.loadAiCommentLog())
+        .map(_toRow)
+        .whereType<Map<String, String>>()
+        .toList();
 
-    final rows = const CsvToListConverter().convert(await file.readAsString(), eol: '\n');
-    for (final row in rows.skip(1)) {
-      if (row.length >= 3 && row[0].toString() == date && row[1].toString() == type) {
-        return row[2].toString();
-      }
-    }
-    return null;
+
+    final hit = rows.firstWhere(
+          (r) => r['date']!.trim() == date.trim() && _normType(r['type']!) == wantType,
+      orElse: () => const {'date': '', 'type': '', 'comment': ''},
+    );
+    return (hit['date']!.isEmpty) ? null : hit['comment'];
   }
+
 
   /// API不要の軽量生成（フォールバック／欠落補完に使用）
   static Future<String> _generateDailyAiTextFromCsv(DateTime date) async {
@@ -1951,40 +1974,73 @@ return added;
   /// ai_comment_log.csv に (date,type) で upsert 保存する軽量ヘルパ
   /// - 既存の同一 (date,type) 行があれば置き換え
   /// - なければ追加
+  // === saveComment: 週次/月次キーを正規化してから保存（この定義を1つだけ残す） ===
   static Future<void> saveComment({
-    required String date,
+    required String date,   // 'yyyy/MM/dd'
     required String type,   // 'daily' | 'weekly' | 'monthly'
-    required String comment,
+    required String text,
   }) async {
-    // 既存ログを読み込み
-    final rows = await CsvLoader.loadAiCommentLog(); // List<Map<String,String>>
+    // 型を小文字に正規化
+    final t = _normType(type);
 
-    // 同一キーを除いた配列を作る
-    final filtered = rows.where((r) {
-      final d = (r['date'] ?? '').toString().trim();
-      final t = (r['type'] ?? '').toString().trim().toLowerCase();
-      return !(d == date && t == type.toLowerCase());
-    }).toList();
+    // 'yyyy/MM/dd' を DateTime へ（スラッシュ・ハイフン両対応）
+    DateTime _parseYmd(String s) {
+      final ss = s.replaceAll('/', '-'); // 例: 2025/09/07 → 2025-09-07
+      return DateTime.parse(ss);
+    }
 
-    // 追記（createdAt を入れておくと表示の安定に効く）
-    filtered.add({
-      'date': date,
-      'type': type.toLowerCase(),
-      'comment': comment,
-      'createdAt': DateTime.now().toIso8601String(),
-    });
+    // 週=その週の日曜キー、月=その月の月末キーに防御的に揃える
+    String key = date.trim();
+    try {
+      final d = _parseYmd(date);
+      if (t == 'weekly') {
+        final sun = DateTime(d.year, d.month, d.day)
+            .subtract(Duration(days: d.weekday % 7)); // Sun=0
+        key =
+        '${sun.year.toString().padLeft(4, '0')}/${sun.month.toString().padLeft(2, '0')}/${sun.day.toString().padLeft(2, '0')}';
+      } else if (t == 'monthly') {
+        final eom = DateTime(d.year, d.month + 1, 0);
+        key =
+        '${eom.year.toString().padLeft(4, '0')}/${eom.month.toString().padLeft(2, '0')}/${eom.day.toString().padLeft(2, '0')}';
+      }
+    } catch (_) {
+      // パースできない場合は渡された date をそのまま使う
+    }
 
-    // 日付降順 → createdAt 降順の簡易ソート
-    filtered.sort((a, b) {
-      final dd = (b['date'] ?? '').compareTo(a['date'] ?? '');
-      if (dd != 0) return dd;
-      return (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? '');
-    });
+    // 実際の保存（CsvLoader の仕様に合わせて comment キーへ書く）
+    await CsvLoader.appendAiCommentLog(
+      date: key,
+      type: t,
+      comment: text.trim(),
+      // 追加カラムは空でOK（将来の分析列に合わせやすい）
+      score: '',
+      sleep: '',
+      walk: '',
+      gratitude1: '',
+      gratitude2: '',
+      gratitude3: '',
+      memo: '',
+    );
 
-    // 保存
-    await CsvLoader.writeAiCommentLog(filtered);
-    debugPrint('[AI LOG] saved ($type) $date (${comment.length} chars)');
+    debugPrint('[AI LOG] saved ($t) $key (${text.trim().length} chars)');
+
+    // 保存直後にキャッシュ無効化（存在すれば呼ぶ／無ければ無害）
+    try {
+      _invalidateCaches();
+    } catch (_) {}
   }
+
+// === キャッシュ無効化フック（空実装でも可・プロジェクトに合わせて中身を追加） ===
+  static void _invalidateCaches() {
+    try {
+      // 例) CsvLoader 側にキャッシュがある場合:
+      // CsvLoader.invalidateAiCommentCaches();
+    } catch (_) {
+      // 何もしない
+    }
+  }
+
+
 
 
 }
