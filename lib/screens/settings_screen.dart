@@ -1278,6 +1278,30 @@ class _AiRegeneratePanelState extends State<_AiRegeneratePanel> {
   String _kind = 'weekly'; // 'weekly' or 'monthly'
   bool _busy = false;
 
+  // ▼▼▼ これを _AiRegeneratePanelState クラス内に「新規追加」してください ▼▼▼
+  Future<T> _withRetry<T>(
+      Future<T> Function() body, {
+        int maxAttempts = 3,
+        Duration delay = const Duration(milliseconds: 600),
+      }) async {
+    Object? lastErr;
+    for (var i = 0; i < maxAttempts; i++) {
+      try {
+        return await body();
+      } catch (e) {
+        lastErr = e;
+        if (i < maxAttempts - 1) {
+          await Future.delayed(delay);
+          continue;
+        }
+        rethrow; // 規定回数失敗で投げる
+      }
+    }
+    // ここには来ないが型満たし
+    throw lastErr ?? Exception('unknown error');
+  }
+
+
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final first = DateTime(now.year - 3, 1, 1);
@@ -1307,53 +1331,76 @@ class _AiRegeneratePanelState extends State<_AiRegeneratePanel> {
     try {
       if (_kind == 'weekly') {
         final sun = _toSunday(_picked);
-        await AiCommentService.hardDeleteByDateType(_fmt(sun), 'weekly');
+        await _withRetry(() => AiCommentService.hardDeleteByDateType(_fmt(sun), 'weekly'));
       } else {
         final eom = _toEom(_picked);
-        await AiCommentService.hardDeleteByDateType(_fmt(eom), 'monthly');
+        await _withRetry(() => AiCommentService.hardDeleteByDateType(_fmt(eom), 'monthly'));
       }
       await widget.onDone();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('削除しました')),
+      );
     } catch (e) {
       debugPrint('[AI REGEN] deleteOnly error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('削除に失敗しました（${e.runtimeType}）')),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
+
 
   Future<void> _deleteThenRegen() async {
     if (_busy) return;
     setState(() => _busy = true);
     try {
       bool ok = false;
+      String userMsg = '再生成しました';
 
       if (_kind == 'weekly') {
         final sun = _toSunday(_picked);
         final key = _fmt(sun);
-        await AiCommentService.hardDeleteByDateType(key, 'weekly');
-        final res = await AiCommentService.ensureWeeklySaved(sun);
-        ok = ((res['comment'] ?? '').toString().trim().isNotEmpty);
+        await _withRetry(() => AiCommentService.hardDeleteByDateType(key, 'weekly'));
+        // 一時的な接続エラーを考慮してリトライ
+        final res = await _withRetry(() => AiCommentService.ensureWeeklySaved(sun));
+        final comment = (res['comment'] ?? '').toString().trim();
+        ok = comment.isNotEmpty;
+        if (!ok) {
+          userMsg = '生成対象外または週内の入力が不足しています（データがあれば当該週の日曜キーで保存されます）';
+        }
       } else {
         final eom = _toEom(_picked);
         final key = _fmt(eom);
-        await AiCommentService.hardDeleteByDateType(key, 'monthly');
-        final res = await AiCommentService.ensureMonthlySaved(eom);
-        ok = ((res['comment'] ?? '').toString().trim().isNotEmpty);
+        await _withRetry(() => AiCommentService.hardDeleteByDateType(key, 'monthly'));
+        final res = await _withRetry(() => AiCommentService.ensureMonthlySaved(eom));
+        final comment = (res['comment'] ?? '').toString().trim();
+        ok = comment.isNotEmpty;
+        if (!ok) {
+          userMsg = '生成対象外または当月の入力が不足しています（データがあれば月末キーで保存されます）';
+        }
       }
 
       await widget.onDone();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(ok ? '再生成しました' : '再生成に失敗しました（ネットワーク/サーバ）'),
-        ),
+        SnackBar(content: Text(userMsg)),
       );
     } catch (e) {
       debugPrint('[AI REGEN] deleteThenRegen error: $e');
+      if (!mounted) return;
+      // ここは「通信・サーバ」系の失敗とみなして伝える
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('再生成に失敗しました（${e.runtimeType}）')),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
+
 
 
   @override
