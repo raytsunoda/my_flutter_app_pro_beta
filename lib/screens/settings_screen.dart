@@ -762,7 +762,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 // ＝＝ AIコメント（週次／月次）再生成 ＝＝
         _sectionTile(
           icon: Icons.auto_fix_high_outlined,
-          title: 'AIコメント（週次／月次）再生成',
+          title: 'AIコメント（日次/週次/月次）再生成',
           initiallyExpanded: false,
           child: _AiRegeneratePanel(onDone: () async {
             // CSV/一覧の再読み込み（あなたの既存ヘルパ）
