@@ -1275,7 +1275,7 @@ class _AiRegeneratePanel extends StatefulWidget {
 
 class _AiRegeneratePanelState extends State<_AiRegeneratePanel> {
   DateTime _picked = DateTime.now();
-  String _kind = 'weekly'; // 'weekly' or 'monthly'
+  String _kind = 'daily'; // 'daily' | 'weekly' | 'monthly'
   bool _busy = false;
 
   // ▼▼▼ これを _AiRegeneratePanelState クラス内に「新規追加」してください ▼▼▼
@@ -1329,13 +1329,16 @@ class _AiRegeneratePanelState extends State<_AiRegeneratePanel> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      if (_kind == 'weekly') {
+      if (_kind == 'daily') {
+        await AiCommentService.hardDeleteByDateType(_fmt(_picked), 'daily');
+      } else if (_kind == 'weekly') {
         final sun = _toSunday(_picked);
-        await _withRetry(() => AiCommentService.hardDeleteByDateType(_fmt(sun), 'weekly'));
+        await AiCommentService.hardDeleteByDateType(_fmt(sun), 'weekly');
       } else {
         final eom = _toEom(_picked);
-        await _withRetry(() => AiCommentService.hardDeleteByDateType(_fmt(eom), 'monthly'));
+        await AiCommentService.hardDeleteByDateType(_fmt(eom), 'monthly');
       }
+
       await widget.onDone();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1360,28 +1363,26 @@ class _AiRegeneratePanelState extends State<_AiRegeneratePanel> {
       bool ok = false;
       String userMsg = '再生成しました';
 
-      if (_kind == 'weekly') {
+      if (_kind == 'daily') {
+        final day = DateTime(_picked.year, _picked.month, _picked.day);
+        final key = _fmt(day);
+        await AiCommentService.hardDeleteByDateType(key, 'daily');
+        final resText = await AiCommentService.ensureDailySaved(day);
+        ok = (resText.trim().isNotEmpty);
+      } else if (_kind == 'weekly') {
         final sun = _toSunday(_picked);
         final key = _fmt(sun);
-        await _withRetry(() => AiCommentService.hardDeleteByDateType(key, 'weekly'));
-        // 一時的な接続エラーを考慮してリトライ
-        final res = await _withRetry(() => AiCommentService.ensureWeeklySaved(sun));
-        final comment = (res['comment'] ?? '').toString().trim();
-        ok = comment.isNotEmpty;
-        if (!ok) {
-          userMsg = '生成対象外または週内の入力が不足しています（データがあれば当該週の日曜キーで保存されます）';
-        }
+        await AiCommentService.hardDeleteByDateType(key, 'weekly');
+        final res = await AiCommentService.ensureWeeklySaved(sun);
+        ok = ((res['comment'] ?? '').toString().trim().isNotEmpty);
       } else {
         final eom = _toEom(_picked);
         final key = _fmt(eom);
-        await _withRetry(() => AiCommentService.hardDeleteByDateType(key, 'monthly'));
-        final res = await _withRetry(() => AiCommentService.ensureMonthlySaved(eom));
-        final comment = (res['comment'] ?? '').toString().trim();
-        ok = comment.isNotEmpty;
-        if (!ok) {
-          userMsg = '生成対象外または当月の入力が不足しています（データがあれば月末キーで保存されます）';
-        }
+        await AiCommentService.hardDeleteByDateType(key, 'monthly');
+        final res = await AiCommentService.ensureMonthlySaved(eom);
+        ok = ((res['comment'] ?? '').toString().trim().isNotEmpty);
       }
+
 
       await widget.onDone();
 
@@ -1405,9 +1406,12 @@ class _AiRegeneratePanelState extends State<_AiRegeneratePanel> {
 
   @override
   Widget build(BuildContext context) {
-    final hint = (_kind == 'weekly')
+    final hint = (_kind == 'daily')
+        ? '日次: 選択日その日が対象（yyyy/MM/dd）'
+        : (_kind == 'weekly')
         ? '週次: 選択日の属する「日曜日」が対象（その週のキー）'
         : '月次: 選択日の「月末」が対象（その月のキー）';
+
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1419,10 +1423,11 @@ class _AiRegeneratePanelState extends State<_AiRegeneratePanel> {
             DropdownButton<String>(
               value: _kind,
               items: const [
-                DropdownMenuItem(value: 'weekly', child: Text('週次')),
+                DropdownMenuItem(value: 'daily',   child: Text('日次')),
+                DropdownMenuItem(value: 'weekly',  child: Text('週次')),
                 DropdownMenuItem(value: 'monthly', child: Text('月次')),
               ],
-              onChanged: _busy ? null : (v) => setState(() => _kind = v ?? 'weekly'),
+              onChanged: _busy ? null : (v) => setState(() => _kind = v ?? 'daily'),
             ),
             const SizedBox(width: 12),
             OutlinedButton.icon(
