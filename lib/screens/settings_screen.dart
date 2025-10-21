@@ -78,6 +78,10 @@ String _cellOr(List<String> row, List<String> header, List<String> candidates) {
   }
 
 
+
+// ===== ADD: 何が来ても安全に String 化 + trim するヘルパ =====
+String _s(dynamic v) => (v ?? '').toString().trim();
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -900,10 +904,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ];
 
                                     for (final f in fields) {
-                                      final k = f['key']!;
-                                      final rawVal = (f['val'] ?? '').trim();
-                                      // 表示用フォーマッタ：幸せ感レベルだけ小数1桁に丸める
+                                      final k = _s(f['key']);      // ← どんな型でも安全に String 化 + trim
+                                      final rawVal = _s(f['val']); // ← 同上
                                       final val = _formatDisplayValue(k, rawVal);
+
                                       if (k == '今日のひとことメモ') {
                                         widgets.add(
                                           Padding(
@@ -911,44 +915,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                // ラベルは必ず1行にする
-                                                Text(
-                                                  k,
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: const TextStyle(color: Colors.black54),
-                                              ),
+                                                Text(k, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54)),
                                                 const SizedBox(height: 2),
-                                                // ← メモは複数行OK
-                                                Text(
-                                                  val.isEmpty ? '（未入力）' : val,
-                                                  softWrap: true,
-                                                ),
+                                                Text(val.isEmpty ? '（未入力）' : val, softWrap: true),
                                               ],
-                                           ),
+                                            ),
                                           ),
                                         );
                                       } else {
-                                              widgets.add(
-                                                    Padding(
-                                                          padding: const EdgeInsets.symmetric(vertical: 2),
-                                                      child: Row(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          // ラベルは必ず1行にする
-                                                    Text(
-                                                      k,
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
-                                                      style: const TextStyle(color: Colors.black54),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Expanded(child: Text(val.isEmpty ? '—' : val)),
-                                                ],
-                                              ),
+                                        widgets.add(
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 2),
+                                            child: Row(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(k, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54)),
+                                                const SizedBox(width: 8),
+                                                Expanded(child: Text(val.isEmpty ? '—' : val)),
+                                              ],
                                             ),
-                                          );
-                                        }
+                                          ),
+                                        );
+                                      }
                                     }
 
                                     return widgets;
@@ -1158,8 +1146,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return -1;
   }
 
-  Widget _kv(String label, String value) {
-// ①「今日のひとことメモ」は複数行で折り返し表示（左寄せ）
+  // どんな型が来ても安全に文字列化して扱う
+  Widget _kv(String label, dynamic value) {
+    // まずは安全に toString → trim
+    final v = _s(value);    // ← 何が来ても安全
+
+    // ①「今日のひとことメモ」は複数行で折り返し表示（左寄せ）
     if (label == '今日のひとことメモ') {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -1168,34 +1160,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             const Text('今日のひとことメモ', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text(
-              value,
-              softWrap: true,
-              // maxLines: null を指定したい場合は Text.rich 等だと不要。通常 Text は改行可能です。
-            ),
+            Text(v.isEmpty ? '（未入力）' : v, softWrap: true),
           ],
         ),
       );
     }
 
-
-
-    // 感謝1/2/3 は右寄せにせず、左寄せで「感謝1：xxx」の1行表示にする
-    if (label.startsWith('感謝')) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2.0),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            '$label：$value',
-            softWrap: true,
-          ),
-        ),
-      );
-    }
-
     // それ以外は従来どおり（数値は等幅フォント＋右寄せ）
-    final v = value.trim();
     final isNumeric = double.tryParse(v) != null;
 
     return Padding(
@@ -1203,21 +1174,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 左：ラベル（左寄せ・改行可）
-          Expanded(
-            child: Text(
-              label,
-              softWrap: true,
-            ),
-          ),
+          Expanded(child: Text(label, softWrap: true)),
           const SizedBox(width: 8),
-          // 右：値（右寄せ・数字は等幅）
           ConstrainedBox(
             constraints: const BoxConstraints(minWidth: 80),
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(
-                value,
+                v.isEmpty ? '—' : v,
                 textAlign: TextAlign.right,
                 style: isNumeric ? _numStyle : null,
                 softWrap: true,
@@ -1227,9 +1191,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
-
-
   }
+
+
+
+
   Widget _callNameTile() {
     return ListTile(
       leading: const Icon(Icons.person),
@@ -1262,9 +1228,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return raw;
   }
 
-
-
 }
+
+
 class _AiRegeneratePanel extends StatefulWidget {
   final Future<void> Function() onDone;
   const _AiRegeneratePanel({required this.onDone});
@@ -1368,7 +1334,8 @@ class _AiRegeneratePanelState extends State<_AiRegeneratePanel> {
         final key = _fmt(day);
         await AiCommentService.hardDeleteByDateType(key, 'daily');
         final resText = await AiCommentService.ensureDailySaved(day);
-        ok = (resText.trim().isNotEmpty);
+        ok = _s(resText).isNotEmpty;
+
       } else if (_kind == 'weekly') {
         final sun = _toSunday(_picked);
         final key = _fmt(sun);
