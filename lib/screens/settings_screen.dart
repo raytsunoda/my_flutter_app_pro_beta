@@ -760,6 +760,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
 
 // ＝＝ AIコメント（週次／月次）再生成 ＝＝
+// 本番（リリース）では非表示。デバッグビルドのみ表示する
+        if (kDebugMode)
         _sectionTile(
           icon: Icons.auto_fix_high_outlined,
           title: 'AIコメント（日次/週次/月次）再生成',
