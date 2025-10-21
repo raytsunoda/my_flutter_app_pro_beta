@@ -13,6 +13,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/user_prefs.dart';
 import 'package:path/path.dart' as p;
 
+// === DEBUG: AIプロンプト/応答ログ制御（--dart-define=LOG_AI=true で有効） ===
+const bool LOG_AI = bool.fromEnvironment('LOG_AI', defaultValue: false);
+
+// 長いテキストを先頭だけ安全に切り出す小ヘルパ
+String _clipForLog(String s, {int max = 400}) {
+  if (s.length <= max) return s;
+  return s.substring(0, max) + ' ...<clipped>';
+}
 
 
 // ---------- Weekly history with empty Sundays ----------
@@ -780,8 +788,7 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       - 幸せ感の表現は自然語（例：「50台」「落ち着いている」）。小数は直接言及しない
       - 絵文字・顔文字・過度な敬語・説教調・数値だけの賛辞は使わない。
       - ネガティブや説教的な言葉は避ける。押しつけず、伴走トーン。
-      - 優しい安心感を感じさせるトーンで300文字以内でまとめる
-      - 3文〜4文構成にする（例：共感→称賛→明日への一言）
+      - 優しい安心感を感じさせるトーンでまとめる（全体300文字以内）
       - ユーザーの継続を応援する伴走者として語りかける
       
       【書き方のヒント（出力に含めない）】
@@ -814,6 +821,15 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       
 ''';
 
+// === 送信直前ログ（プロンプト/メモ/感謝が入っているか可視化） ===
+    if (LOG_AI) {
+      debugPrint('[AI PROMPT][daily $ymdLabel]');
+      debugPrint('  memoStr   = ${_clipForLog(memoStr, max: 200)}');
+      debugPrint('  thanksStr = ${_clipForLog(thanksStr, max: 200)}');
+      debugPrint('  prompt    =\n${_clipForLog(prompt, max: 600)}');
+    }
+
+
     try {
       final res = await http.post(
         Uri.parse(_aiEndpoint),
@@ -837,6 +853,12 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         var text = (data['comment'] ?? data['text'] ?? '').toString().trim();
+
+        if (LOG_AI) {
+          debugPrint('[AI RESP][daily $ymdLabel] ${_clipForLog(text, max: 400)}');
+        }
+
+
         if (text.isNotEmpty) {
           try {
             text = _enforceCallName(text, callName);
@@ -2057,7 +2079,7 @@ return added;
       memo: '',
     );
 
-    debugPrint('[AI LOG] saved ($t) $key (${text.trim().length} chars)');
+    debugPrint('[AI LOG] saved ($type) $date (${text.trim().length} chars)');
 
     // 保存直後にキャッシュ無効化（存在すれば呼ぶ／無ければ無害）
     try {
