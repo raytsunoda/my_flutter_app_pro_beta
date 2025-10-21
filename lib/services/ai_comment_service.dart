@@ -691,6 +691,48 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     return targets.length;
   }
 
+  // === ADD: メモ使用可視化用のプレビュー関数（ログ用） ==================
+  static String _preview(String s, [int n = 40]) {
+    final one = s.replaceAll('\n', ' ').trim();
+    if (one.isEmpty) return '(empty)';
+    return (one.length <= n) ? one : (one.substring(0, n) + '…');
+  }
+  /// PATCH 1/3: メモ由来のキーフレーズ抽出＆検出ヘルパ
+  static String _memoCue(String memo) {
+    final t = memo.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (t.isEmpty) return '';
+    // 句読点や助詞でざっくり切って短い名詞句っぽい先頭を拾う
+    final cut = t.split(RegExp(r'[、。]|は|が|を|に|で|と')).first.trim();
+    final short = cut.length > 14 ? '${cut.substring(0, 14)}…' : cut;
+    return short;
+  }
+
+  static bool _textMentionsCue(String text, String cue) {
+    if (text.trim().isEmpty || cue.trim().isEmpty) return false;
+    // cue の一部（3文字以上の連続部分）が本文に含まれていればOKという緩い判定
+    final c = cue.replaceAll(RegExp(r'\s+'), '');
+    if (c.length < 3) return false;
+    for (int len = c.length; len >= 3; len--) {
+      final sub = c.substring(0, len);
+      if (text.contains(sub)) return true;
+    }
+    return false;
+  }
+
+  static String _appendMemoLineIfMissing(String text, String memoCue) {
+    if (memoCue.isEmpty) return text;
+    if (_textMentionsCue(text, memoCue)) return text;
+    // さりげない一文を追記（過度に主張しない）
+    return '$text\n\n追伸：メモの「$memoCue」、大切にできると良さそうです。';
+  }
+
+
+
+
+
+
+
+
 // === 日次のAIコメント生成（OpenAI使用）—ボリューム1.5倍 & 伴走トーン強化 ===
   static Future<String> getTodayComment({
     required DateTime displayDate,
@@ -714,29 +756,47 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     final stretch  = radar.length > 2 ? radar[2] : 0.0; // 分
 
     final callName = await _callName();
-    // ❶ 文字数目安を 200 → 300 へ（約1.5倍）
-    //   導入（寄り添い）→ 本文（今日の特徴に触れる）→ 感謝の短い引用 → 次の一歩（1つ）→ しめの伴走ひと言
-      final prompt = '''
+    // デバッグ追跡用の軽いプレビュー
+    try {
+      debugPrint('[AI daily] $ymdLabel memoPreview="${_preview(memoStr, 40)}"');
+    } catch (_) {}
+
+    // メモ由来のキーフレーズ（後段の検証/追記に利用）
+    final memoCue = _memoCue(memoStr);
+
+    // プロンプト強化：メモに必ず触れる・一般論回避・伴走トーンひと言
+    final prompt = '''
       
-      ${callName} へ。あなたはユーザーの心に寄り添い、前向きな気持ちを支える共感的で実践的なAIパートナーです。
-      以下の**当日のスコア、3つの感謝、今日のひとことメモ**を必ず参照し、薄味な一般論一般論ではなく ${callName} 個人に寄り添う言葉でまとめます。
-      1) 感謝の**要約**を1つ（原文コピペは不可、短く言い換える）、2) 具体的な**次の一歩**を1つだけ提案。
-      ${callName} 個人に刺さる短いコメントを**200文字以内**で日本語で作成してください。ユーザーの日々の努力や小さな変化を受け止め、
-      共感しながら励ますメッセージを作成してください。
+      ${callName} へ。ユーザーの心に寄り添い、前向きな気持ちを支える共感的で実践的なAIパートナーとして、**当日のスコア、3つの感謝、今日のひとことメモ**を必ず参照し、薄味な一般論ではなく ${callName} 個人の今日に寄り添う短文コメントを作成してください。
       
-      【出力仕様（厳守）】
-      - 全体は**日本語・300文字以内**（導入/本文/感謝の短い引用/次の一歩/しめ）
+      【必須要件】
+      - 全体は**日本語・300文字以内、かつ「3〜4文構成」**
+      - 構成：「寄り添いの導入 → 今日の特徴（**メモの要点に必ず1度触れる**） → 感謝の**短い言及**1つ（原文コピペ不可・短く言い換える） → **次の一歩**1つ（約20文字／具体的で無理のない提案） → 安心感のある締め」
+      - 呼びかけは常に「${callName}」。**「あなた」「あなたさん」は使わない**
+      - 今日のひとことメモを参照して、短く言い換えて必ず１点は反映
       - 感謝1〜3のうち**最低1つ**を短く言い換えて引用（例:「◯◯に感謝」）（原文コピペ不可）
       - **次の一歩**は**20文字程度**で1つだけ（過度に難しくしない）
       - 「素晴らしい」は**幸せ感レベル80以上**のみ使用可（数値だけの賛辞は禁止）
-      - 呼びかけは常に「${callName}」。**「あなた」「あなたさん」は使わない**
-      - 絵文字・顔文字・過度な敬語・説教調は使わない。押しつけず、伴走トーン。
-      - 優しいトーンで100〜150文字程度（現状より約1.5倍の長さ）
-      - 2文〜3文構成にする（例：共感→称賛→明日への一言）
-      - ネガティブや説教的な言葉は避ける
+      - 幸せ感の表現は自然語（例：「50台」「落ち着いている」）。小数は直接言及しない
+      - 絵文字・顔文字・過度な敬語・説教調・数値だけの賛辞は使わない。
+      - ネガティブや説教的な言葉は避ける。押しつけず、伴走トーン。
+      - 優しい安心感を感じさせるトーンで300文字以内でまとめる
+      - 3文〜4文構成にする（例：共感→称賛→明日への一言）
       - ユーザーの継続を応援する伴走者として語りかける
-      - 例文：「今日は少し疲れたかもしれませんね。でも、その中で感謝を見つけられたのは素敵です。あなたのペースで進んでいきましょう。」
       
+      【書き方のヒント（出力に含めない）】
+      - メモは1点だけ短く言い換えて触れる（例：要約キーフレーズ）
+      - 感謝1〜3のうち最低1つを、短い再表現で一言添える（例：「◯◯に感謝」）
+      - 次の一歩は実行可能な小ささで1つだけ（例：「寝る前に深呼吸を3回」）
+
+【出力例の構成（あくまで構成の例・文言は生成すること）】
+      - 寄り添いの導入：${callName} への短いねぎらい
+      - 本文：今日の特徴（例：睡眠/運動/メモの要点）に1〜2点触れる
+      - 感謝の短い引用：例「◯◯に感謝」
+      - 次の一歩：1つだけ。20文字程度で具体的に
+      - しめ：明日への伴走ひと言
+      - しめのポイント: 短く、わかりやすく、地に足のついた言葉で。事実を尊重しつつ、無理のない実践提案を1つ入れてください。
+    
       
       【当日のスコア】
       📅 日付: $ymdLabel
@@ -748,18 +808,10 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       【3つの感謝】（要約引用に使う / 原文コピペ禁止）
       🙏 ${thanksStr.isEmpty ? '（未入力）' : thanksStr}
       
-      【今日のひとことメモ】（要約可）
+      【今日のひとことメモ】（必ず1度は触れる／短く言い換える）
       📝 $memoStr
-      {memosForPrompt}
       
-      【出力例の構成（あくまで構成の例・文言は生成すること）】
-      - 導入：${callName} への短いねぎらい
-      - 本文：今日の特徴（例：睡眠/運動/メモの要点）に1〜2点触れる
-      - 感謝の短い引用：例「◯◯に感謝」
-      - 次の一歩：1つだけ。20文字程度で具体的に
-      - しめ：明日への伴走ひと言
-            
-      ポイント: 短く、地に足のついた言葉で。事実を尊重しつつ、無理のない実践提案を1つ入れてください。
+      
 ''';
 
     try {
@@ -771,7 +823,6 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
           'date': ymdLabel,
           'callName': callName,
           'prompt': prompt,
-          // 参考: サーバ側で使えるように最低限の材料も添える（任意）
           'metrics': {
             'happiness': scoreStr,
             'sleepQ': sleepQ,
@@ -785,51 +836,35 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
-        // プロキシの返却仕様に合わせて柔軟に取得
-        final text =
-        (data['comment'] ?? data['text'] ?? '').toString().trim();
+        var text = (data['comment'] ?? data['text'] ?? '').toString().trim();
         if (text.isNotEmpty) {
-          // 呼びかけ差し替えで例外が出てもUIを止めない
-          String withName;
           try {
-            withName = _enforceCallName(text, callName);
-          } catch (e, st) {
-            debugPrint('[enforceCallName] ignore: $e\n$st');
-            withName = text;
-          }
-
-// ❶ 追加: 感謝の原文をそのまま使わず、短いキューにする（コピペ防止）
-          String _toGratitudeCue(String s) {
-            final t = s.replaceAll(RegExp(r'\s+'), ' ').trim();
-            if (t.isEmpty) return '';
-            // 名詞寄りを拾う簡易ルール：句読点や助詞でざっくり切って先頭を採用
-            final cut = t.split(RegExp(r'[、。]|は|が|を|に|で|と')).first.trim();
-            final short = cut.length > 12 ? '${cut.substring(0, 12)}…' : cut;
-            return '$shortに感謝';
-          }
-
-
-
-
-
-          // thanks（= 感謝1〜3）から最低1つは本文で触れるよう保険をかける
+            text = _enforceCallName(text, callName);
+          } catch (_) {}
+          // 感謝が皆無の場合の保険（既存実装）
           final cues = thanks
               .where((t) => t.trim().isNotEmpty)
-              .map(_toGratitudeCue)
+              .map((s) {
+            final cut = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+            final head = cut.split(RegExp(r'[、。]|は|が|を|に|で|と')).first.trim();
+            return head.isEmpty
+                ? ''
+                : (head.length > 12 ? '${head.substring(0, 12)}…' : head) + 'に感謝';
+          })
               .where((t) => t.isNotEmpty)
               .toList();
-          final withGratitude = _ensureGratitudeMention(withName, cues);
+          text = _ensureGratitudeMention(text, cues);
 
-
-          return withGratitude;
+          // ★メモ反映の最終チェック：触れていなければ短い一文を自動追記
+          text = _appendMemoLineIfMissing(text, memoCue);
+          return text;
         }
       }
-
     } catch (_) {
-      // 握りつぶし → 下のフォールバックに任せる
+      // 失敗時は下のフォールバックへ
     }
-    return '';
 
+    return '';
   }
 
 
