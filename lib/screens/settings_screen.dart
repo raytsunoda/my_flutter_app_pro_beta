@@ -19,6 +19,7 @@ import 'package:my_flutter_app_pro/ui/common_error_dialog.dart'; // 先頭の im
 import '../widgets/paywall_sheet.dart' show openPaywall, PaywallMode;
 import 'package:flutter/foundation.dart'; // ← 追加（kDebugMode用）
 import 'package:my_flutter_app_pro/services/purchase_service.dart';
+import 'package:my_flutter_app_pro/widgets/migration_guide_modal.dart';
 
 // ==== helpers (robust cell access) ====
 int _findIndexByNames(List<String> names, List<String> header) {
@@ -175,6 +176,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       _displayNameCtrl.text = (v ?? '').trim();
       setState(() {});
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      MigrationGuideModal.showIfNeeded(context);
     });
   }
   @override
@@ -988,6 +992,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           subtitle: const Text('旧アプリのCSVを取り込む'),
             onTap: () async {
+              await MigrationGuideModal.show(context);  // ← まずガイドを表示
+              // その後、実際の取り込み画面へ遷移させたい場合は、show の直後に push する
+              // Navigator.push(context, MaterialPageRoute(builder: (_) => const DataImportScreen()));
+
               // 既存の「上書き保存」実装は全削除してOK。安全マージを直呼び。
               final result = await FilePicker.platform.pickFiles(
                 type: FileType.custom,
