@@ -188,15 +188,23 @@ class _MigrationGuideModalState extends State<MigrationGuideModal> {
               const SizedBox(height: 14),
 
               // 補助リンク
-              Row(
+              // 補助リンク
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextButton.icon(
-                    onPressed: _openWeb,
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text('詳しい手順（公式サイト）'),
+                  // 上段：公式サイトへのリンク（左寄せ）
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: _openWeb,
+                      icon: const Icon(Icons.open_in_new),
+                      label: const Text('詳しい手順（公式サイト）'),
+                    ),
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 4),
+                  // 下段：チェックボックス（右寄せ）
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Checkbox(
                         value: _suppress,
@@ -210,6 +218,7 @@ class _MigrationGuideModalState extends State<MigrationGuideModal> {
                   ),
                 ],
               ),
+
 
               const SizedBox(height: 6),
 
