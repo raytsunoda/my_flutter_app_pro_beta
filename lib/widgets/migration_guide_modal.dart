@@ -8,7 +8,6 @@ class MigrationGuideModal extends StatefulWidget {
   const MigrationGuideModal({super.key});
 
   static Future<void> show(BuildContext context) async {
-    // すぐ表示
     await showDialog(
       context: context,
       barrierDismissible: true,
@@ -18,18 +17,26 @@ class MigrationGuideModal extends StatefulWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.75, // 高さを制限
-          ),
-          child: const SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, 24), // 下余白を多めに
-            child: MigrationGuideModal(),
-          ),
+        // ✅ ここから修正版
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: constraints.maxHeight * 0.9, // 高さを9割に制限
+              ),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                child: const MigrationGuideModal(),
+              ),
+            );
+          },
         ),
+        // ✅ ここまで修正版
       ),
     );
   }
+
 
 
   // 起動時など自動表示（「次回から表示しない」を尊重）
