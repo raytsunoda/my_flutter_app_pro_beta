@@ -13,16 +13,24 @@ class MigrationGuideModal extends StatefulWidget {
       context: context,
       barrierDismissible: true,
       builder: (_) => Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        backgroundColor: Colors.white, // ← これを追加！
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const MigrationGuideModal(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.75, // 高さを制限
+          ),
+          child: const SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 24), // 下余白を多めに
+            child: MigrationGuideModal(),
+          ),
+        ),
       ),
     );
-
   }
+
 
   // 起動時など自動表示（「次回から表示しない」を尊重）
   static Future<void> showIfNeeded(BuildContext context) async {
