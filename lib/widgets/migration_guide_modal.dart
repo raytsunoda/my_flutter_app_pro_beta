@@ -11,31 +11,30 @@ class MigrationGuideModal extends StatefulWidget {
     await showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (_) => Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        // ✅ ここから修正版
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: constraints.maxHeight * 0.9, // 高さを9割に制限
-              ),
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-                child: const MigrationGuideModal(),
-              ),
-            );
-          },
-        ),
-        // ✅ ここまで修正版
-      ),
+      builder: (_) {
+        final media = MediaQuery.of(context);
+
+        return Dialog(
+          // ↘ ほぼ全画面に近づける（上下の余白を小さく）
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              // 画面高さの 90% まで使う
+              maxHeight: media.size.height * 0.9,
+              // 横幅はタブレットなどで広がりすぎないように
+              maxWidth: 540,
+            ),
+            child: const MigrationGuideModal(),
+          ),
+        );
+      },
     );
   }
+
 
 
 
@@ -123,19 +122,14 @@ class _MigrationGuideModalState extends State<MigrationGuideModal> {
   Widget build(BuildContext context) {
     final isRelease = kReleaseMode;
 
-    // 画面高さの 80% までに制限（残りは背面のグレー）
-    final maxHeight = MediaQuery.of(context).size.height * 0.8;
-
     return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: 540,
-        maxHeight: maxHeight,
+      constraints: const BoxConstraints(
+        maxWidth: 540, // 横幅だけ制限
       ),
       // はみ出したらスクロールできるようにする
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
