@@ -622,12 +622,22 @@ class CsvLoader {
     final lines = await file.readAsLines();
     if (lines.isEmpty) return [];
 
-    final headers = lines.first.split(',');
-    final data = lines.skip(1);
+    // ヘッダーを小文字に正規化（列名ゆれ対策）
+    final headers = lines.first.split(',').map((h) => h.trim().toLowerCase()).toList();
 
-    return data.map((line) {
-      final values = line.split(',');
-      return Map.fromIterables(headers, values);
+    return lines.skip(1).map((line) {
+      final values = const CsvToListConverter().convert(line).first.map((e) => e.toString()).toList();
+      final padded = values.length < headers.length
+          ? [...values, ...List.filled(headers.length - values.length, '')]
+          : values.sublist(0, headers.length);
+
+      final m = Map<String, String>.fromIterables(headers, padded);
+
+      // ▼ 追加：comment をサニタイズ
+      if (m.containsKey('comment')) {
+        m['comment'] = CsvLoader.sanitizeCommentForDisplay(m['comment'] ?? '');
+      }
+      return m;
     }).toList();
   }
 
@@ -655,6 +665,24 @@ class CsvLoader {
     sink.writeln('$date,$type,"$comment",$score,$sleep,$walk,"$gratitude1","$gratitude2","$gratitude3","$memo"');
     await sink.close();
   }
+
+  // コメント表示の応急サニタイズ
+  static String sanitizeCommentForDisplay(String raw) {
+    // 「追伸：…（未入力）…」の行を丸ごと削除
+    final removedEmptyMemo = raw.replaceAll(
+      RegExp(r'(?m)^\s*追伸：.*?（未入力）.*$', multiLine: true),
+      '',
+    );
+    // 同じようなテンプレ文が残っていたら抑制（任意・安全側）
+    final tamed = removedEmptyMemo.replaceAll(
+      RegExp(r'大切にできると良さそうです。'),
+      '無理のない一歩で続けていきましょう。',
+    );
+
+    // 余分な空行を詰める
+    return tamed.replaceAll(RegExp(r'\n{2,}'), '\n').trim();
+  }
+
 
   static Future<bool> isCommentAlreadySaved({
     required String date, // 'YYYY/MM/DD'
@@ -703,7 +731,14 @@ class CsvLoader {
       final padded = values.length < headers.length
           ? [...values, ...List.filled(headers.length - values.length, '')]
           : values.sublist(0, headers.length);
-      return Map<String, String>.fromIterables(headers, padded);
+// ▼▼ ここを追加：comment を読み出し時にサニタイズ ▼▼
+      final m = Map<String, String>.fromIterables(headers, padded);
+      final ci = headers.indexOf('comment');
+      if (ci >= 0) {
+        m['comment'] = CsvLoader.sanitizeCommentForDisplay(m['comment'] ?? '');
+      }
+      return m;
+      // ▲▲ ここまで ▲▲
     }).toList();
   }
 
@@ -1235,6 +1270,51 @@ class CsvLoader {
     await file.writeAsString(csvText, flush: true);
 
     debugPrint('[IMPORT] importCsvSafely: done; rows=${rows.length - 1}');
+  }
+  /// 既存 ai_comment_log.csv を読み込み、comment をサニタイズして書き戻す（破壊的）
+  /// 戻り値：実際に修正した件数
+  static Future<int> fixAiLogTailPhrases() async {
+    final file = await getAiCommentLogFile();
+    if (!await file.exists()) return 0;
+
+    final lines = await file.readAsLines();
+    if (lines.isEmpty) return 0;
+
+    final headers = lines.first.split(',');
+    final idxComment = headers.indexOf('comment');
+
+    if (idxComment < 0) {
+      // comment列がない場合は何もしない
+      return 0;
+    }
+
+    int fixed = 0;
+    final out = <String>[];
+    out.add(lines.first); // header
+
+    for (final line in lines.skip(1)) {
+      // 1行だけをCSVとして解析して安全に列を得る
+      final values =
+      const CsvToListConverter().convert(line).first.map((e) => e.toString()).toList();
+      // 列数ずれを吸収
+      while (values.length <= idxComment) {
+        values.add('');
+      }
+
+      final raw = values[idxComment];
+      final sanitized = CsvLoader.sanitizeCommentForDisplay(raw);
+      if (sanitized != raw) fixed++;
+
+      // 改行を \n にエスケープして書き戻し
+      values[idxComment] = sanitized.replaceAll('\n', r'\n');
+
+      // 1行をCSVに戻す
+      final rowCsv = const ListToCsvConverter().convert([values], eol: '');
+      out.add(rowCsv);
+    }
+
+    await file.writeAsString(out.join('\n') + '\n');
+    return fixed;
   }
 
 

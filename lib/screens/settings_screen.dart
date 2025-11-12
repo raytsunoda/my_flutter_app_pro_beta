@@ -779,6 +779,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             );
           }),
         ),
+        _sectionTile(
+          icon: Icons.developer_mode,
+          title: '開発者メニュー',
+          child: _buildDeveloperPatches(),
+          initiallyExpanded: false,
+        ),
 
 
 // --- 課金（管理・復元） -----------------------------------------
@@ -1237,6 +1243,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     return raw;
   }
+  Widget _buildDeveloperPatches() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('データ修復ユーティリティ（開発用）', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.build),
+          label: const Text('AIコメントCSVを後処理（追伸テンプレ除去）'),
+          onPressed: () async {
+            final n = await CsvLoader.fixAiLogTailPhrases();
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('修復完了：$n 件を処理しました')),
+            );
+            // 必要なら履歴の再読込を促す
+          },
+        ),
+      ],
+    );
+  }
+
+
+
 
 }
 

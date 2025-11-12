@@ -90,6 +90,27 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
         .replaceAll(RegExp(r'^[\s\u3000]+|[\s\u3000]+$'), '') // 前後の半角/全角空白
         .trim();
   }
+  // ❹ 表示直前の最終サニタイズ（BOM/ゼロ幅/連続句読点/「追伸：」など整形）
+  String _sanitizeForDisplay(String? s) {
+    var t = (s ?? '');
+
+    // 制御文字・BOM・ゼロ幅
+    t = t.replaceAll('\uFEFF', '').replaceAll('\u200B', '');
+
+    // 連続した句読点を絞る（、、、、 → 、 / 。。。。 → 。 / …… → …）
+    t = t.replaceAll(RegExp(r'、{2,}'), '、');
+    t = t.replaceAll(RegExp(r'。{2,}'), '。');
+    t = t.replaceAll(RegExp(r'…{2,}'), '…');
+
+    // 「追伸：」の前後の余分な読点や空白を整理
+    t = t.replaceAll(RegExp(r'追伸\s*[:：]\s*[、\s]*'), '追伸：');
+
+    // 最後に全体の前後空白を除去
+    return t.trim();
+  }
+
+
+
 
 // ❷ 当日を yyyy/MM/dd で
   String get _todayStr => DateFormat('yyyy/MM/dd').format(DateTime.now());
@@ -415,8 +436,8 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
           // ✅ 今日のひとことメモ：_memoText だけを見る（CSV は一切触らない）
           _buildCommentBox('📝 今日のひとことメモ:\n$displayMemo'),
 
-          // ✅ AI パートナーのひとこと（そのまま）
-          _buildCommentBox('💛 AIパートナーからのひとこと\n\n$aiResponse'),
+          // ✅ AI パートナーのひとこと（表示時サニタイズを最終適用）
+          _buildCommentBox('💛 AIパートナーからのひとこと\n\n${_sanitizeForDisplay(aiResponse)}'),
 
           // --- 週次プレビュー（公開済みの最新日曜のみ） ---
           if (_weeklyPreview != null) ...[

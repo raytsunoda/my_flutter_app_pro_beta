@@ -705,15 +705,15 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     if (one.isEmpty) return '(empty)';
     return (one.length <= n) ? one : (one.substring(0, n) + '…');
   }
-  /// PATCH 1/3: メモ由来のキーフレーズ抽出＆検出ヘルパ
-  static String _memoCue(String memo) {
-    final t = memo.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (t.isEmpty) return '';
-    // 句読点や助詞でざっくり切って短い名詞句っぽい先頭を拾う
-    final cut = t.split(RegExp(r'[、。]|は|が|を|に|で|と')).first.trim();
-    final short = cut.length > 14 ? '${cut.substring(0, 14)}…' : cut;
-    return short;
-  }
+  // /// PATCH 1/3: メモ由来のキーフレーズ抽出＆検出ヘルパ
+  // static String _memoCue(String memo) {
+  //   final t = memo.replaceAll(RegExp(r'\s+'), ' ').trim();
+  //   if (t.isEmpty) return '';
+  //   // 句読点や助詞でざっくり切って短い名詞句っぽい先頭を拾う
+  //   final cut = t.split(RegExp(r'[、。]|は|が|を|に|で|と')).first.trim();
+  //   final short = cut.length > 14 ? '${cut.substring(0, 14)}…' : cut;
+  //   return short;
+  // }
 
   static bool _textMentionsCue(String text, String cue) {
     if (text.trim().isEmpty || cue.trim().isEmpty) return false;
@@ -727,12 +727,45 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     return false;
   }
 
-  static String _appendMemoLineIfMissing(String text, String memoCue) {
-    if (memoCue.isEmpty) return text;
-    if (_textMentionsCue(text, memoCue)) return text;
-    // さりげない一文を追記（過度に主張しない）
-    return '$text\n\n追伸：メモの「$memoCue」、大切にできると良さそうです。';
+  // 追伸：メモ未反映なら短い一文を“決定論ランダム”で追加（同じ日＋同じメモなら同じ文）
+  static String _appendMemoLineIfMissing(String text, String memoCue, bool hasMemo) {
+    if (!hasMemo) return text;
+    final cue = memoCue.trim();
+    if (cue.isEmpty) return text;
+
+    final s = text.trim();
+    // すでに本文がメモに触れているなら追記しない
+    final already = s.contains(cue) || s.contains('メモ');
+    if (already) return s;
+
+    // 以前の固定句が混ざっていたら安全に除去/置換
+    var cleaned = s.replaceAll('大切にできると良さそうです。', '次の一歩に活かせそうです。');
+
+    // 同じ入力で毎回同じ文になるように（ぶれない“ランダム”）
+    final variants = <String>[
+      '追伸：メモの「$cue」、良い視点ですね。',
+      '追伸：今日のメモ「$cue」を次の一歩に活かせそうです。',
+      '追伸：メモ「$cue」、気づきを言葉にできていて素敵です。',
+      '追伸：メモ「$cue」、無理のない形で一歩だけ試しましょう。',
+      '追伸：メモ「$cue」、その気づきが積み重なります。',
+    ];
+    final seed = cue.hashCode; // cue 由来で決定
+    final idx = (seed.abs()) % variants.length;
+    final follow = variants[idx];
+
+    // 末尾に句点が無ければ付けてから追記
+    final withPeriod = RegExp(r'[。.!?]$').hasMatch(cleaned) ? cleaned : '$cleaned。';
+    return '$withPeriod $follow';
   }
+
+
+  static String _memoCue(String memo) {
+    final m = memo.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (m.isEmpty) return '';
+    final head = m.split(RegExp(r'[、。]')).first.trim();
+    return head.length > 12 ? '${head.substring(0, 12)}…' : head;
+  }
+
 
 
 
@@ -752,9 +785,11 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     final radar    = await CsvLoader.loadRadarScoresForDate(displayDate);    // [睡眠の質, ウォーキング分, ストレッチ分]
     final thanks   = await CsvLoader.loadGratitudeForDate(displayDate);      // 文字列リスト（最大3想定）
 
-    // 追加: 表示用に文字列へ
+
+    // 表示用の見栄えは別で扱い、プロンプトには空なら渡さない
     final thanksStr = thanks.where((t) => t.trim().isNotEmpty).join(' / ');
-    final memoStr   = memo.trim().isNotEmpty ? memo.trim() : '（未入力）';
+    final memoStr   = memo.trim();              // ← 空なら空のまま
+    final hasMemo   = memoStr.isNotEmpty;       // ← 以降の判定で使用
 
 
 
@@ -772,14 +807,19 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     // メモ由来のキーフレーズ（後段の検証/追記に利用）
     final memoCue = _memoCue(memoStr);
 
+
+    final memoRule = hasMemo
+        ? '・メモがある場合：本文の前半2文のうち最低1文で「${callName}」のメモの要点を具体語で要約し（コピペ不可・短く言い換える）、その内容に直結する次の一歩を1つだけ提示する。'
+        : '・メモが無い場合：メモには一切触れない（「未入力」等にも触れない）。';
     // プロンプト強化：メモに必ず触れる・一般論回避・伴走トーンひと言
     final prompt = '''
       
-      ${callName} へ。ユーザーの心に寄り添い、前向きな気持ちを支える共感的で実践的なAIパートナーとして、**当日のスコア、3つの感謝、今日のひとことメモ**を必ず参照し、薄味な一般論ではなく ${callName} 個人の今日に寄り添う短文コメントを作成してください。
+      ${callName} へ。あなたはユーザーの心に寄り添い、前向きな気持ちを支える、共感的かつ実践的なAIパートナーです。
+      **当日のスコア、3つの感謝、今日のひとことメモ**（※メモが空なら無理に触れない）を参照し、薄味な一般論ではなく ${callName} 個人の今日に寄り添う短文コメントを作成してください。
       
       【必須要件】
       - 全体は**日本語・300文字以内、かつ「3〜4文構成」**
-      - 構成：「寄り添いの導入 → 今日の特徴（**メモの要点に必ず1度触れる**） → 感謝の**短い言及**1つ（原文コピペ不可・短く言い換える） → **次の一歩**1つ（約20文字／具体的で無理のない提案） → 安心感のある締め」
+      - 構成：「寄り添いの導入 → 今日の特徴（**メモがある場合のみ要点に1度触れる**） → 感謝の**短い言及**1つ（原文コピペ不可・短く言い換える） → **次の一歩**1つ（約20文字／具体的で無理のない提案） → 安心感のある締め」
       - 呼びかけは常に「${callName}」。**「あなた」「あなたさん」は使わない**
       - 今日のひとことメモを参照して、短く言い換えて必ず１点は反映
       - 感謝1〜3のうち**最低1つ**を短く言い換えて引用（例:「◯◯に感謝」）（原文コピペ不可）
@@ -790,20 +830,23 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       - ネガティブや説教的な言葉は避ける。押しつけず、伴走トーン。
       - 優しい安心感を感じさせるトーンでまとめる（全体300文字以内）
       - ユーザーの継続を応援する伴走者として語りかける
+      - メモがある日は**本文の30〜40%をメモの要点に割く**（一般論で埋めない、具体語で短く）
+
       
       【書き方のヒント（出力に含めない）】
-      - メモは1点だけ短く言い換えて触れる（例：要約キーフレーズ）
+      - メモは最低1点から２点だけ短く言い換えて触れる（例：要約キーフレーズ）
       - 感謝1〜3のうち最低1つを、短い再表現で一言添える（例：「◯◯に感謝」）
       - 次の一歩は実行可能な小ささで1つだけ（例：「寝る前に深呼吸を3回」）
 
-【出力例の構成（あくまで構成の例・文言は生成すること）】
+　　　【出力例の構成（あくまで構成の例・文言は生成すること）】
       - 寄り添いの導入：${callName} への短いねぎらい
       - 本文：今日の特徴（例：睡眠/運動/メモの要点）に1〜2点触れる
       - 感謝の短い引用：例「◯◯に感謝」
       - 次の一歩：1つだけ。20文字程度で具体的に
       - しめ：明日への伴走ひと言
       - しめのポイント: 短く、わかりやすく、地に足のついた言葉で。事実を尊重しつつ、無理のない実践提案を1つ入れてください。
-    
+    $memoRule
+      - 呼びかけは常に「${callName}」。
       
       【当日のスコア】
       📅 日付: $ymdLabel
@@ -816,8 +859,7 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       🙏 ${thanksStr.isEmpty ? '（未入力）' : thanksStr}
       
       【今日のひとことメモ】（必ず1度は触れる／短く言い換える）
-      📝 $memoStr
-      
+      📝 ${hasMemo ? memoStr : '(なし)'}
       
 ''';
 
@@ -878,7 +920,9 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
           text = _ensureGratitudeMention(text, cues);
 
           // ★メモ反映の最終チェック：触れていなければ短い一文を自動追記
-          text = _appendMemoLineIfMissing(text, memoCue);
+          text = _appendMemoLineIfMissing(text, _memoCue(memoStr), hasMemo);
+
+          text = text.replaceAll('大切にできると良さそうです。', '次の一歩に活かせそうです。');
           return text;
         }
       }
