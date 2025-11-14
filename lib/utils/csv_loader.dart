@@ -716,7 +716,7 @@ class CsvLoader {
         // メモが空っぽの場合は追伸まるごと削除
         return '';
       }
-      return '追伸：メモの「$cue」、良い視点ですね。';
+      return '追伸：メモの「$cue」、大事な視点ですね。';
     }).trim();
 
     return s;
