@@ -665,23 +665,66 @@ class CsvLoader {
     sink.writeln('$date,$type,"$comment",$score,$sleep,$walk,"$gratitude1","$gratitude2","$gratitude3","$memo"');
     await sink.close();
   }
-
-  // コメント表示の応急サニタイズ
+// コメントの表示用サニタイズ
+//  - 「追伸：メモの『（未入力）』、大切にできると良さそうです。」のような
+//    ワンパターン文章を削る
+  // AIコメント表示前のサニタイズ（履歴も含めてすべてここを通す）
+  // 追伸の「（未入力）」行や古いテンプレの末尾を整理する
   static String sanitizeCommentForDisplay(String raw) {
-    // 「追伸：…（未入力）…」の行を丸ごと削除
-    final removedEmptyMemo = raw.replaceAll(
-      RegExp(r'(?m)^\s*追伸：.*?（未入力）.*$', multiLine: true),
-      '',
+    if (raw.isEmpty) return raw;
+
+    var s = raw;
+
+    // ▼パターン1: 「追伸：……（未入力）……」の行を丸ごと削除
+    final pattern1 = RegExp(
+      r'^\s*追伸：.*?（未入力）.*$',
+      multiLine: true,
     );
-    // 同じようなテンプレ文が残っていたら抑制（任意・安全側）
-    final tamed = removedEmptyMemo.replaceAll(
-      RegExp(r'大切にできると良さそうです。'),
-      '無理のない一歩で続けていきましょう。',
+    s = s.replaceAll(pattern1, '').trim();
+
+    // ▼パターン2:
+    // 「追伸：◯◯◯大切にできると良さそうです。」系を
+    // 「追伸：◯◯◯。」に整形
+    final pattern2 = RegExp(
+      r'追伸：([^。]*?)大切にできると良さそうです。?',
+      multiLine: true,
     );
 
-    // 余分な空行を詰める
-    return tamed.replaceAll(RegExp(r'\n{2,}'), '\n').trim();
+    s = s.replaceAllMapped(pattern2, (match) {
+      var before = match.group(1)?.trim() ?? '';
+
+      // 末尾が「、」「。」で終わっていたら一度削る
+      before = before.replaceAll(RegExp(r'[、。]+$'), '');
+
+      if (before.isEmpty) {
+        // 何も残らなければ追伸行ごと消す
+        return '';
+      }
+
+      // 「追伸：◯◯。」という形に統一
+      return '追伸：$before。';
+    }).trim();
+
+    // ▼パターン3: 古い「追伸：メモの「◯◯◯」。」形式を自然な文にする
+    final pattern3 = RegExp(
+      r'追伸：メモの「([^」]+)」。?',
+      multiLine: true,
+    );
+    s = s.replaceAllMapped(pattern3, (m) {
+      final cue = (m.group(1) ?? '').trim();
+      if (cue.isEmpty) {
+        // メモが空っぽの場合は追伸まるごと削除
+        return '';
+      }
+      return '追伸：メモの「$cue」、良い視点ですね。';
+    }).trim();
+
+    return s;
   }
+
+
+
+
 
 
   static Future<bool> isCommentAlreadySaved({
@@ -1315,6 +1358,14 @@ class CsvLoader {
 
     await file.writeAsString(out.join('\n') + '\n');
     return fixed;
+  }
+// --- isolate で CSV を読む（UIブロック回避） ---
+  List<List<String>> _readCsvIsolate(String path) {
+    final f = File(path);
+    if (!f.existsSync()) return const [];
+    final lines = f.readAsLinesSync();
+    if (lines.isEmpty) return const [];
+    return lines.map((l) => l.split(',')).toList();
   }
 
 

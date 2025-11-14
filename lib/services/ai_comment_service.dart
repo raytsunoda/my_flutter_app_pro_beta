@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/user_prefs.dart';
 import 'package:path/path.dart' as p;
+import 'dart:async';
 
 // === DEBUG: AIプロンプト/応答ログ制御（--dart-define=LOG_AI=true で有効） ===
 const bool LOG_AI = bool.fromEnvironment('LOG_AI', defaultValue: false);
@@ -60,6 +61,15 @@ Map<String, String>? _toRow(Map<String, dynamic> m) {
   return {'date': date, 'type': type, 'comment': comment};
 }
 
+Future<http.Response> _postWithTimeout(
+    String url, {
+      required Map<String, String> headers,
+      required Object body,
+    }) {
+  return http
+      .post(Uri.parse(url), headers: headers, body: jsonEncode(body))
+      .timeout(const Duration(seconds: 15));
+}
 
 
 
@@ -747,7 +757,9 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       '追伸：今日のメモ「$cue」を次の一歩に活かせそうです。',
       '追伸：メモ「$cue」、気づきを言葉にできていて素敵です。',
       '追伸：メモ「$cue」、無理のない形で一歩だけ試しましょう。',
-      '追伸：メモ「$cue」、その気づきが積み重なります。',
+      '追伸：メモ「$cue」、その気づきが明日に繋がりますように。',
+      '追伸：メモ「$cue」、一歩一歩の積み重ね大切ですね。',
+      '追伸：メモ「$cue」、何事も視点が大事ですね。',
     ];
     final seed = cue.hashCode; // cue 由来で決定
     final idx = (seed.abs()) % variants.length;
@@ -873,24 +885,38 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
 
 
     try {
-      final res = await http.post(
-        Uri.parse(_aiEndpoint),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'kind': 'daily',
-          'date': ymdLabel,
-          'callName': callName,
-          'prompt': prompt,
-          'metrics': {
-            'happiness': scoreStr,
-            'sleepQ': sleepQ,
-            'walkMin': walkMin,
-            'stretchMin': stretch,
-          },
-          'gratitudes': thanks.where((t) => t.trim().isNotEmpty).toList(),
-          'memo': memoStr,
-        }),
-      );
+      final payload = {
+        'kind': 'daily',
+        'date': ymdLabel,
+        'callName': callName,
+        'prompt': prompt,
+        'metrics': {
+          'happiness': scoreStr,
+          'sleepQ': sleepQ,
+          'walkMin': walkMin,
+          'stretchMin': stretch,
+        },
+        'gratitudes': thanks.where((t) => t.trim().isNotEmpty).toList(),
+        'memo': memoStr,
+      };
+
+      http.Response res;
+      try {
+        res = await _postWithTimeout(
+          _aiEndpoint,
+          headers: {'Content-Type': 'application/json'},
+          body: payload,
+        );
+      } on TimeoutException {
+        debugPrint('[AI] Timeout (daily $ymdLabel)');
+        // ここでは「空文字を返してフォールバックに任せる」か、
+        // 直接メッセージを返すか、どちらでもOKです。
+        return '⚠️ 通信がタイムアウトしました。しばらくしてから、もう一度お試しください。';
+      } catch (e, st) {
+        debugPrint('[AI] post error (daily $ymdLabel): $e\n$st');
+        return '⚠️ 通信に問題が発生しました。少し時間をおいて再試行してください。';
+      }
+
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);

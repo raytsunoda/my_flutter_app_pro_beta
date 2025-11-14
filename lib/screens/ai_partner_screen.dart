@@ -8,6 +8,7 @@ import '../utils/date_utils.dart';
 import 'ai_comment_history_screen.dart';
 import 'package:my_flutter_app_pro/l10n/strings_ja.dart';
 import 'package:my_flutter_app_pro/widgets/safety_notice.dart';
+import 'dart:async';
 
 
 DateTime _computePrevMonthEnd(DateTime latestDate) {
@@ -285,40 +286,75 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
 
 
   Future<void> _fetchAiComment() async {
-    setState(() => aiResponse = J.thinking);
-
-    // 1) メモを必ず先に（initState から呼ばれても念のため）
-    if (_todayRow == null) {
-      await _loadTodayMemoFirst();
-    }
-    setState(() => _selectedRowDate = _todayStr);
-
-    final row = _todayRow;
-
-    // 2) 当日入力が無ければ AI文は出さない
-    if (row == null || !_hasAnyInput(row)) {
-      setState(() {
-        aiResponse = J.aiNone;
-        _hasTodayDaily = false;
-      });
-      return;
-    }
-
-    // 3) デイリー（保存済み優先 → 無ければ生成＆保存）
-    final now = DateTime.now();
-    final daily = await AiCommentService.ensureDailySaved(now);
-    final dailyText = (daily?['comment'] as String?)?.trim() ?? '';
-
-    // 4) 週次プレビュー（“月曜0:00解禁”の直前日曜のみ）
-    final visibleSunday = _visibleSunday(now);
-    final weekly = await AiCommentService.ensureWeeklySaved(visibleSunday);
-
+    // まずは「考え中です…」表示にする
     setState(() {
-      aiResponse = dailyText.isNotEmpty ? dailyText : '🤖 コメントが保存されていません';
-      _weeklyPreview = weekly;
-      _hasTodayDaily = true;
+      aiResponse = J.thinking;
     });
+
+    try {
+      // 1) 今日の行を確実にロード
+      if (_todayRow == null) {
+        await _loadTodayMemoFirst();
+      }
+      setState(() {
+        _selectedRowDate = _todayStr;
+      });
+
+      final row = _todayRow;
+      // 2) その日になにも入力が無ければ AI コメントは出さない
+      if (row == null || !_hasAnyInput(row)) {
+        if (!mounted) return;
+        setState(() {
+          aiResponse = J.aiNone;
+          _hasTodayDaily = false;
+          _weeklyPreview = null;
+        });
+        return;
+      }
+
+      final now = DateTime.now();
+
+      // 3) 日次・週次コメントをそれぞれ try/catch で安全に呼ぶ
+      Map<String, dynamic>? daily;
+      Map<String, dynamic>? weekly;
+
+      try {
+        daily = await AiCommentService.ensureDailySaved(now);
+      } catch (e, st) {
+        debugPrint('[AI] ensureDailySaved error: $e\n$st');
+      }
+
+      try {
+        final visibleSunday = _visibleSunday(now);
+        weekly = await AiCommentService.ensureWeeklySaved(visibleSunday);
+      } catch (e, st) {
+        debugPrint('[AI] ensureWeeklySaved error: $e\n$st');
+      }
+
+      if (!mounted) return;
+
+      final dailyText = (daily?['comment'] as String?)?.trim() ?? '';
+
+      // 4) コメントがあればそれを表示、なければタイムアウト/エラー用のメッセージ
+      setState(() {
+        aiResponse = dailyText.isNotEmpty
+            ? dailyText
+            : '⚠️ コメントの取得に時間がかかったか、うまく作れなかったようです。\n時間をおいてもう一度お試しください。';
+        _weeklyPreview = weekly;
+        _hasTodayDaily = dailyText.isNotEmpty;
+      });
+    } catch (e, st) {
+      // どこかで予期せぬ例外が出ても必ず「考え中」を解除
+      debugPrint('[AI] _fetchAiComment fatal: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        aiResponse =
+        '⚠️ コメントの取得中にエラーが発生しました。\n時間をおいてもう一度お試しください。';
+        _weeklyPreview = null;
+      });
+    }
   }
+
 
   // 週次のふりかえり（ボタン押下時）
   Future<void> _fetchWeeklyComment() async {
