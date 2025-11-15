@@ -779,7 +779,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             );
           }),
         ),
-        _sectionTile(
+        if (kDebugMode)
+          _sectionTile(
           icon: Icons.developer_mode,
           title: '開発者メニュー',
           child: _buildDeveloperPatches(),
