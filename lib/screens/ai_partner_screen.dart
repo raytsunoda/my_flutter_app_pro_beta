@@ -359,20 +359,28 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
   // 週次のふりかえり（ボタン押下時）
   Future<void> _fetchWeeklyComment() async {
     final now = DateTime.now();
+
+    // 対象週の最終日（日曜日）を求める
     final lastSunday = asYMD(now).subtract(
-      Duration(days: (now.weekday % 7 == 0) ? 7 : now.weekday % 7),
+      Duration(days: (now.weekday % 7 == 0) ? 0 : now.weekday),
     );
+
+    // コメント生成 or 既存コメント取得
     final r = await AiCommentService.ensureWeeklySaved(lastSunday);
+
     setState(() {
       final dateLabel = r['date'] ?? _fmt(lastSunday);
       final comment = (r['comment'] ?? '').toString().trim();
+
       _weeklyMessage = comment.isEmpty
           ? '（対象週末日: $dateLabel）\n※この週のコメントは保存されていません。\n'
-          '週次コメントは必要なデータが保存されていれば「毎週月曜」に生成されます。'
+          '週次コメントは必要なデータが保存されていれば「毎週日曜」に生成されます。'
           : '（対象週末日: $dateLabel）\n$comment';
+
       _hasFetchedWeekly = true;
     });
   }
+
 
   // 月次：保存済みの先月末を読む（無ければ案内）
   Future<void> _loadMonthlyPreview() async {
