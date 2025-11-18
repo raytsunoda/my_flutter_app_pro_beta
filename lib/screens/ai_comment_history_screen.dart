@@ -69,9 +69,18 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
     super.dispose();
   }
 
-  // ===== 置換開始: _reloadAllFromLog 全体をこの実装に差し替え =====
+// ===== 置換開始: _reloadAllFromLog をこの実装に差し替え =====
   Future<void> _reloadAllFromLog() async {
     setState(() => _isLoading = true);
+
+    // まず週次の不足があれば生成する（←★案Aのポイント）
+    try {
+      // ensureWeeklySaved は「今日の日付」を受け取る仕様なので DateTime.now() を渡す
+      await AiCommentService.ensureWeeklySaved(DateTime.now());
+    } catch (e) {
+      debugPrint('ensureWeeklySaved error: $e');
+    }
+
 
     // 1) 日次・月次は従来の厳密ローダを使用
     final daily   = await AiCommentService.loadDailyHistoryStrict();
@@ -82,26 +91,39 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
 
     // 当日を含む直近の日曜日（以降＝未来）は切り捨て
     DateTime _prevOrSameSunday(DateTime d) {
-      final back = d.weekday % 7; // Sun=0, Mon=1...
+      final back = d.weekday % 7;
       final localMidnight = DateTime(d.year, d.month, d.day);
       return localMidnight.subtract(Duration(days: back));
     }
     final cutoff = _prevOrSameSunday(DateTime.now());
 
     DateTime? _parseYmd(String ymd) {
+      if (ymd.isEmpty) return null;
+
+      // すべて / 区切りに正規化
+      ymd = ymd.replaceAll('-', '/');
+
       final p = ymd.split('/');
       if (p.length != 3) return null;
-      final y = int.tryParse(p[0]), m = int.tryParse(p[1]), d = int.tryParse(p[2]);
+
+      final y = int.tryParse(p[0]);
+      final m = int.tryParse(p[1]);
+      final d = int.tryParse(p[2]);
       if (y == null || m == null || d == null) return null;
+
       return DateTime(y, m, d);
     }
 
-    // 3) 未来分を除外し、表示は日付降順に
+
     final weekly = wkAll.where((r) {
       final dt = _parseYmd((r['date'] ?? '').toString());
       return dt != null && !dt.isAfter(cutoff);
     }).toList()
-      ..sort((a, b) => (b['date'] ?? '').toString().compareTo((a['date'] ?? '').toString()));
+      ..sort((a, b) {
+        final adt = _parseYmd((a['date'] ?? '').toString()) ?? DateTime(1900);
+        final bdt = _parseYmd((b['date'] ?? '').toString()) ?? DateTime(1900);
+        return bdt.compareTo(adt);
+      });
 
     if (!mounted) return;
     setState(() {
@@ -114,6 +136,7 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
     debugPrint('[history] daily=${_daily.length}, weekly=${_weekly.length}, monthly=${_monthly.length}');
   }
 // ===== 置換終了 =====
+
 
 
 

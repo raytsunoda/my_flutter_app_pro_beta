@@ -52,3 +52,4 @@ ios/Flutter/*.xcconfig.tmp
 .env.*
 .env
 .env.*
+my_android_app.zip

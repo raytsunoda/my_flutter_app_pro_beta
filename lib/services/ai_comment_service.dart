@@ -382,7 +382,9 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     final byDate = <String, String>{};
     for (final r in saved) {
       final d = (r['date'] ?? '').toString().trim();
-      if (d.isNotEmpty) byDate[d] = (r['comment'] ?? '').toString();
+      if (d.isNotEmpty) {
+        byDate[d] = (r['comment'] ?? '').toString();
+      }
     }
 
     // 2) メインCSVから日付範囲を集める
@@ -395,33 +397,74 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       try {
         days.add(DateFormat('yyyy/MM/dd').parseStrict(ds));
         seen.add(ds);
-      } catch (_) {}
+      } catch (_) {
+        // パースできない日付は無視
+      }
     }
     if (days.isEmpty) return [];
 
     days.sort();
+
+    // 「その日の属する日曜」に丸めるヘルパ
     DateTime _prevSunday(DateTime d) {
       final wd = d.weekday % 7;
       return DateTime(d.year, d.month, d.day).subtract(Duration(days: wd));
     }
 
-    final firstSun   = _prevSunday(days.first);
-    final lastSunCsv = _prevSunday(days.last);
-    final cutoffSun  = _latestVisibleSunday(DateTime.now());
-    // 表示上の上限 = CSV最終日曜 と カットオフ の“早い方”
-    final lastSun    = lastSunCsv.isBefore(cutoffSun) ? lastSunCsv : cutoffSun;
+    // 先頭側：メインCSVの最初の日付から見た「最初の日曜」
+    final firstSun = _prevSunday(days.first);
 
-    // 3) スロット生成（カットオフを超えない）
-    final out = <Map<String, String>>[];
-    for (DateTime cur = firstSun; !cur.isAfter(lastSun); cur = cur.add(const Duration(days: 7))) {
-      final ymd =
-          '${cur.year.toString().padLeft(4, '0')}/${cur.month.toString().padLeft(2, '0')}/${cur.day.toString().padLeft(2, '0')}';
-      out.add({'type': 'weekly', 'date': ymd, 'comment': byDate[ymd] ?? ''});
+    // メインCSV側の最終日曜
+    final lastSunCsv = _prevSunday(days.last);
+
+    // ログ(ai_comment_log.csv)側の最終日曜（weeklyのみ）
+    DateTime? lastSunLog;
+    if (byDate.isNotEmpty) {
+      final weeklyDates = <DateTime>[];
+      for (final ds in byDate.keys) {
+        try {
+          // ここも yyyy/MM/dd 固定のまま（形式は今まで通り）
+          weeklyDates.add(DateFormat('yyyy/MM/dd').parseStrict(ds));
+        } catch (_) {
+          // パースできないものは無視
+        }
+      }
+      if (weeklyDates.isNotEmpty) {
+        weeklyDates.sort();
+        lastSunLog = _prevSunday(weeklyDates.last);
+      }
     }
 
+    // 表示カットオフ（日曜基準）
+    final cutoffSun = _latestVisibleSunday(DateTime.now());
+
+    // データとして存在する範囲の最終日曜 = CSV と ログのうち「遅い方」
+    final lastDataSun = (lastSunLog == null || lastSunCsv.isAfter(lastSunLog))
+        ? lastSunCsv
+        : lastSunLog;
+
+    // 最終的な表示上限 = lastDataSun と cutoffSun の「早い方」
+    final lastSun = lastDataSun.isBefore(cutoffSun) ? lastDataSun : cutoffSun;
+
+    // 3) スロット生成（firstSun 〜 lastSun の各日曜）
+    final out = <Map<String, String>>[];
+    for (DateTime cur = firstSun;
+    !cur.isAfter(lastSun);
+    cur = cur.add(const Duration(days: 7))) {
+      final ymd =
+          '${cur.year.toString().padLeft(4, '0')}/${cur.month.toString().padLeft(2, '0')}/${cur.day.toString().padLeft(2, '0')}';
+      out.add({
+        'type': 'weekly',
+        'date': ymd,
+        'comment': byDate[ymd] ?? '',
+      });
+    }
+
+    // 日付の新しい順（降順）にソート
     out.sort((a, b) => (b['date'] ?? '').compareTo(a['date'] ?? ''));
     return out;
   }
+
 
 
 
