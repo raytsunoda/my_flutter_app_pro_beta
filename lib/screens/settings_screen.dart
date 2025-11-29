@@ -216,15 +216,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final allowed = await NotificationService.requestPermissionFromUser();
 
     if (!allowed) {
-      // 許可されなくてもアプリは使える、というメッセージにする（強制しない）
+      debugPrint('[notif] permission not allowed, skip morning/evening schedule');
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('通知はオフのままです（アプリ自体はこのままご利用いただけます）'),
         ),
       );
-      return; // 通知スケジュールは行わない or 行っても良いですが、ここでは分かりやすく中断
+      return;
     }
+
 
     // ✅ 許可された場合だけ、実際にスケジュールを登録
     await _scheduleNotification(
