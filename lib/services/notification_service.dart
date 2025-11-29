@@ -23,21 +23,28 @@ class NotificationService {
   // Cold start 時に一旦キューしておく
   static ReceivedAction? _pendingAction;
 
-    // ====== Permission / Safety helpers ======
-    /// 通知権限があるか確認し、なければ（許可されれば）要求する
-    static Future<bool> _ensureAllowed({bool requestIfDenied = true}) async {
-        try {
-          final allowed = await AwesomeNotifications().isNotificationAllowed();
-          if (allowed) return true;
-          if (!requestIfDenied) return false;
-          // iOS/Android どちらも OK（ユーザーが拒否したら false）
-          return await AwesomeNotifications().requestPermissionToSendNotifications();
-        } catch (_) {
-          return false;
-        }
-      }
+  // ====== Permission / Safety helpers ======
+  /// 通知権限があるか確認し、必要なら要求する
+  static Future<bool> _ensureAllowed({bool requestIfDenied = false}) async {
+    try {
+      final allowed = await AwesomeNotifications().isNotificationAllowed();
+      if (allowed) return true;
+      if (!requestIfDenied) return false;
 
-    /// 例外でアプリが落ちないように包む
+      // ユーザー操作から呼ばれた場合だけダイアログを出す
+      return await AwesomeNotifications()
+          .requestPermissionToSendNotifications();
+    } catch (_) {
+      return false;
+    }
+  }
+  /// 設定画面のボタンなど「ユーザー操作」からだけ呼ぶことを想定
+  static Future<bool> requestPermissionFromUser() async {
+    return _ensureAllowed(requestIfDenied: true);
+  }
+
+
+  /// 例外でアプリが落ちないように包む
     static Future<T?> _safe<T>(Future<T> Function() block) async {
         try {
           return await block();
@@ -157,7 +164,7 @@ class NotificationService {
     String tab = 'weekly',
   }) async {
     if (!kDebugMode) return;
-    if (!await _ensureAllowed(requestIfDenied: true)) return;
+    if (!await _ensureAllowed(requestIfDenied: false)) return;
     final d = delay ?? const Duration(seconds: 10);
     Future.delayed(d, () async {
       await _safe(() => AwesomeNotifications().createNotification(
@@ -183,7 +190,7 @@ class NotificationService {
   /// 週次（先週の振り返り）…毎週 **月曜 10:00**
   static Future<void> scheduleWeeklyOnMonday10() async {
 
-    if (!await _ensureAllowed(requestIfDenied: true)) return;
+    if (!await _ensureAllowed(requestIfDenied: false)) return;
     await _safe(() => AwesomeNotifications().cancel(_idWeekly));
     await _safe(() => AwesomeNotifications().createNotification(
           content: NotificationContent(
@@ -208,7 +215,7 @@ class NotificationService {
   /// 月次（前月の振り返り）…毎月 **1日 10:00**
   static Future<void> scheduleMonthlyOnFirstDay10() async {
 
-  if (!await _ensureAllowed(requestIfDenied: true)) return;
+  if (!await _ensureAllowed(requestIfDenied: false)) return;
       await _safe(() => AwesomeNotifications().cancel(_idMonthly));
       await _safe(() => AwesomeNotifications().createNotification(
                 content: NotificationContent(
