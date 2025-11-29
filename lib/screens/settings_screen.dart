@@ -20,6 +20,9 @@ import '../widgets/paywall_sheet.dart' show openPaywall, PaywallMode;
 import 'package:flutter/foundation.dart'; // ← 追加（kDebugMode用）
 import 'package:my_flutter_app_pro/services/purchase_service.dart';
 import 'package:my_flutter_app_pro/widgets/migration_guide_modal.dart';
+import 'package:my_flutter_app_pro/services/notification_service.dart'; // ← 追加
+
+
 
 // ==== helpers (robust cell access) ====
 int _findIndexByNames(List<String> names, List<String> header) {
@@ -209,6 +212,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setInt('evening_hour', _eveningTime.hour);
     await prefs.setInt('evening_minute', _eveningTime.minute);
 
+    // ✅ ユーザー操作（保存ボタン）からだけ通知許可をお願いする
+    final allowed = await NotificationService.requestPermissionFromUser();
+
+    if (!allowed) {
+      // 許可されなくてもアプリは使える、というメッセージにする（強制しない）
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('通知はオフのままです（アプリ自体はこのままご利用いただけます）'),
+        ),
+      );
+      return; // 通知スケジュールは行わない or 行っても良いですが、ここでは分かりやすく中断
+    }
+
+    // ✅ 許可された場合だけ、実際にスケジュールを登録
     await _scheduleNotification(
       id: 1,
       time: _morningTime,
@@ -227,6 +245,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       const SnackBar(content: Text('通知時刻を保存・再スケジュールしました')),
     );
   }
+
 
   Future<void> _scheduleNotification({
     required int id,
@@ -278,6 +297,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('通知時刻設定', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        const Text(
+          '※ 通知は任意です。オフのままでもアプリはご利用いただけますが、'
+              '朝と夜のリマインダーを受け取りたい場合は、通知を許可してください。',
+          style: TextStyle(fontSize: 12),
+        ),
+        const SizedBox(height: 8),
         ListTile(
           title: const Text('朝の通知時間'),
           trailing: Text(_morningTime.format(context)),
@@ -293,10 +319,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: _saveNotificationTimes,
             child: const Text('保存'),
           ),
-        )
+        ),
       ],
     );
   }
+
 
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
