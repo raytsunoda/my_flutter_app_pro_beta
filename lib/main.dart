@@ -118,42 +118,73 @@ class MyApp extends StatelessWidget {
 }
 
 /// 既存：朝/夕の時刻（SharedPreferences に保存済み）でリマインダーを再設定
+/// 🔧 修正版：通知権限がない場合は何もせず、例外も飲み込んでアプリは普通に起動させる
 Future<void> _rescheduleMorningEvening() async {
+  // 1) まず通知権限の有無を確認（ダイアログは出さない）
+  try {
+    final allowed = await AwesomeNotifications().isNotificationAllowed();
+    if (!allowed) {
+      debugPrint('[notif] permission not allowed, skip morning/evening schedule');
+      return; // 権限なければ何もしないで終了
+    }
+  } catch (e) {
+    debugPrint('[notif] error while checking permission: $e');
+    return; // ここでコケてもアプリ本体は起動させたいので終了
+  }
+
+  // 2) ここから先は、権限がある場合だけ実行
   final prefs = await SharedPreferences.getInstance();
   final int? morningHour = prefs.getInt('morning_hour');
   final int? morningMinute = prefs.getInt('morning_minute');
   final int? eveningHour = prefs.getInt('evening_hour');
   final int? eveningMinute = prefs.getInt('evening_minute');
 
+  // 朝の通知
   if (morningHour != null && morningMinute != null) {
-    await AwesomeNotifications().createNotification(
-      content: NotificationContent(
-        id: 1,
-        channelKey: 'basic_channel',
-        title: 'おはようございます☀️',
-        body: '今日の記録✏️を始めましょう',
-        actionType: ActionType.Default,
-        payload: {'route': '/'},
-      ),
-      schedule: NotificationCalendar(
-        hour: morningHour, minute: morningMinute, second: 0, repeats: true,
-      ),
-    );
+    try {
+      await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: 1,
+          channelKey: 'basic_channel',
+          title: 'おはようございます☀️',
+          body: '今日の記録✏️を始めましょう',
+          actionType: ActionType.Default,
+          payload: {'route': '/'},
+        ),
+        schedule: NotificationCalendar(
+          hour: morningHour,
+          minute: morningMinute,
+          second: 0,
+          repeats: true,
+        ),
+      );
+    } catch (e) {
+      debugPrint('[notif] failed to schedule morning notification: $e');
+    }
   }
 
+  // 夜の通知
   if (eveningHour != null && eveningMinute != null) {
-    await AwesomeNotifications().createNotification(
-      content: NotificationContent(
-        id: 2,
-        channelKey: 'basic_channel',
-        title: '今日も1日お疲れ様でした🌙',
-        body: '気持ちを整えるヒント💡をチェックしてみませんか？',
-        actionType: ActionType.Default,
-        payload: {'route': '/'},
-      ),
-      schedule: NotificationCalendar(
-        hour: eveningHour, minute: eveningMinute, second: 0, repeats: true,
-      ),
-    );
+    try {
+      await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: 2,
+          channelKey: 'basic_channel',
+          title: '今日も1日お疲れ様でした🌙',
+          body: '気持ちを整えるヒント💡をチェックしてみませんか？',
+          actionType: ActionType.Default,
+          payload: {'route': '/'},
+        ),
+        schedule: NotificationCalendar(
+          hour: eveningHour,
+          minute: eveningMinute,
+          second: 0,
+          repeats: true,
+        ),
+      );
+    } catch (e) {
+      debugPrint('[notif] failed to schedule evening notification: $e');
+    }
   }
 }
+
