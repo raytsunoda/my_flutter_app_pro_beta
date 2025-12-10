@@ -21,6 +21,7 @@ import 'package:flutter/foundation.dart'; // ← 追加（kDebugMode用）
 import 'package:my_flutter_app_pro/services/purchase_service.dart';
 import 'package:my_flutter_app_pro/widgets/migration_guide_modal.dart';
 import 'package:my_flutter_app_pro/services/notification_service.dart'; // ← 追加
+import 'package:url_launcher/url_launcher.dart';
 
 
 
@@ -1019,6 +1020,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
           ]),
 
+// ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+// 🆕 サポート
+// ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+        _sectionTile(
+          icon: Icons.help_outline,
+          title: 'サポート',
+          initiallyExpanded: false,
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: const Text('利用規約'),
+                onTap: () => _launchUrl('https://www.happiness-h3.com/terms'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.privacy_tip_outlined),
+                title: const Text('プライバシーポリシー'),
+                onTap: () => _launchUrl('https://www.happiness-h3.com/privacy-policy'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.support_agent),
+                title: const Text('サポートページ'),
+                onTap: () => _launchUrl('https://www.happiness-h3.com/support'),
+              ),
+            ],
+          ),
+        ),
+
+
+
+
+
+
 
         ListTile(
           leading: const Icon(Icons.refresh),               // 左端アイコン追加
@@ -1295,6 +1329,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('リンクを開けませんでした')),
+        );
+      }
+    }
+  }
 
 
 
