@@ -16,7 +16,7 @@ import 'package:my_flutter_app_pro/services/purchase_service.dart';
 import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart';
 import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart'
     show openPaywall, PaywallMode;
-
+import 'package:flutter/foundation.dart';
 
 class NavigationScreen extends StatefulWidget {
   final List<List<dynamic>> csvData;
@@ -252,6 +252,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
             ElevatedButton.icon(
               onPressed: () async {
+
+                if (!kReleaseMode) {
+                  // Debug/TestFlightで「購入ボタン付きPaywall」を強制確認したいとき用
+                  await openPaywall(context, mode: PaywallMode.enable);
+                  return;
+                }
+
                 // isPro() を正として扱う（ValueNotifierがズレてても判定が安定）
                 final isProBefore = await PurchaseService.I.isPro();
                 debugPrint('[nav] AI button: isPro(before)=$isProBefore hasProVN=${PurchaseService.I.hasPro.value}');
