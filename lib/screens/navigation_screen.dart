@@ -252,17 +252,28 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
             ElevatedButton.icon(
               onPressed: () async {
-                final pro = await PurchaseService.I.isPro();
-                if (!pro) {
+                // isPro() を正として扱う（ValueNotifierがズレてても判定が安定）
+                final isProBefore = await PurchaseService.I.isPro();
+                debugPrint('[nav] AI button: isPro(before)=$isProBefore hasProVN=${PurchaseService.I.hasPro.value}');
+
+                // 未購入なら必ずPaywall（await必須）
+                if (!isProBefore) {
                   await openPaywall(context, mode: PaywallMode.enable);
-                  return;
+
+                  // 閉じた後に再判定。未購入なら先へ進ませない
+                  final isProAfter = await PurchaseService.I.isPro();
+                  debugPrint('[nav] AI button: isPro(after)=$isProAfter hasProVN=${PurchaseService.I.hasPro.value}');
+                  if (!isProAfter) return;
                 }
+
                 if (!context.mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AIPartnerScreen()),
                 );
               },
+
+
 
               onLongPress: () => _showAiInfo(context), // ★ 長押しで説明
               label: const Text('🧡 AIパートナーのひとこと'),
