@@ -5,11 +5,12 @@ import '../utils/notification_scheduler.dart';
 import '../utils/date_utils.dart';
 import 'package:my_flutter_app_pro/config/purchase_config.dart';
 import 'package:my_flutter_app_pro/services/purchase_service.dart';
-import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart';
+//import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart'; // HapticFeedback 用
 import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart'
     show openPaywall, PaywallMode;
+import 'package:flutter/foundation.dart';
 
 
 
@@ -34,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _isPro = false;
   bool _showProBanner = true;
+  bool _paywallShownOnce = false;
 
 
   @override
@@ -56,6 +58,19 @@ class _HomeScreenState extends State<HomeScreen> {
       final sp = await SharedPreferences.getInstance();
       _showProBanner = !(sp.getBool('dismiss_pro_banner') ?? false);
       if (mounted) setState(() {});
+
+      // // ▼ Apple指摘確認用：起動直後に1回だけPaywallを出す（確認後に削除OK）
+      // WidgetsBinding.instance.addPostFrameCallback((_) async {
+      //   if (!mounted || _paywallShownOnce) return;
+      //   _paywallShownOnce = true;
+      //
+      //   // すでにProなら出さない（復元済みの人に出ないように）
+      //   final hasProNow = PurchaseService.I.hasPro.value;
+      //   if (hasProNow) return;
+      //
+      //   await openPaywall(context, mode: PaywallMode.enable);
+      // });
+
 
     }();
   }
@@ -149,7 +164,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   tooltip: 'アプリ内課金の管理',
                   icon: const Icon(Icons.workspace_premium_outlined),
 
-                  onPressed: () => openPaywall(context, mode: PaywallMode.manage),
+                  onPressed: () async {
+                    await openPaywall(context, mode: PaywallMode.manage);
+                  },
+
                 );
               },
             ),
@@ -171,6 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 32),
+
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
@@ -188,6 +207,41 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 child: const Text('ナビゲーション画面へ'),
               ),
+
+              const SizedBox(height: 12),
+
+              const SizedBox(height: 12),
+
+// ▼正式導線：未購入なら「Proを有効化」からPaywallへ
+              ValueListenableBuilder<bool>(
+                valueListenable: PurchaseService.I.hasPro,
+                builder: (context, hasPro, _) {
+                  if (hasPro) return const SizedBox.shrink();
+                  return ElevatedButton(
+                    onPressed: () async {
+                      await openPaywall(context, mode: PaywallMode.enable);
+                    },
+                    child: const Text('Proを有効化'),
+                  );
+                },
+              ),
+
+
+
+
+
+
+
+//               if (!kReleaseMode) ...[
+// // ▼ Apple指摘確認用：Paywallを手動で確実に出すボタン（確認後に削除OK）
+//               ElevatedButton(
+//                 onPressed: () async {
+//                   await openPaywall(context, mode: PaywallMode.enable);
+//                 },
+//                 child: const Text('Paywallテスト（確認用）'),
+//               ),
+//               ],
+
             ],
           ),
         ),
@@ -230,7 +284,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     HapticFeedback.lightImpact();
                     await Future.microtask(() {}); // まれな描画直後のタップ潰れ対策
                     if (!context.mounted) return;
-                    openPaywall(context, mode: PaywallMode.enable);
+                    await openPaywall(context, mode: PaywallMode.enable);
+
                   },
                   child: const Text('有効化'),
                 ),
