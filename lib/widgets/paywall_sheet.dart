@@ -5,27 +5,77 @@ import 'package:my_flutter_app_pro/config/purchase_config.dart';
 import 'package:my_flutter_app_pro/services/purchase_service.dart';
 import 'package:my_flutter_app_pro/widgets/safety_notice.dart';
 import 'package:my_flutter_app_pro/ui/common_error_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 
 
 enum PaywallMode { enable, manage }
+//
+// Future<void> openPaywall(BuildContext context, {required PaywallMode mode}) async {
+//   debugPrint('[paywall] openPaywall mode=$mode ENABLED=${PurchaseConfig.ENABLED}');
+//   if (!PurchaseConfig.ENABLED) {
+//     if (!context.mounted) return;
+//     ScaffoldMessenger.of(context).showSnackBar(
+//       const SnackBar(content: Text('課金は現在準備中です')),
+//     );
+//     return;
+//   }
+//   if (!context.mounted) return;
+//   await showModalBottomSheet<void>(
+//     context: context,
+//     isScrollControlled: true,
+//     builder: (_) => PaywallSheet(mode: mode),
+//   );
+// }
+
+// Future<void> openPaywall(BuildContext context, {required PaywallMode mode}) async {
+//   debugPrint('[paywall] openPaywall(mode=$mode)');
+//
+//   if (!context.mounted) {
+//     debugPrint('[paywall] context not mounted -> return');
+//     return;
+//   }
+//
+//   try {
+//     await showModalBottomSheet<void>(
+//       context: context,
+//       useRootNavigator: true, // ★ これが効くケースが多い
+//       isScrollControlled: true,
+//       builder: (_) => PaywallSheet(mode: mode),
+//     );
+//   } catch (e, st) {
+//     debugPrint('[paywall] showModalBottomSheet error: $e\n$st');
+//   }
+// }
 
 Future<void> openPaywall(BuildContext context, {required PaywallMode mode}) async {
-  debugPrint('[paywall] openPaywall mode=$mode ENABLED=${PurchaseConfig.ENABLED}');
-  if (!PurchaseConfig.ENABLED) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('課金は現在準備中です')),
-    );
+  debugPrint('[paywall] openPaywall PUSH mode=$mode');
+
+  if (!context.mounted) {
+    debugPrint('[paywall] context not mounted -> return');
     return;
   }
-  if (!context.mounted) return;
-  await showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    builder: (_) => PaywallSheet(mode: mode),
+
+  // BottomSheetではなく「画面遷移」で確実に見せる（Apple確認にも十分）
+  await Navigator.of(context, rootNavigator: true).push(
+    MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (_) => Scaffold(
+        appBar: AppBar(
+          title: Text(mode == PaywallMode.enable ? 'Proを有効化' : 'アプリ内課金の管理'),
+        ),
+        body: PaywallSheet(mode: mode),
+      ),
+    ),
   );
 }
+
+
+
+
+
+
+
 
 /// ここを StatefulWidget に変更
 class PaywallSheet extends StatefulWidget {
@@ -50,7 +100,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
           '・Proを有効化：AIパートナーのひとこと等の機能を使えるようにします。\n'
               '月額プランは¥500/月（自動更新）、年額プランは¥4,800/年（自動更新）です。\n'
               '購入を復元：機種変更や再インストール時に、過去の購入を端末に戻します（重複課金なし）。\n'
-              '購読管理：iOS/Androidのサブスクリプション管理画面を開きます。',
+              '購読管理：端末のサブスクリプション管理画面を開きます',
         ),
       ),
     );
@@ -156,21 +206,80 @@ class _PaywallSheetState extends State<PaywallSheet> {
                   desc,
                   style: TextStyle(color: Colors.black.withValues(alpha: 0.7)),
                 ),
-                // ★ 必ず1行出す（空でも状態が分かる）
-                // const SizedBox(height: 6),
-                // Container(
-                //   padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                //   decoration: BoxDecoration(
-                //     color: Colors.black.withValues(alpha: 0.05),
-                //     borderRadius: BorderRadius.circular(6),
-                //   ),
-                //   child: Text(
-                //     'state=${snap.connectionState}  '
-                //         'got=[$gotIds]  notFound=[$notFound]  currency=[$currencyDebug]  '
-                //         'err=${snap.error ?? 'none'}',
-                //     style: TextStyle(fontSize: 11, color: Colors.black.withValues(alpha: 0.6)),
-                //   ),
-                // ),
+                const SizedBox(height: 12),
+
+// ▼ Apple必須：サブスクリプション条件 + 法的リンク（購入前に確認できること）
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'サブスクリプションについて',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+
+
+
+
+                    const SizedBox(height: 4),
+                    const Text(
+                      '・月額プラン：¥500 / 月（自動更新）\n'
+                          '・年額プラン：¥4,800 / 年（自動更新）\n'
+                          '・購入確定後、Apple ID に請求されます\n'
+                          '・期間終了の24時間前までに解約しない限り自動更新されます',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () async {
+                            final uri = Uri.parse('https://www.happiness-h3.com/terms');
+                            final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            if (!ok) {
+                              debugPrint('[paywall] could not launch $uri');
+                            }
+                          },
+
+                          child: const Text(
+                            '利用規約',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        GestureDetector(
+                          onTap: () async {
+                            final uri = Uri.parse('https://www.happiness-h3.com/privacy-policy');
+                            final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            if (!ok) {
+                              debugPrint('[paywall] could not launch $uri');
+                            }
+                          },
+
+
+                          child: const Text(
+                            'プライバシーポリシー',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+
+
+
+
+
+
                 const SizedBox(height: 16),
 
 

@@ -14,6 +14,9 @@ import 'package:csv/csv.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:my_flutter_app_pro/services/purchase_service.dart';
 import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart';
+import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart'
+    show openPaywall, PaywallMode;
+
 
 class NavigationScreen extends StatefulWidget {
   final List<List<dynamic>> csvData;
@@ -251,7 +254,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               onPressed: () async {
                 final pro = await PurchaseService.I.isPro();
                 if (!pro) {
-                  openPaywall(context, mode: PaywallMode.enable);
+                  await openPaywall(context, mode: PaywallMode.enable);
                   return;
                 }
                 if (!context.mounted) return;
@@ -260,6 +263,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   MaterialPageRoute(builder: (_) => const AIPartnerScreen()),
                 );
               },
+
               onLongPress: () => _showAiInfo(context), // ★ 長押しで説明
               label: const Text('🧡 AIパートナーのひとこと'),
               style: ElevatedButton.styleFrom(
