@@ -11,6 +11,7 @@ import 'package:flutter/services.dart'; // HapticFeedback 用
 import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart'
     show openPaywall, PaywallMode;
 import 'package:flutter/foundation.dart';
+import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart' show openPaywall, PaywallMode;
 
 
 
@@ -154,24 +155,22 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
 
+        //
+
+
         actions: [
           if (PurchaseConfig.ENABLED)
-            ValueListenableBuilder<bool>(
-              valueListenable: PurchaseService.I.hasPro,
-              builder: (_, hasPro, __) {
-                if (hasPro) return const SizedBox.shrink();
-                return IconButton(
-                  tooltip: 'アプリ内課金の管理',
-                  icon: const Icon(Icons.workspace_premium_outlined),
-
-                  onPressed: () async {
-                    await openPaywall(context, mode: PaywallMode.manage);
-                  },
-
-                );
+            IconButton(
+              tooltip: 'アプリ内課金の管理',
+              icon: const Icon(Icons.manage_accounts),
+              onPressed: () async {
+                await openPaywall(context, mode: PaywallMode.manage);
               },
             ),
         ],
+
+
+
       ),
 
 
@@ -210,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 12),
 
-              const SizedBox(height: 12),
+            //  const SizedBox(height: 12),
 
 // ▼正式導線：未購入なら「Proを有効化」からPaywallへ
               ValueListenableBuilder<bool>(
@@ -253,7 +252,8 @@ class _HomeScreenState extends State<HomeScreen> {
         valueListenable: PurchaseService.I.hasPro,
         builder: (context, hasPro, _) {
           // Pro未購入 もしくは DEV_FORCE_PRO のときに表示
-          final showCard = (!hasPro) || PurchaseConfig.DEV_FORCE_PRO;
+          final showCard = (!hasPro) || PurchaseConfig.DEV_FORCE_PRO || !kReleaseMode;
+
           if (!showCard) return const SizedBox.shrink();
 
           return SafeArea(
