@@ -17,6 +17,7 @@ import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart';
 import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart'
     show openPaywall, PaywallMode;
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NavigationScreen extends StatefulWidget {
   final List<List<dynamic>> csvData;
