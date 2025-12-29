@@ -208,6 +208,24 @@ class _PaywallSheetState extends State<PaywallSheet> {
                 ),
                 const SizedBox(height: 12),
 
+
+
+
+                Text(
+                  '最初の1ヶ月は、このアプリに慣れるための時間です。\n'
+                      '続けるかどうかは、あとで決めてください。',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.35,
+                    color: Colors.black.withValues(alpha: 0.65),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+
+
+
+
 // ▼ Apple必須：サブスクリプション条件 + 法的リンク（購入前に確認できること）
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
