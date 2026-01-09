@@ -121,14 +121,50 @@ class _OneDayViewState extends State<OneDayView> {
       _selectedDate = date;
       _selectedRow = row.isEmpty ? null : Map<String, String>.from(row);
     });
+    // 追加：行が確定した後にメモも確定
+    _loadMemoFor(date);
   }
 
+  // void _loadMemoFor(DateTime date) {
+  //   final memo = _hist.memoAt(date);
+  //   setState(() {
+  //     _memoText = memo.isEmpty ? J.memoNone : memo;
+  //   });
+  // }
+
+  //
+  //
   void _loadMemoFor(DateTime date) {
-    final memo = _hist.memoAt(date);
+    // まずは「いま表示している行」から取る（最優先）
+    final row = _selectedRow;
+
+    String memo = '';
+    if (row != null) {
+      memo = (row['memo'] ??
+          row['メモ'] ??
+          row['今日のひとことメモ'] ??
+          '')
+          .trim();
+    }
+
+    // 念のため、行が無い/空なら csvData からも探す
+    if (memo.isEmpty) {
+      final wanted = _normYmd(date);
+      final hit = widget.csvData.firstWhere(
+            (r) => _normYmdStr(r['日付'] ?? '') == wanted,
+        orElse: () => <String, String>{},
+      );
+      memo = (hit['memo'] ?? hit['メモ'] ?? hit['今日のひとことメモ'] ?? '').trim();
+    }
+
     setState(() {
       _memoText = memo.isEmpty ? J.memoNone : memo;
     });
   }
+
+
+
+
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(

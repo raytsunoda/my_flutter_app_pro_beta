@@ -207,31 +207,57 @@ class _ManualInputViewState extends State<ManualInputView> {
       return;
     }
 
-
-    // ──────────────────────────────
-    // ⑤ 保存・画面遷移
-    // ──────────────────────────────
+// ──────────────────────────────
+// ⑤ 保存・画面遷移
+// ──────────────────────────────
     csvData.add(newRow);
     final csvContent = const ListToCsvConverter(eol: '\n').convert(csvData);
     await file.writeAsString(csvContent);
     debugPrint('[DEBUG] CSVファイル保存完了: ${file.path}');
 
     final updatedCsv = csvData;
+
+// ▼▼▼ ここから差し替え：OneDayView に渡す Map を “渡す一覧から日付で引き直す” ▼▼▼
+    final headers = updatedCsv.first.map((e) => e.toString()).toList();
+
+    final mappedList = updatedCsv
+        .skip(1)
+        .map((row) => Map<String, String>.fromIterables(
+      headers,
+      row.map((e) => e.toString()),
+    ))
+        .toList();
+
+// newRow で保存した日付文字列（あなたのCSVはキーが「日付」になっている）
+    final savedDateStr = newRow.first.toString();
+
+// 一覧から同日付の行を引き直す（＝保存直後でも memo を確実に含むrowを渡す）
+    Map<String, String> selected =
+    mappedList.lastWhere((m) => (m['日付'] ?? '') == savedDateStr, orElse: () {
+      // 念のため fallback（ここに来るのは想定外）
+      return Map<String, String>.fromIterables(
+        headers,
+        newRow.map((e) => e.toString()),
+      );
+    });
+
+// 念のため memo を上書き（UI入力→保存直後の表示を確実に一致させる）
+    selected['memo'] = memoController.text.trim();
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => OneDayView(
-          csvData: updatedCsv.skip(1).map((row) => Map<String, String>.fromIterables(
-            updatedCsv.first.map((e) => e.toString()),
-            row.map((e) => e.toString()),
-          )).toList(),
-          selectedRow: Map<String, String>.fromIterables(
-            updatedCsv.first.map((e) => e.toString()),
-            newRow.map((e) => e.toString()),
-          ),
+          csvData: mappedList,      // ← ここも mappedList を渡す
+          selectedRow: selected,    // ← “引き直したrow” を渡す
           selectedDate: selectedDate,
         ),
       ),
     );
+// ▲▲▲ ここまで差し替え ▲▲▲
+
+
+
+
   }
 // ❶ State追加
   final memoController = TextEditingController();
