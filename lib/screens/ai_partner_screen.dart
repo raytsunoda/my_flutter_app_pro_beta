@@ -483,6 +483,22 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
           // ✅ AI パートナーのひとこと（表示時サニタイズを最終適用）
           _buildCommentBox('💛 AIパートナーからのひとこと\n\n${_sanitizeForDisplay(aiResponse)}'),
 
+        // ✅ タイムアウト時は、その場で再試行できるようにする（Releaseでも表示）
+                  if (aiResponse.trim().startsWith('⚠️'))
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                 child: TextButton.icon(
+                    onPressed: () async {
+                     debugPrint('[AI daily] retry tapped');
+                      await _fetchAiComment();                },
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('もう一度試す'),
+                  ),
+                ),
+
+
+
+
           // --- 週次プレビュー（公開済みの最新日曜のみ） ---
           if (_weeklyPreview != null) ...[
             _sectionDivider('AIコメント（週次プレビュー）'),

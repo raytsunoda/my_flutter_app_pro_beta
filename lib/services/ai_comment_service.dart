@@ -68,7 +68,7 @@ Future<http.Response> _postWithTimeout(
     }) {
   return http
       .post(Uri.parse(url), headers: headers, body: jsonEncode(body))
-      .timeout(const Duration(seconds: 15));
+      .timeout(const Duration(seconds: 30));
 }
 
 
@@ -678,6 +678,11 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
   }
 
 
+    static bool _isTransientAiErrorMessage(String text) {
+        final t = text.trim();
+        if (t.isEmpty) return true;
+        return t.startsWith('⚠') || t.contains('タイムアウト') || t.contains('通信');
+      }
 
 
 // フォールバック検知（1つだけ定義を残す）
@@ -1050,11 +1055,19 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     } catch (_) {
       generated = null;
     }
+        // ①-2) タイムアウト等の一時エラー文言は「保存しない」
+        // → 保存してしまうと「保存済み扱い」になり、以後タップしても再生成されない原因になる
+        if (generated != null && _isTransientAiErrorMessage(generated)) {
+          debugPrint('[ensureDailySaved] transient error -> skip save: $key');
+          return {'date': key, 'type': 'daily', 'comment': generated};
+        }
+
 
     // ② API失敗時はルールベースにフォールバック
     generated ??= await _generateDailyAiTextFromCsv(date);
 
     await CsvLoader.appendAiCommentLog(
+
       date: key,
       type: 'daily',
       comment: generated,
