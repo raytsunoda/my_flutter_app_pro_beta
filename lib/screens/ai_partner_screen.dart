@@ -497,11 +497,41 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
           _buildDailyActionRowForToday(),
 
           const SizedBox(height: 12),
-          Row(
-            children: [
-              // 週次（毎週月曜のみ生成可）
-              Expanded(
-                child: ElevatedButton(
+
+          // --- 下部アクションエリア（週次／月次／履歴） ---
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade300),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.tune, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      '操作メニュー',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // 週次（毎週月曜のみ生成可）
+                OutlinedButton.icon(
                   onPressed: isWeeklyActionAllowed(DateTime.now())
                       ? () async {
                     setState(() => _showWeekly = true);
@@ -510,42 +540,75 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                     setState(() {});
                   }
                       : null,
-                  child: const Text('週次のふりかえり'),
+                  icon: const Icon(Icons.calendar_view_week),
+                  label: const Text('週次のふりかえり'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              // 月次（注記付きで常時閲覧可）
-              Expanded(
-                child: ElevatedButton(
+
+                if (!canGenerateWeekly)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, left: 4),
+                    child: Text(
+                      '※ 週次：生成は毎週月曜10:00。今日は保存済みの内容のみ表示します。',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 10),
+
+                // 月次（注記付きで常時閲覧可）
+                OutlinedButton.icon(
                   onPressed: () async {
                     setState(() => _showMonthly = true);
                     await _loadMonthlyPreview();
                     if (!mounted) return;
                     setState(() {});
                   },
-                  child: const Text('月次のふりかえり'),
+                  icon: const Icon(Icons.calendar_month),
+                  label: const Text('月次のふりかえり'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-            ],
+
+                if (!canGenerateMonthly)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, left: 4),
+                    child: Text(
+                      '※ 月次：生成は毎月1日10:00。今日は保存済みの内容のみ表示します。',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 14),
+
+                // 履歴（強調）
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AiCommentHistoryScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.history),
+                  label: const Text('🗂 コメント履歴を見る'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
           ),
 
-          if (!canGenerateWeekly)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                '※ 週次：生成は毎週月曜10:00。今日は保存済みの内容のみ表示します。',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          if (!canGenerateMonthly)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                '※ 月次：生成は毎月1日10:00。今日は保存済みの内容のみ表示します。',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-
+          // --- 既存の表示（週次／月次コメント） ---
           if (_showWeekly && _hasFetchedWeekly && _weeklyMessage != null) ...[
             _sectionDivider('AIコメント（週次のふりかえり）'),
             _buildCommentBox(_weeklyMessage!),
@@ -555,16 +618,6 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
             _buildCommentBox(_monthlyMessage!),
           ],
 
-          const SizedBox(height: 8),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AiCommentHistoryScreen()),
-              );
-            },
-            icon: const Icon(Icons.history),
-            label: const Text('🗂 コメント履歴を見る'),
-          ),
         ],
       ),
     );
