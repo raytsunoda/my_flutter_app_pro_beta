@@ -1021,16 +1021,23 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     try {
       final saved = await CsvLoader.loadSavedComment(date, 'daily');
       final savedComment = saved?['comment']?.trim() ?? '';
+
       if (savedComment.isNotEmpty) {
-        // ★フォールバックぽいなら削除→再生成
-        if (_looksFallback(savedComment)) {
+        // ★「⚠️/通信/タイムアウト」などは保存済み扱いにしない（ここが今回の根本修正）
+        if (_isTransientAiErrorMessage(savedComment)) {
+          debugPrint('[ensureDailySaved] saved daily is transient -> delete & regenerate: $key');
+          await hardDeleteByDateType(_fmtYmd(date), 'daily');
+          // 以降の新規生成へフォールスルー
+        }
+        // ★フォールバック（固定文）も保存済み扱いにしない
+        else if (_looksFallback(savedComment)) {
           await repairDailyIfFallback(date);
           final fixed = await CsvLoader.loadSavedComment(date, 'daily');
           final txt = fixed?['comment']?.trim() ?? '';
-          if (txt.isNotEmpty) {
+          if (txt.isNotEmpty && !_isTransientAiErrorMessage(txt)) {
             return {'date': key, 'type': 'daily', 'comment': txt};
           }
-          // ここで空なら以降の新規生成へフォールスルー
+          // 空 or ⚠️なら以降の新規生成へフォールスルー
         } else {
           // 正常保存はそのまま返す
           return {'date': key, 'type': 'daily', 'comment': savedComment};
@@ -1040,6 +1047,7 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       debugPrint('[ensureDailySaved] ignore saved read error: $e');
       debugPrintStack(stackTrace: st);
     }
+
 
     // 材料
     final memo = await CsvLoader.loadMemoForDate(date);
@@ -1758,6 +1766,20 @@ return added;
     await _saveHistoryRaw(remain);
     return raw.length - remain.length;
   }
+
+// UIの「もう一度試す」用：その日付の daily を強制削除して再生成できるようにする
+  static Future<void> forceDeleteDaily(DateTime date) async {
+    final ymd = _fmtYmd(date); // 'YYYY/MM/DD'
+    debugPrint('[AiCommentService] forceDeleteDaily: $ymd');
+    await hardDeleteByDateType(ymd, 'daily');
+  }
+
+
+
+
+
+
+
 // 1日の raw レコードを date+type で抽出（デバッグ専用）
   static Future<List<Map<String, dynamic>>> debugRawFor(
       String ymd,

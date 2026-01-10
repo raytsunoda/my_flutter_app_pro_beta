@@ -406,36 +406,7 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
       });
     }
   }
-/*
-  Future<void> _fetchMonthlyComment() async {
-    // ① メインCSVの“最新入力日”を厳密取得
-    final mainCsv = await CsvLoader.loadCsv('HappinessLevelDB1_v2.csv');
-    DateTime latest = DateTime.now();
-    for (final r in mainCsv) {
-      final ds = (r['日付'] ?? '').trim();
-      if (ds.isEmpty) continue;
-      try {
-        final d = _parseYmd(ds);
-        if (d.isAfter(latest)) latest = d;
-      } catch (_) {}
-    }
 
-    // ② 前月末で作成/再利用（サービス側で保存済み優先）
-    final r = await AiCommentService.ensureMonthlySaved(latest);
-
-    // ③ ラベルは“前月末”固定
-    final targetMonthlyDate = _computePrevMonthEnd(latest);
-    final targetLabel = _fmt(targetMonthlyDate);
-
-    setState(() {
-      final body = (r['comment'] ?? '').toString().trim();
-      _monthlyMessage = body.isEmpty
-          ? '（対象月末日: $targetLabel）\n※先月の実データが無いか、まだ保存済みの月次コメントがありません。'
-          : '（対象月末日: $targetLabel）\n$body';
-      _hasFetchedMonthly = true;
-    });
-  }
-*/
   // ---- UI ----
   Widget _buildCommentBox(String text) {
     return Container(
@@ -488,12 +459,26 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                  child: TextButton.icon(
-                    onPressed: () async {
-                     debugPrint('[AI daily] retry tapped');
-                      await _fetchAiComment();                },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('もう一度試す'),
-                  ),
+                   onPressed: () async {
+                     debugPrint('[AI daily] retry tapped (force delete & retry)');
+
+                     // ① 画面表示を「考え中」に戻す
+                     if (!mounted) return;
+                     setState(() {
+                       aiResponse = J.thinking;
+                     });
+
+                     // ② 「その日付のdailyコメント」を強制削除（⚠️が保存済み扱いになってる事故を解除）
+                     final now = DateTime.now();
+                     await AiCommentService.forceDeleteDaily(now);
+
+                     // ③ 取り直し
+                     await _fetchAiComment();
+                   },
+                   icon: const Icon(Icons.refresh),
+                   label: const Text('もう一度試す'),
+
+                 ),
                 ),
 
 
