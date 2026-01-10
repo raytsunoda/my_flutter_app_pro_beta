@@ -738,17 +738,31 @@ class CsvLoader {
       await file.readAsString(),
       eol: '\n',
     );
+
+    bool isTransient(String text) {
+      final t = text.trim();
+      if (t.isEmpty) return true;
+      return t.startsWith('⚠') || t.contains('タイムアウト') || t.contains('通信');
+    }
+
     // 末尾（新しい方）から探す：同日重複時も安全
     for (int i = rows.length - 1; i >= 1; i--) {
       final row = rows[i];
-      if (row.length >= 2 &&
-          row[0].toString().trim() == date &&
-          row[1].toString().trim().toLowerCase() == type.toLowerCase()) {
+      if (row.length < 3) continue;
+
+      final d = row[0].toString().trim();
+      final ty = row[1].toString().trim().toLowerCase();
+      final comment = row[2].toString();
+
+      if (d == date && ty == type.toLowerCase()) {
+        // ★ ⚠️系は「保存済み」にしない（再生成できるようにする）
+        if (isTransient(comment)) return false;
         return true;
       }
     }
     return false;
   }
+
 
 
 
