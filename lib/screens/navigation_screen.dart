@@ -18,6 +18,9 @@ import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart'
     show openPaywall, PaywallMode;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:my_flutter_app_pro/screens/favorite_words_screen.dart';
+
+
 
 class NavigationScreen extends StatefulWidget {
   final List<List<dynamic>> csvData;
@@ -249,6 +252,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 ),
                 color: Colors.green,
                 contextText: "やる気向上、ストレス・不安軽減のヒントに🔍✨"
+            ),
+
+// ✅ 緑と紫の間：お気に入り（あなたの言葉）
+            _buildNavButton(
+                label: "⭐ お気に入りの言葉",
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const FavoriteWordsScreen()),
+                ),
+                color: Colors.green,
+                contextText: "あなたが残した言葉を、見たいときに眺められます"
             ),
 
             ElevatedButton.icon(
