@@ -64,7 +64,7 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('⭐ お気に入りの言葉（あなたの言葉）')),
+      appBar: AppBar(title: const Text('⭐ お気に入りのあなたの言葉')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _items.isEmpty

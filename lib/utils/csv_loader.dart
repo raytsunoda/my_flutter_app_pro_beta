@@ -670,7 +670,7 @@ class CsvLoader {
 
 
   // ===============================
-  // ⭐ Favorite Words（お気に入りの言葉）
+  // ⭐ Favorite Words（お気に入りのあなたの言葉）
   // 保存先: Documents/favorite_words.csv
   // 形式: createdAt,date,text
   // ===============================

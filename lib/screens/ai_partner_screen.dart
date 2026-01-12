@@ -458,7 +458,7 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
             child: TextButton.icon(
               onPressed: () => _showFavoriteWordDialog(context),
               icon: const Icon(Icons.star_outline),
-              label: const Text('⭐ お気に入りに残す'),
+              label: const Text('⭐ お気に入りに"あなたの言葉"を残す'),
             ),
           ),
 
@@ -706,7 +706,7 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
       context: context,
       builder: (_) {
         return AlertDialog(
-          title: const Text('お気に入りの言葉'),
+          title: const Text('お気に入りのあなたの言葉'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

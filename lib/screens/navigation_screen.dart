@@ -256,7 +256,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
 // ✅ 緑と紫の間：お気に入り（あなたの言葉）
             _buildNavButton(
-                label: "⭐ お気に入りの言葉",
+                label: "⭐ お気に入りのあなたの言葉",
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const FavoriteWordsScreen()),
