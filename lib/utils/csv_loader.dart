@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:my_flutter_app_pro/utils/date_utils.dart';
 import 'package:path/path.dart' as p;
+import 'package:my_flutter_app_pro/utils/csv_loader.dart';
 
 //import '../models/record_entry.dart';
 // デバッグ出力の全体トグル
@@ -665,6 +666,260 @@ class CsvLoader {
     sink.writeln('$date,$type,"$comment",$score,$sleep,$walk,"$gratitude1","$gratitude2","$gratitude3","$memo"');
     await sink.close();
   }
+
+
+
+  // ===============================
+  // ⭐ Favorite Words（お気に入りのあなたの言葉）
+  // 保存先: Documents/favorite_words.csv
+  // 形式: createdAt,date,text
+  // ===============================
+
+  static Future<File> getFavoriteWordsFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File(p.join(dir.path, 'favorite_words.csv'));
+
+    if (!await file.exists()) {
+      await file.writeAsString('createdAt,date,text\n');
+    } else {
+      // ✅ 既存ファイルが壊れている可能性に備え、ヘッダーだけの時はそのままにする（何もしない）
+    }
+
+    return file;
+  }
+
+  static Future<void> appendFavoriteWord({
+    required DateTime date,
+    required String text,
+  }) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+
+    final file = await getFavoriteWordsFile();
+    final createdAt = DateTime.now().toIso8601String();
+    final dateStr = DateFormat('yyyy/MM/dd').format(date);
+
+    final safeText = trimmed.replaceAll('\n', ' ').replaceAll('\r', ' ');
+
+    final csvLineRaw = const ListToCsvConverter(eol: '\n').convert([
+      [createdAt, dateStr, safeText]
+    ]);
+
+// ✅ 末尾改行を必ず付与
+    final csvLine = csvLineRaw.endsWith('\n') ? csvLineRaw : '$csvLineRaw\n';
+
+    try {
+      // ✅ もし末尾が改行で終わっていないファイルなら、先に改行を足してから append
+      // （過去に "...\n2026-..." の行連結が起きると、CsvToListConverter が死にます）
+      if (await file.exists()) {
+        final len0 = await file.length();
+        if (len0 > 0) {
+          final raf = await file.open(mode: FileMode.read);
+          try {
+            // 最後の1バイトを見る
+            await raf.setPosition(len0 - 1);
+            final lastByte = await raf.readByte();
+            if (lastByte != 10 /* \n */) {
+              await file.writeAsString('\n', mode: FileMode.append);
+            }
+          } finally {
+            await raf.close();
+          }
+        }
+      }
+
+      // ✅ 本体追記
+      await file.writeAsString(csvLine, mode: FileMode.append, flush: true);
+
+      // ✅ 念のため：書けたかチェック（長さが増えているか）
+      final len = await file.length();
+      if (len <= 'createdAt,date,text\n'.length) {
+        throw Exception('favorite_words.csv length not increased');
+      }
+    } catch (_) {
+      rethrow;
+    }
+
+
+    if (kDebugMode) {
+      debugPrint('[fav] saved: $dateStr text="$safeText"');
+      debugPrint('[fav] file: ${file.path}');
+    }
+  }
+
+
+  // ✅ favorite_words.csv を安全に読み込む（カンマ/改行混入でも壊れにくい）
+// 戻り値の型は、あなたの _items に入れている型に合わせてください。
+// ここでは Map<String, String> で返します（createdAt/date/text）。
+  static Future<List<Map<String, String>>> loadFavoriteWords() async {
+    final file = await getFavoriteWordsFile();
+    if (!await file.exists()) return [];
+
+    final raw = await file.readAsString();
+    final lines = raw.split('\n');
+
+    final items = <Map<String, String>>[];
+
+    for (final line in lines) {
+      final s = line.trim();
+      if (s.isEmpty) continue;
+      if (s.startsWith('createdAt,')) continue;
+
+      // ★ 先頭2カンマだけで分割
+      final i1 = s.indexOf(',');
+      if (i1 < 0) continue;
+      final i2 = s.indexOf(',', i1 + 1);
+      if (i2 < 0) continue;
+
+      final createdAt = s.substring(0, i1).trim();
+      final date = s.substring(i1 + 1, i2).trim();
+      final text = s.substring(i2 + 1).trim();
+
+      if (!createdAt.contains('T')) continue;
+
+      items.add({
+        'createdAt': createdAt,
+        'date': date,
+        'text': text,
+      });
+    }
+
+    // 新しい順
+    items.sort((a, b) => b['createdAt']!.compareTo(a['createdAt']!));
+    return items;
+  }
+
+
+  static Future<void> deleteFavoriteWord({
+    required String createdAt,
+  }) async {
+    final file = await getFavoriteWordsFile();
+    if (!await file.exists()) return;
+
+    final original = await file.readAsString();
+    final rawLines = original.replaceAll('\r\n', '\n').split('\n');
+
+    // ヘッダー維持（なければ付ける）
+    const header = 'createdAt,date,text';
+    final hasHeader = rawLines.isNotEmpty && rawLines.first.trim() == header;
+
+    final out = <String>[header];
+    bool removed = false;
+
+    Iterable<String> dataLines = rawLines;
+    if (hasHeader) dataLines = rawLines.skip(1);
+
+    for (final line in dataLines) {
+      final l = line.trimRight();
+      if (l.isEmpty) continue;
+
+      final firstComma = l.indexOf(',');
+      if (firstComma <= 0) {
+        // 壊れた行でも捨てない（そのまま残す）
+        out.add(l);
+        continue;
+      }
+
+      final id = l.substring(0, firstComma);
+      if (id == createdAt) {
+        removed = true;
+        continue;
+      }
+      out.add(l);
+    }
+
+    if (!removed) return;
+
+    final newText = out.join('\n') + '\n';
+
+    // 念のためバックアップ（初回だけ）
+    try {
+      final bak = File(file.path + '.bak');
+      if (!await bak.exists()) {
+        await bak.writeAsString(original);
+      }
+    } catch (_) {
+      // backup失敗は無視（削除本体を優先）
+    }
+
+    await file.writeAsString(newText, mode: FileMode.write);
+
+    if (kDebugMode) {
+      debugPrint('[fav] deleted: createdAt=$createdAt');
+    }
+  }
+
+  static Future<void> repairFavoriteWordsCsvIfNeeded() async {
+    final file = await getFavoriteWordsFile();
+    const header = 'createdAt,date,text';
+
+    if (!await file.exists()) {
+      await file.writeAsString('$header\n', mode: FileMode.write);
+      return;
+    }
+
+    final original = await file.readAsString();
+    final normalized = original.replaceAll('\r\n', '\n');
+    final rawLines = normalized.split('\n');
+
+    // 空ファイルならヘッダーだけ
+    if (rawLines.isEmpty || rawLines.every((l) => l.trim().isEmpty)) {
+      await file.writeAsString('$header\n', mode: FileMode.write);
+      return;
+    }
+
+    final hasHeader = rawLines.first.trim() == header;
+
+    // 出力は必ずヘッダー付き
+    final out = <String>[header];
+
+    // 1行=1レコード前提。ただし途中改行で壊れていて
+    // 「カンマが2つ未満の行」が出たら前行に結合して救済（捨てない）
+    Iterable<String> dataLines = rawLines;
+    if (hasHeader) dataLines = rawLines.skip(1);
+
+    for (final line in dataLines) {
+      final l = line.trimRight();
+      if (l.isEmpty) continue;
+
+      final commaCount = ','.allMatches(l).length;
+      if (commaCount >= 2) {
+        out.add(l);
+      } else {
+        // 壊れた行は前行に結合（前行が無ければそのまま追加）
+        if (out.length >= 2) {
+          out[out.length - 1] = out.last + ' ' + l;
+        } else {
+          out.add(l);
+        }
+      }
+    }
+
+    final newText = out.join('\n') + '\n';
+
+    // 変更なしなら何もしない
+    final current = (hasHeader ? normalized : '$header\n$normalized').replaceAll('\r\n', '\n');
+    if (newText == current || newText == normalized) {
+      return;
+    }
+
+    // 念のためバックアップ（初回だけ）
+    try {
+      final bak = File(file.path + '.bak');
+      if (!await bak.exists()) {
+        await bak.writeAsString(original);
+      }
+    } catch (_) {}
+
+    await file.writeAsString(newText, mode: FileMode.write);
+
+    if (kDebugMode) {
+      debugPrint('[fav] repairFavoriteWordsCsvIfNeeded done');
+    }
+  }
+
+
+
 // コメントの表示用サニタイズ
 //  - 「追伸：メモの『（未入力）』、大切にできると良さそうです。」のような
 //    ワンパターン文章を削る

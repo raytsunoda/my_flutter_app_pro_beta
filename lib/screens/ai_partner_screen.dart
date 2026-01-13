@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../services/ai_comment_service.dart';
-import '../utils/csv_loader.dart';
+//import '../utils/csv_loader.dart';
 import '../utils/date_utils.dart';
 import 'ai_comment_history_screen.dart';
 import 'package:my_flutter_app_pro/l10n/strings_ja.dart';
 import 'package:my_flutter_app_pro/widgets/safety_notice.dart';
 import 'dart:async';
+import 'package:my_flutter_app_pro/utils/csv_loader.dart';
 
 
 DateTime _computePrevMonthEnd(DateTime latestDate) {
@@ -451,10 +452,20 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
           // ✅ 今日のひとことメモ：_memoText だけを見る（CSV は一切触らない）
           _buildCommentBox('📝 今日のひとことメモ:\n$displayMemo'),
 
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => _showFavoriteWordDialog(context),
+              icon: const Icon(Icons.star_outline),
+              label: const Text('⭐ お気に入りに"あなたの言葉"を残す'),
+            ),
+          ),
+
           // ✅ AI パートナーのひとこと（表示時サニタイズを最終適用）
           _buildCommentBox('💛 AIパートナーからのひとこと\n\n${_sanitizeForDisplay(aiResponse)}'),
 
-        // ✅ タイムアウト時は、その場で再試行できるようにする（Releaseでも表示）
+          // ✅ タイムアウト時は、その場で再試行できるようにする（Releaseでも表示）
                   if (aiResponse.trim().startsWith('⚠️'))
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
@@ -673,4 +684,92 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
       ),
     );
   }
+
+  Future<void> _showFavoriteWordDialog(BuildContext context) async {
+    final controller = TextEditingController();
+
+    // 画面側の「表示対象日」を優先（_todayStr は既存変数）
+    DateTime date = DateTime.now();
+    try {
+      final s = _todayStr; // yyyy/MM/dd 想定
+      final parts = s.split('/');
+      if (parts.length == 3) {
+        date = DateTime(
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+          int.parse(parts[2]),
+        );
+      }
+    } catch (_) {}
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text('お気に入りのあなたの言葉'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('（40文字以内）'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller,
+                maxLength: 40,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  hintText: '例：私は私のペースで大丈夫',
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                '※ 今日のメモの中から、\n　残しておきたいあなたの言葉があれば書いてください',
+                style: TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+          actions: [
+            // ✅ キャンセルは「×で閉じるだけ」
+            IconButton(
+              onPressed: () => Navigator.pop(context, false),
+              icon: const Icon(Icons.close),
+              tooltip: '閉じる',
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (saved != true) return;
+
+    final text = controller.text.trim();
+    if (text.isEmpty) return;
+
+
+
+
+    try {
+      await CsvLoader.appendFavoriteWord(date: date, text: text);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('⚠️ 保存に失敗しました: $e')),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('⭐ お気に入りに保存しました')),
+    );
+
+  }
+
+
+
+
 }
