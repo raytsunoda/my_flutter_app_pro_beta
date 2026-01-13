@@ -790,72 +790,133 @@ class CsvLoader {
   }
 
 
-  static Future<void> deleteFavoriteWord(String createdAt) async {
+  static Future<void> deleteFavoriteWord({
+    required String createdAt,
+  }) async {
     final file = await getFavoriteWordsFile();
-    final content = await file.readAsString();
+    if (!await file.exists()) return;
 
-    final rows = const CsvToListConverter().convert(content);
-    if (rows.isEmpty) return;
+    final original = await file.readAsString();
+    final rawLines = original.replaceAll('\r\n', '\n').split('\n');
 
-    final header = rows.first.map((e) => e.toString()).toList();
+    // ヘッダー維持（なければ付ける）
+    const header = 'createdAt,date,text';
+    final hasHeader = rawLines.isNotEmpty && rawLines.first.trim() == header;
 
-    final kept = <List<dynamic>>[];
-    kept.add(rows.first);
+    final out = <String>[header];
+    bool removed = false;
 
-    for (int i = 1; i < rows.length; i++) {
-      final row = rows[i];
-      if (row.isEmpty) continue;
+    Iterable<String> dataLines = rawLines;
+    if (hasHeader) dataLines = rawLines.skip(1);
 
-      int idx = header.indexOf('createdAt');
-      if (idx < 0) idx = 0;
+    for (final line in dataLines) {
+      final l = line.trimRight();
+      if (l.isEmpty) continue;
 
-      final v = (idx < row.length) ? row[idx].toString() : '';
-      if (v == createdAt) continue;
-      kept.add(row);
+      final firstComma = l.indexOf(',');
+      if (firstComma <= 0) {
+        // 壊れた行でも捨てない（そのまま残す）
+        out.add(l);
+        continue;
+      }
+
+      final id = l.substring(0, firstComma);
+      if (id == createdAt) {
+        removed = true;
+        continue;
+      }
+      out.add(l);
     }
 
-    final csvOut = const ListToCsvConverter(eol: '\n').convert(kept);
-    await file.writeAsString('$csvOut\n');
+    if (!removed) return;
+
+    final newText = out.join('\n') + '\n';
+
+    // 念のためバックアップ（初回だけ）
+    try {
+      final bak = File(file.path + '.bak');
+      if (!await bak.exists()) {
+        await bak.writeAsString(original);
+      }
+    } catch (_) {
+      // backup失敗は無視（削除本体を優先）
+    }
+
+    await file.writeAsString(newText, mode: FileMode.write);
+
+    if (kDebugMode) {
+      debugPrint('[fav] deleted: createdAt=$createdAt');
+    }
   }
 
   static Future<void> repairFavoriteWordsCsvIfNeeded() async {
     final file = await getFavoriteWordsFile();
-    if (!await file.exists()) return;
+    const header = 'createdAt,date,text';
 
-    final raw = await file.readAsString();
-    if (raw.trim().isEmpty) return;
-
-    final lines = raw.split('\n');
-    final rescued = <String>[];
-
-    for (final line in lines) {
-      final s = line.trim();
-      if (s.isEmpty) continue;
-      if (s.startsWith('createdAt,')) continue;
-
-      final i1 = s.indexOf(',');
-      final i2 = s.indexOf(',', i1 + 1);
-      if (i1 < 0 || i2 < 0) continue;
-
-      final createdAt = s.substring(0, i1);
-      if (!createdAt.contains('T')) continue;
-
-      rescued.add(s);
+    if (!await file.exists()) {
+      await file.writeAsString('$header\n', mode: FileMode.write);
+      return;
     }
 
-    if (rescued.isEmpty) return;
+    final original = await file.readAsString();
+    final normalized = original.replaceAll('\r\n', '\n');
+    final rawLines = normalized.split('\n');
 
-    final buf = StringBuffer('createdAt,date,text\n');
-    for (final r in rescued) {
-      buf.writeln(r);
+    // 空ファイルならヘッダーだけ
+    if (rawLines.isEmpty || rawLines.every((l) => l.trim().isEmpty)) {
+      await file.writeAsString('$header\n', mode: FileMode.write);
+      return;
     }
 
-    await file.writeAsString(buf.toString(), flush: true);
+    final hasHeader = rawLines.first.trim() == header;
+
+    // 出力は必ずヘッダー付き
+    final out = <String>[header];
+
+    // 1行=1レコード前提。ただし途中改行で壊れていて
+    // 「カンマが2つ未満の行」が出たら前行に結合して救済（捨てない）
+    Iterable<String> dataLines = rawLines;
+    if (hasHeader) dataLines = rawLines.skip(1);
+
+    for (final line in dataLines) {
+      final l = line.trimRight();
+      if (l.isEmpty) continue;
+
+      final commaCount = ','.allMatches(l).length;
+      if (commaCount >= 2) {
+        out.add(l);
+      } else {
+        // 壊れた行は前行に結合（前行が無ければそのまま追加）
+        if (out.length >= 2) {
+          out[out.length - 1] = out.last + ' ' + l;
+        } else {
+          out.add(l);
+        }
+      }
+    }
+
+    final newText = out.join('\n') + '\n';
+
+    // 変更なしなら何もしない
+    final current = (hasHeader ? normalized : '$header\n$normalized').replaceAll('\r\n', '\n');
+    if (newText == current || newText == normalized) {
+      return;
+    }
+
+    // 念のためバックアップ（初回だけ）
+    try {
+      final bak = File(file.path + '.bak');
+      if (!await bak.exists()) {
+        await bak.writeAsString(original);
+      }
+    } catch (_) {}
+
+    await file.writeAsString(newText, mode: FileMode.write);
+
+    if (kDebugMode) {
+      debugPrint('[fav] repairFavoriteWordsCsvIfNeeded done');
+    }
   }
-
-
-
-
 
 
 

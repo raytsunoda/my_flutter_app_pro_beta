@@ -53,7 +53,7 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
   }
 
   Future<void> _delete(String createdAt) async {
-    await CsvLoader.deleteFavoriteWord(createdAt);
+    await CsvLoader.deleteFavoriteWord(createdAt: createdAt);
     await _load();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -118,52 +118,73 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
           final text = (item['text'] ?? '').trim();
 
           return Dismissible(
-            key: ValueKey(createdAt),
+            key: ValueKey(createdAt.isNotEmpty ? createdAt : 'row-$i-${item['date']}-${item['text']}'),
             direction: DismissDirection.endToStart,
             background: Container(
               alignment: Alignment.centerRight,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              color: Colors.red,
+              color: Colors.redAccent,
               child: const Icon(Icons.delete, color: Colors.white),
             ),
             confirmDismiss: (_) async {
-              return await showDialog<bool>(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text('削除しますか？'),
-                  content: const Text('このお気に入りを削除します。入力データは消えません。'),
-                  actions: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      icon: const Icon(Icons.close),
-                      tooltip: '閉じる',
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('削除'),
-                    ),
-                  ],
-                ),
-              );
+              return true;
             },
-            onDismissed: (_) => _delete(createdAt),
+            onDismissed: (_) async {
+              try {
+                if (createdAt.isNotEmpty) {
+                  await CsvLoader.deleteFavoriteWord(createdAt: createdAt);
+                }
+
+                if (!mounted) return;
+                setState(() {
+                  _items.removeWhere((e) => (e['createdAt'] ?? '') == createdAt);
+                });
+
+                // 念のためファイルから再読み込み（永続化の反映）
+                await _load();
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('削除しました')),
+                  );
+                }
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('削除に失敗しました: $e')),
+                );
+                // 失敗時は画面を復元するため再読み込み
+                await _load();
+              }
+            },
             child: Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
+              color: const Color(0xFFF7F4FB),
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      date.isEmpty ? '日付不明' : date,
-                      style: Theme.of(context).textTheme.bodySmall,
+                      date,
+                      style: const TextStyle(fontSize: 14, color: Colors.black54),
                     ),
-                    const SizedBox(height: 6),
-                    Text(text, style: const TextStyle(fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Text(
+                      '"$text"',
+                      style: const TextStyle(fontSize: 20),
+                    ),
                   ],
                 ),
               ),
             ),
           );
+
+
+
+
         },
       ),
     );
