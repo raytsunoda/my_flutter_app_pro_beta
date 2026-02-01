@@ -1,0 +1,39 @@
+{
+  "@@locale": "ja",
+  "appTitle": "幸せ感ナビPro",
+  "settings": "設定",
+  "navCheckQuotes": "名言をチェック",
+  "navCheckHints": "ヒントを見る",
+  "navAiPartner": "AIパートナーと話す",
+   "btnRetry": "もう一度試す",
+    "dlgContinue": "続行しますか？",
+    "msgRestoreSuccess": "CSVデータをバックアップから復元しました",
+    "msgRestoreFailedNoBackup": "復元に失敗しました（バックアップが無い可能性）",
+    "msgNoDataPleaseInput": "⚠️ データがありません。入力してください。",
+    "msgNotifOffOk": "通知はオフのままです（アプリ自体はこのままご利用いただけます）",
+    "errSumNotOne": "合計が1.0ではありません",
+    "msgCsvImportDone": "CSVの取り込みが完了しました（一覧を更新）",
+    "settingsImportOldCsvSubtitle": "旧アプリのCSVを取り込む",
+    "settingsBackupAiAllSubtitle": "今日のひとこと／週次／月次の全履歴をCSVにバックアップ",
+ "navFavoriteWordsLabel": "⭐ お気に入りのあなたの言葉",
+  "navFavoriteWordsDesc": "あなたが残した言葉を、見たいときに眺められます",
+  "aiTimeoutRetry": "⚠️ コメントの取得に時間がかかったか、うまく作れなかったようです。\n時間をおいてもう一度お試しください。",
+  "aiErrorRetry": "⚠️ コメントの取得中にエラーが発生しました。\n時間をおいてもう一度お試しください。",
+
+  "navTitle": "ナビゲーション画面",
+  "navDailyInput": "毎日の入力画面へ 📝",
+  "navOneDayGraph": "1日グラフで見る 🍩",
+  "navPeriodGraphs": "1週・4週・1年グラフで見る 📊",
+
+  "navHints": "気持ちが少し楽になるヒント 🔍✨",
+  "navQuotes": "名言をチェック 📜✨",
+  "navQuotesDesc": "やる気向上、ストレス・不安軽減のヒントに🔍✨",
+  "navAiPartnerButton": "🧡 AIパートナーのひとこと",
+  "navSettingsButton": "⚙️ 設定",
+  "navSettingsDesc": "通知、重み設定などを変更、保存データの管理ができます⚙️",
+  "navLongPressHint": "※ 長押しで説明を表示します",
+  "navAiPartnerTitle": "AIパートナーのひとこと"
+
+
+
+}

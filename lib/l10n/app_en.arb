@@ -1,0 +1,37 @@
+{
+  "@@locale": "en",
+  "appTitle": "Shiawasekan Navi Pro",
+  "settings": "Settings",
+  "navCheckQuotes": "Check Quotes",
+  "navCheckHints": "View Tips",
+  "navAiPartner": "Talk to AI Partner",
+
+    "btnRetry": "Try Again",
+    "dlgContinue": "Do you want to continue?",
+    "msgRestoreSuccess": "Restored CSV data from backup.",
+    "msgRestoreFailedNoBackup": "Restore failed (no backup may be available).",
+    "msgNoDataPleaseInput": "⚠️ No data found. Please enter your record.",
+    "msgNotifOffOk": "Notifications are off (you can keep using the app as-is).",
+    "errSumNotOne": "The total is not 1.0.",
+    "msgCsvImportDone": "CSV import completed (list updated).",
+    "settingsImportOldCsvSubtitle": "Import CSV from the old app",
+    "settingsBackupAiAllSubtitle": "Back up all history (today/weekly/monthly) to CSV",
+    "navFavoriteWordsLabel": "⭐ Your Favorite Words",
+    "navFavoriteWordsDesc": "Look back at the words you saved anytime you want.",
+  "aiTimeoutRetry": "⚠️ It took too long to fetch the comment, or it couldn't be created.\nPlease try again later.",
+  "aiErrorRetry": "⚠️ An error occurred while fetching the comment.\nPlease try again later.",
+
+  "navTitle": "Navigation",
+  "navDailyInput": "Daily Input 📝",
+  "navOneDayGraph": "1-Day Graph 🍩",
+  "navPeriodGraphs": "View 1/4-Week & 1-Year Graphs 📊",
+  "navHints": "Tips to Feel a Bit Better 🔍✨",
+  "navQuotes": "Check Quotes 📜✨",
+  "navQuotesDesc": "Hints for motivation and reducing stress/anxiety 🔍✨",
+  "navAiPartnerButton": "🧡 AI Partner Message",
+  "navSettingsButton": "⚙️ Settings",
+  "navSettingsDesc": "Manage notifications, weights, and saved data ⚙️",
+  "navLongPressHint": "* Long-press to show details",
+  "navAiPartnerTitle": "AI Partner Message"
+
+}

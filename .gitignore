@@ -1,3 +1,5 @@
+# Generated localization files
+lib/gen_l10n/
 # Miscellaneous
 *.class
 *.log
@@ -53,3 +55,6 @@ ios/Flutter/*.xcconfig.tmp
 .env
 .env.*
 my_android_app.zip
+
+# Generated localization files
+lib/gen_l10n/

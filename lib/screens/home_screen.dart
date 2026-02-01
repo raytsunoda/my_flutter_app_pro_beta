@@ -12,6 +12,7 @@ import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart'
     show openPaywall, PaywallMode;
 import 'package:flutter/foundation.dart';
 import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart' show openPaywall, PaywallMode;
+import '../gen_l10n/app_localizations.dart';
 
 
 

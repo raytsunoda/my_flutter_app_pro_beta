@@ -16,7 +16,8 @@ import 'package:my_flutter_app_pro/config/purchase_config.dart';
 
 import 'services/purchase_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'gen_l10n/app_localizations.dart';
 
 
 // 通知タップ遷移用のグローバル NavigatorKey（既にあれば重複不要）
@@ -103,18 +104,35 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
-
       debugShowCheckedModeBanner: false,
-      title: '幸せ感ナビ',
+
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
+
       theme: ThemeData(useMaterial3: true),
+
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ja'),
+        Locale('en'),
+      ],
+
+      // 確認用：一度だけ英語強制（確認できたらコメントアウトでOK）
+       locale: const Locale('en'),
+
       routes: {
         '/': (_) => const HomeScreen(csvData: []),
         '/history': (_) => const AiCommentHistoryScreen(),
-        '/data-migration': (_) => const DataMigrationScreen(), // ★追加
+        '/data-migration': (_) => const DataMigrationScreen(),
       },
       initialRoute: '/',
     );
   }
+
 }
 
 /// 既存：朝/夕の時刻（SharedPreferences に保存済み）でリマインダーを再設定

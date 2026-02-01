@@ -17,9 +17,9 @@ import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart';
 import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart'
     show openPaywall, PaywallMode;
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:my_flutter_app_pro/screens/favorite_words_screen.dart';
 
+import '../gen_l10n/app_localizations.dart';
 
 
 class NavigationScreen extends StatefulWidget {
@@ -210,33 +210,44 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text("ナビゲーション画面")),
+      //appBar: AppBar(title: const Text("ナビゲーション画面")),
+      appBar: AppBar(title: Text(t.navTitle)),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildNavButton(
-                label: "毎日の入力画面へ 📝",
+             //   label: "毎日の入力画面へ 📝",
+                label: t.navDailyInput,
+
                 onPressed: () => _goToManualInputView(context),
                 color: Colors.blue,
                 contextText: "ストレッチ/ウォーキング/睡眠/３つの感謝を記録📝"
             ),
             _buildNavButton(
-                label: "1日グラフで見る 🍩",
+                //label: "1日グラフで見る 🍩",
+                label: t.navOneDayGraph,
+
                 onPressed: () => _goToOneDayView(context),
                 color: Colors.blue,
                 contextText: "幸せ感/睡眠/運動/感謝を1日単位でグラフ化📊"
             ),
             _buildNavButton(
-                label: "1週・4週・1年グラフで見る 📊",
+               // label: "1週・4週・1年グラフで見る 📊",
+                label: t.navPeriodGraphs,
+
                 onPressed: () => _goToPeriodSelectionView(context),
                 color: Colors.blue,
                 contextText: "1週・4週・1年の傾向を確認できる📊"
             ),
             _buildNavButton(
-                label: "気持ちが少し楽になるヒント 🔍✨",
+                //label: "気持ちが少し楽になるヒント 🔍✨",
+                label: t.navHints,
+
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const TipsScreen()),
@@ -245,24 +256,31 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 contextText: "ネガティブな気持ちの時、視点を変えてみると🔍✨"
             ),
             _buildNavButton(
-                label: "名言をチェック 📜✨",
+                //label: "名言をチェック 📜✨",
+                label: t.navQuotes,
+
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const QuotesScreen()),
                 ),
                 color: Colors.green,
-                contextText: "やる気向上、ストレス・不安軽減のヒントに🔍✨"
+                //contextText: "やる気向上、ストレス・不安軽減のヒントに🔍✨"
+                contextText: t.navQuotesDesc
+
             ),
 
 // ✅ 緑と紫の間：お気に入り（あなたの言葉）
             _buildNavButton(
-                label: "⭐ お気に入りのあなたの言葉",
+            //    label: "⭐ お気に入りのあなたの言葉",
+                label: t.navFavoriteWordsLabel,
+
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const FavoriteWordsScreen()),
                 ),
                 color: Colors.green,
-                contextText: "あなたが残した言葉を、見たいときに眺められます"
+               // contextText: "あなたが残した言葉を、見たいときに眺められます"
+                contextText: t.navFavoriteWordsDesc,
             ),
 
             ElevatedButton.icon(
@@ -298,7 +316,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
 
               onLongPress: () => _showAiInfo(context), // ★ 長押しで説明
-              label: const Text('🧡 AIパートナーのひとこと'),
+              //label: const Text('🧡 AIパートナーのひとこと'),
+              label: Text(t.navAiPartnerButton),
+
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepPurpleAccent,
                 foregroundColor: Colors.white,
@@ -312,15 +332,21 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
 
             _buildNavButton(
-                label: "⚙️ 設定",
+              //  label: "⚙️ 設定",
+                label: t.navSettingsButton,
+
                 onPressed: () => _goToSettings(context),
                 color: Colors.grey,
-                contextText: "通知、重み設定などを変更、保存データの管理ができます⚙️"
+                //contextText: "通知、重み設定などを変更、保存データの管理ができます⚙️"
+                contextText: t.navSettingsDesc
+
             ),
             const SizedBox(height: 20),
-            const Center(
+             Center(
               child: Text(
-                "※ 長押しで説明を表示します",
+              //  "※ 長押しで説明を表示します",
+                t.navLongPressHint,
+
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ),
@@ -358,11 +384,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
 
   void _showAiInfo(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: const Text('AIパートナーのひとこと'),
+          //title: const Text('AIパートナーのひとこと'),
+          title: Text(t.navAiPartnerTitle),
+
           content: const Text(
               'あなたの「3つの感謝」や「今日のひとことメモ」、直近のグラフ推移をもとに、'
                   '毎日・週・月の短いコメントを表示します。'
