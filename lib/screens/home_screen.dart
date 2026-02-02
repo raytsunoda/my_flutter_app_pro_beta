@@ -84,11 +84,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
         // 少しだけ高さを足して下段キャッチを表示
         toolbarHeight: 80,
-        title: const Text('幸せ感ナビPro'),
+      //  title: const Text('幸せ感ナビPro'),
+        title: Text(t.homeAppTitle),
+
         // ▼ここがキャッチ
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
@@ -99,7 +103,11 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 // 1行目：説明
                 Text(
-                  '心と身体の“健康習慣”づくりをサポート',
+                //  '心と身体の“健康習慣”づくりをサポート',
+
+                    t.homeTagline,
+
+
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -121,7 +129,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'AIパートナーが、あなたの毎日にそっと伴走',
+                        //  'AIパートナーが、あなたの毎日にそっと伴走',
+                          t.homeHeroCopy,
+
+
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -162,7 +173,9 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           if (PurchaseConfig.ENABLED)
             IconButton(
-              tooltip: 'アプリ内課金の管理',
+            //  tooltip: 'アプリ内課金の管理',
+              tooltip: t.homeIapManageTooltip,
+
               icon: const Icon(Icons.manage_accounts),
               onPressed: () async {
                 await openPaywall(context, mode: PaywallMode.manage);
@@ -181,8 +194,11 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                '幸せ感ナビProに\nようこそ',
+              //const Text(
+                Text(
+           //     '幸せ感ナビProに\nようこそ',
+                t.homeWelcomeTitle,
+
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87,
@@ -205,7 +221,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 },
-                child: const Text('ナビゲーション画面へ'),
+               // child: const Text('ナビゲーション画面へ'),
+                child: Text(t.goToNavigation),
+
               ),
 
               const SizedBox(height: 12),
@@ -221,7 +239,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: () async {
                       await openPaywall(context, mode: PaywallMode.enable);
                     },
-                    child: const Text('Proを有効化'),
+                 //   child: const Text('Proを有効化'),
+                    child: Text(t.homeEnableProButton),
+
                   );
                 },
               ),
@@ -264,7 +284,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ListTile(
                 leading: const Icon(Icons.workspace_premium_outlined),
                 title: Text(
-                  'Pro機能の有効化 / 復元',
+             //     'Pro機能の有効化 / 復元',
+                  t.homeProCardTitle,
+
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontSize: kCardTitleSize,
                     fontWeight: FontWeight.w700,
@@ -272,8 +294,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 subtitle: Text(
-                  '「AIパートナーのひとこと」を使うにはProが必要です。\n'
-                      '機種変更・再インストール時は「過去の購入を復元」をご利用ください（重複課金なし）。',
+              //    '「AIパートナーのひとこと」を使うにはProが必要です。\n'
+              //        '機種変更・再インストール時は「過去の購入を復元」をご利用ください（重複課金なし）。',
+                  t.homeProCardDesc,
+
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     fontSize: kCardBodySize,
                     height: kCardLineHeight,
@@ -288,7 +312,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     await openPaywall(context, mode: PaywallMode.enable);
 
                   },
-                  child: const Text('有効化'),
+               //   child: const Text('有効化'),
+                  child: Text(t.proEnableAction),
+
                 ),
                 onTap: () async { /* 既存のまま */ },
               ),
@@ -305,20 +331,27 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
   void _showPricingNote(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('AIパートナーのひとこと'),
+     //   title: const Text('AIパートナーのひとこと'),
+        title: Text(t.homeAiSectionTitle),
+
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const _Bullet('気持ちに寄り添うひとことで心を整える後押し'),
-            const _Bullet('その日の記録に合わせた短いヒントで一緒に振り返り'),
+         //   const _Bullet('その日の記録に合わせた短いヒントで一緒に振り返り'),
+            _Bullet(t.homeAiBullet1),
+
             const _Bullet('“続ける”を支える軽い読み心地と適度な頻度'),
             const SizedBox(height: 8),
             Text(
-              'この機能は Pro でご利用いただけます。',
+           //   'この機能は Pro でご利用いただけます。',
+              t.homeAiProNote,
+
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 6),

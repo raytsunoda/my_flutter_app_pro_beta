@@ -5,7 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:csv/csv.dart';
 import '../screens/one_day_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import '../gen_l10n/app_localizations.dart';
+//import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class ManualInputView extends StatefulWidget {
   final VoidCallback? onSaved;
@@ -48,6 +49,7 @@ class _ManualInputViewState extends State<ManualInputView> {
   }
 
   Future<void> saveEntry() async {
+    final t = AppLocalizations.of(context)!; // ✅ 追加：saveEntry内でも使えるように
     final file = await _localFile;
     List<List<dynamic>> csvData = [];
 
@@ -101,18 +103,30 @@ class _ManualInputViewState extends State<ManualInputView> {
     if (existingIndex != -1) {
       final overwrite = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text("日付の重複"),
-          content: const Text("この日付のデータはすでに存在します。上書きしますか？"),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("キャンセル")),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("上書き")),
-          ],
-        ),
+        builder: (ctx) {
+          final t = AppLocalizations.of(ctx)!;
+
+          return AlertDialog(
+            title: Text(t.dateDuplicateTitle),
+            content: Text(t.dateDuplicateMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(t.cancel),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(t.overwrite),
+              ),
+            ],
+          );
+        },
       );
+
       if (overwrite != true) return;
       csvData.removeAt(existingIndex);
     }
+
 
     // ──────────────────────────────
 // ④ 計算ロジック（修正版）
@@ -200,9 +214,12 @@ class _ManualInputViewState extends State<ManualInputView> {
       debugPrint("⚠️ 列数が合いません: ${csvData[0].length} vs ${newRow.length}");
     }
     if (newRow.length != expectedLen) {
+
       debugPrint('❌ newRow 列数異常: ${newRow.length}');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('保存に失敗しました（列数が異常です）')),
+      //  const SnackBar(content: Text('保存に失敗しました（列数が異常です）')),
+        SnackBar(content: Text(t.saveFailedColumnMismatch)),
+
       );
       return;
     }
@@ -297,26 +314,36 @@ class _ManualInputViewState extends State<ManualInputView> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+
     final dateStr = DateFormat('yyyy/MM/dd').format(selectedDate);
 
     if (widget.csvData == null || widget.csvData!.length <= 1) {
       return Scaffold(
-        appBar: AppBar(title: const Text('📝 毎日の入力画面')),
-        body: const Center(child: Text('⚠️ データがありません。入力してください。')),
+        //appBar: AppBar(title: const Text('📝 毎日の入力画面')),
+        appBar: AppBar(title: Text('📝 ${t.dailyInputTitle}')),
+
+        //body: const Center(child: Text('⚠️ データがありません。入力してください。')),
+        body: Center(child: Text(t.noDataPleaseInput)),
+
       );
     }
 
 
 
     return Scaffold(
-      appBar: AppBar(title: const Text('📝 毎日の入力画面')),
+      //appBar: AppBar(title: const Text('📝 毎日の入力画面')),
+      appBar: AppBar(title: Text(t.dailyInputTitle)),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('📅 日付を選択:'),
+              //  const Text('📅 日付を選択:'),
+                Text(t.selectDateLabel),
+
                 Text(dateStr),
               ]),
               ElevatedButton(
@@ -329,43 +356,82 @@ class _ManualInputViewState extends State<ManualInputView> {
                   );
                   if (picked != null) setState(() => selectedDate = picked);
                 },
-                child: const Text("日付を選ぶ"),
+               // child: const Text("日付を選ぶ"),
+                child: Text(t.pickDate),
+
               )
             ]),
             const Divider(),
-            buildDropdown("🧘 昨日のストレッチ（分）", stretchDuration, [0, 10, 20, 30], (val) => setState(() => stretchDuration = val!)),
-            buildDropdown("🚶 昨日のウォーキング（分）", walkingDuration, List.generate(10, (i) => i * 10), (val) => setState(() => walkingDuration = val!)),
-            buildDropdown("😴 睡眠時間（時間）", sleepHours, List.generate(13, (i) => i), (val) => setState(() => sleepHours = val!)),
-            buildDropdown("😴 睡眠時間（分）", sleepMinutes, [0, 10, 20, 30, 40, 50], (val) => setState(() => sleepMinutes = val!)),
-            buildDropdown("😴 寝付きの満足度", fallingAsleepSatisfaction, List.generate(6, (i) => i), (val) => setState(() => fallingAsleepSatisfaction = val!)),
-            buildDropdown("😴 深い睡眠感", deepSleepFeeling, List.generate(6, (i) => i), (val) => setState(() => deepSleepFeeling = val!)),
-            buildDropdown("😴 目覚め感", wakeUpFeeling, List.generate(6, (i) => i), (val) => setState(() => wakeUpFeeling = val!)),
-            buildDropdown("😄 モチベーション", motivation, List.generate(6, (i) => i), (val) => setState(() => motivation = val!)),
-            const Divider(),
-            const Text("🙏 3つの感謝（日本語入力）"),
-            buildTextField("感謝 1", appreciation1Controller),
-            buildTextField("感謝 2", appreciation2Controller),
-            buildTextField("感謝 3", appreciation3Controller),
+            //buildDropdown("🧘 昨日のストレッチ（分）", stretchDuration, [0, 10, 20, 30], (val) => setState(() => stretchDuration = val!)),
+            buildDropdown(
+                t.stretchYesterdayMinutes,
+                stretchDuration,
+                [0, 10, 20, 30],
+                    (val) => setState(() => stretchDuration = val!)),
+
+            //buildDropdown("🚶 昨日のウォーキング（分）", walkingDuration, List.generate(10, (i) => i * 10), (val) => setState(() => walkingDuration = val!)),
+            buildDropdown(
+                t.walkingYesterdayMinutes,
+                walkingDuration,
+                List.generate(10, (i) => i * 10), (val) => setState(() => walkingDuration = val!)),
+            // buildDropdown("😴 睡眠時間（時間）", sleepHours, List.generate(13, (i) => i), (val) => setState(() => sleepHours = val!)),
+            // buildDropdown("😴 睡眠時間（分）", sleepMinutes, [0, 10, 20, 30, 40, 50], (val) => setState(() => sleepMinutes = val!)),
+            // buildDropdown("😴 寝付きの満足度", fallingAsleepSatisfaction, List.generate(6, (i) => i), (val) => setState(() => fallingAsleepSatisfaction = val!)),
+            // buildDropdown("😴 深い睡眠感", deepSleepFeeling, List.generate(6, (i) => i), (val) => setState(() => deepSleepFeeling = val!)),
+            // buildDropdown("😴 目覚め感", wakeUpFeeling, List.generate(6, (i) => i), (val) => setState(() => wakeUpFeeling = val!)),
+            // buildDropdown("😄 モチベーション", motivation, List.generate(6, (i) => i), (val) => setState(() => motivation = val!)),
+            buildDropdown("😴 ${t.sleepHoursLabel}", sleepHours, List.generate(13, (i) => i),
+                    (val) => setState(() => sleepHours = val!)),
+            buildDropdown("😴 ${t.sleepMinutesLabel}", sleepMinutes, [0, 10, 20, 30, 40, 50],
+                    (val) => setState(() => sleepMinutes = val!)),
+            buildDropdown("😴 ${t.sleepFallingAsleepLabel}", fallingAsleepSatisfaction, List.generate(6, (i) => i),
+                    (val) => setState(() => fallingAsleepSatisfaction = val!)),
+            buildDropdown("😴 ${t.sleepDeepLabel}", deepSleepFeeling, List.generate(6, (i) => i),
+                    (val) => setState(() => deepSleepFeeling = val!)),
+            buildDropdown("😴 ${t.sleepWakeupLabel}", wakeUpFeeling, List.generate(6, (i) => i),
+                    (val) => setState(() => wakeUpFeeling = val!)),
+            buildDropdown("😄 ${t.motivationLabel}", motivation, List.generate(6, (i) => i),
+                    (val) => setState(() => motivation = val!)),
+
+
 
             const Divider(),
-            const Text(
-              "🌱 今日のひとことメモ（AIと共有されます）",
-              style: TextStyle(fontWeight: FontWeight.bold),
+            //const Text("🙏 3つの感謝（日本語入力）"),
+            Text(t.gratitudeSectionTitle),
+
+            // buildTextField("感謝 1", appreciation1Controller),
+            // buildTextField("感謝 2", appreciation2Controller),
+            // buildTextField("感謝 3", appreciation3Controller),
+            buildTextField(t.gratitude1, appreciation1Controller),
+            buildTextField(t.gratitude2, appreciation2Controller),
+            buildTextField(t.gratitude3, appreciation3Controller),
+
+
+            const Divider(),
+            Text(
+              '🌱 ${t.memoSectionTitle}',
+
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             TextField(
               controller: memoController,
               maxLength: 200,
               maxLines: 3,
               onChanged: (text) => setState(() => memoCharCount = text.length),
-              decoration: const InputDecoration(
-                hintText: '例：昨日より少し元気が出た気がします🌱',
-                border: OutlineInputBorder(),
+              // decoration: const InputDecoration(
+              //   hintText: '例：昨日より少し元気が出た気がします🌱',
+              //   border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: t.memoPlaceholder,
+                border: const OutlineInputBorder(),
               ),
             ),
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                '$memoCharCount / 200文字',
+              //  '$memoCharCount / 200文字',
+                t.memoCharCount(memoCharCount),
+
                 style: TextStyle(fontSize: 12),
               ),
             ),
@@ -377,28 +443,38 @@ class _ManualInputViewState extends State<ManualInputView> {
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      title: const Text("確認"),
-                      content: const Text("この内容で保存してよろしいですか？"),
+                      // title: const Text("確認"),
+                      // content: const Text("この内容で保存してよろしいですか？"),
+                      // actions: [
+                      //   TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("キャンセル")),
+                      //   TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("OK")),
+                      // ],
+                      title: Text(t.confirmTitle),
+                      content: Text(t.confirmSaveMessage),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("キャンセル")),
-                        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("OK")),
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t.cancel)),
+                        TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t.ok)),
                       ],
+
                     ),
                   );
                   if (confirmed == true) setState(() => isConfirmed = true);
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                child: const Text("確認"),
+                child: //const Text("確認"),
+                  Text(t.confirmTitle),
               ),
               ElevatedButton(
                 onPressed: isConfirmed ? saveEntry : null,
                 style: ElevatedButton.styleFrom(backgroundColor: isConfirmed ? Colors.green : Colors.grey),
-                child: const Text('保存'),
+                child: //const Text('保存'),
+                Text(t.save),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text("閉じる"),
+                child: //const Text("閉じる"),
+                Text(t.close),
               ),
             ])
           ],

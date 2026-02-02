@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:my_flutter_app_pro/widgets/donut_chart.dart';
 import 'package:my_flutter_app_pro/widgets/radar_chart_widget.dart';
-import 'package:my_flutter_app_pro/l10n/strings_ja.dart';
+//import 'package:my_flutter_app_pro/l10n/strings_ja.dart';
 import '../utils/history_data.dart';
+import '../gen_l10n/app_localizations.dart';
+
 
 /// ---- レーダー用スコア算出：CSV優先（空のときだけ簡易計算にフォールバック）----
 List<double> _calcRadarScoresFromRow(Map<String, String>? row) {
@@ -158,7 +160,7 @@ class _OneDayViewState extends State<OneDayView> {
     }
 
     setState(() {
-      _memoText = memo.isEmpty ? J.memoNone : memo;
+      _memoText = memo; // 空のまま保持。表示側で t.memoNone を使う
     });
   }
 
@@ -181,20 +183,25 @@ class _OneDayViewState extends State<OneDayView> {
 
   @override
   Widget build(BuildContext context) {
+
+    final t = AppLocalizations.of(context)!;
     final dateStr = _normYmd(_selectedDate);
 
     if (_selectedRow == null || _selectedRow!.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('1日グラフ')),
+        //appBar: AppBar(title: const Text('1日グラフ')),
+        appBar: AppBar(title: Text(t.oneDayGraphTitle)),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text('📅 $dateStr'),
               const SizedBox(height: 8),
-              const Text('指定の日のデータが未入力のため、表示されません。'),
+              //const Text('指定の日のデータが未入力のため、表示されません。'),
+              Text(t.oneDayNoDataMessage),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: _pickDate, child: const Text('別の日付を選ぶ')),
+              //ElevatedButton(onPressed: _pickDate, child: const Text('別の日付を選ぶ')),
+              ElevatedButton(onPressed: _pickDate, child: Text(t.pickAnotherDate)),
             ],
           ),
         ),
@@ -209,7 +216,8 @@ class _OneDayViewState extends State<OneDayView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('1日グラフ'),
+        //title: const Text('1日グラフ'),
+        title: Text(t.oneDayGraphTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -223,7 +231,18 @@ class _OneDayViewState extends State<OneDayView> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(children: [Icon(Icons.calendar_month), SizedBox(width: 8), Text('幸せ感レベル')]),
+                //const Row(children: [Icon(Icons.calendar_month), SizedBox(width: 8), Text('幸せ感レベル')]),
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_month),
+                    const SizedBox(width: 8),
+                    Text(t.happinessLevelLabel),
+                  ],
+                ),
+
+
+
+
                 InkWell(
                   onTap: _pickDate,
                   child: Container(
@@ -247,7 +266,15 @@ class _OneDayViewState extends State<OneDayView> {
                 height: 250,
                 // RadarChartWidget の引数が scores: List<double> の場合はこの行 ↓ を使う
                 child: RadarChartWidget(
-                  labels: const ['睡眠の質', '感謝', 'ウォーキング', 'ストレッチ'],
+                  //labels: const ['睡眠の質', '感謝', 'ウォーキング', 'ストレッチ'],
+                  labels: [
+                    t.radarSleepQuality,
+                    t.radarGratitude,
+                    t.radarWalking,
+                    t.radarStretching,
+                  ],
+
+
                   scores: scores,
                 ),
                 // もし data: List<List<double>> を要求する版なら、↑を消して↓に置き換え
@@ -256,12 +283,19 @@ class _OneDayViewState extends State<OneDayView> {
             ),
 
             const SizedBox(height: 24),
-            const Text('🙏 3つの感謝', style: TextStyle(fontWeight: FontWeight.bold)),
+            // const Text('🙏 3つの感謝', style: TextStyle(fontWeight: FontWeight.bold)),
+            // for (int i = 1; i <= 3; i++)
+            //   Align(alignment: Alignment.centerLeft, child: Text('$i. ${row['感謝$i'] ?? ''}')),
+            Text('🙏 ${t.threeGratitudesTitle}', style: const TextStyle(fontWeight: FontWeight.bold)),
             for (int i = 1; i <= 3; i++)
-              Align(alignment: Alignment.centerLeft, child: Text('$i. ${row['感謝$i'] ?? ''}')),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('$i. ${row['感謝$i'] ?? row['gratitude$i'] ?? ''}'),
+              ),
 
             const SizedBox(height: 16),
-            const Text('🌱 今日のひとことメモ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            //const Text('🌱 今日のひとことメモ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text('🌱 ${t.memoSectionTitle}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Container(
               margin: const EdgeInsets.only(top: 8),
@@ -280,7 +314,8 @@ class _OneDayViewState extends State<OneDayView> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _memoText.isEmpty ? J.memoNone : _memoText,
+                      (_memoText.trim().isEmpty ? t.memoNone : _memoText),
+
                       style: const TextStyle(fontSize: 14, height: 1.4),
                     ),
                   ),

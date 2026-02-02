@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import '../gen_l10n/app_localizations.dart';
 
 class DonutChart extends StatelessWidget {
   final double happinessLevel;
@@ -8,6 +9,8 @@ class DonutChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+
     final percentage = happinessLevel.clamp(0, 100);
     return Stack(
       alignment: Alignment.center,
@@ -38,7 +41,9 @@ class DonutChart extends StatelessWidget {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("幸せ感レベル", style: TextStyle(fontSize: 12)),
+          //  const Text("幸せ感レベル", style: TextStyle(fontSize: 12)),
+            Text(t.happinessLevelLabel, style: const TextStyle(fontSize: 12)),
+
             Text("${percentage.floor()}",
                 style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           ],
