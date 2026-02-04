@@ -73,6 +73,26 @@
   "memoPlaceholder": "例：昨日より少し元気が出た気がします🌱",
   "memoSectionTitle": "🌱 今日のひとことメモ（AIと共有されます）",
   "memoNone": "この日のメモはありません",
+
+
+      "migrationGuideTitle": "データ移行ガイド（旧アプリ → Pro）",
+      "migrationGuideIntro": "旧アプリのデータは「バックアップファイル（CSV形式）」として保存し、Pro版に読み込むだけで引き継げます。",
+      "migrationGuideStep1Title": "旧アプリでバックアップを作成",
+      "migrationGuideStep1Body": "旧アプリを最新にアップデート後、メニューから「データを書き出す」を選択し、バックアップファイル（CSV形式）として保存します。",
+      "migrationGuideStep2Title": "Pro版で読み込む",
+      "migrationGuideStep2Body": "「幸せ感ナビPro」をインストールし、設定 → データ移行 から、先ほどのバックアップファイルを選択して読み込みます。",
+      "migrationGuideStep3Title": "AIパートナーを使いはじめる",
+      "migrationGuideStep3Body": "日次のひとこと／週次・月次のふりかえりを確認できます。必要に応じて再生成も可能です。",
+      "migrationGuideMoreDetails": "詳しい手順（公式サイト）",
+      "migrationGuideDontShowAgain": "次回から表示しない",
+      "commonNotNow": "今はしない",
+      "migrationGuideStart": "移行をはじめる",
+      "migrationGuideDebugHeader": "[DEBUG] 表示制御",
+      "migrationGuideDebugClearButton": "抑止フラグをクリア",
+      "migrationGuideDebugCleared": "抑止フラグを削除しました",
+
+
+
   "motivationLabel": " モチベーション",
   "msgCsvImportDone": "CSVの取り込みが完了しました（一覧を更新）",
   "msgNoDataPleaseInput": "⚠️ データがありません。入力してください。",
@@ -102,6 +122,34 @@
   "overwrite": "上書き",
   "oneDayGraphTitle": "1日グラフ",
   "oneDayNoDataMessage": "指定の日のデータが未入力のため、表示されません。",
+
+
+    "paywallTitleEnable": "Proを有効化",
+    "paywallTitleManage": "アプリ内課金の管理",
+    "paywallDescEnable": "Proを有効化すると「AIパートナーのひとこと」が使えるようになります。\n料金：月額プランは¥500/月（自動更新）、年額プランは¥4,800/年（自動更新）です。",
+    "paywallDescManage": "機種変更・再インストール時は「購入を復元」をご利用ください（重複課金は発生しません）。\n購読の解約・切替は「購読管理」から行えます。",
+    "paywallHelpTooltip": "説明",
+    "paywallHelpTitle": "この画面について",
+    "paywallHelpBody": "・Proを有効化：AIパートナーのひとこと等の機能を使えるようにします。\n月額プランは¥500/月（自動更新）、年額プランは¥4,800/年（自動更新）です。\n購入を復元：機種変更や再インストール時に、過去の購入を端末に戻します（重複課金なし）。\n購読管理：端末のサブスクリプション管理画面を開きます",
+    "paywallFirstMonthNote": "最初の1ヶ月は、このアプリに慣れるための時間です。\n続けるかどうかは、あとで決めてください。",
+    "paywallSubscriptionHeader": "サブスクリプションについて",
+    "paywallSubscriptionBody": "・月額プラン：¥500 / 月（自動更新）\n・年額プラン：¥4,800 / 年（自動更新）\n・購入確定後、Apple ID に請求されます\n・期間終了の24時間前までに解約しない限り自動更新されます",
+    "paywallLinkTerms": "利用規約",
+    "paywallLinkPrivacy": "プライバシーポリシー",
+    "paywallMonthlyPreparing": "¥500 / 月（準備中）",
+    "paywallYearlyPreparing": "¥4,800（年額プラン・準備中）",
+    "paywallMonthlyCta": "{price} / 月で月額プラン有効化",
+    "@paywallMonthlyCta": { "placeholders": { "price": {} } },
+    "paywallYearlyCta": "{price} /年で年額プラン有効化",
+    "@paywallYearlyCta": { "placeholders": { "price": {} } },
+    "paywallRestore": "購入を復元",
+    "paywallRestoring": "復元中...",
+    "paywallManageSubscription": "購読管理",
+    "paywallPurchaseVerified": "購入情報が確認できました。Pro が有効です。",
+
+
+
+
   "periodSelectTitle": "期間を選択",
     "periodSelectMessage": "表示する期間を選んでください",
     "periodOptionDay": "1日",

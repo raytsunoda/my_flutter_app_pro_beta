@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../gen_l10n/app_localizations.dart';
 
 class MigrationGuideModal extends StatefulWidget {
   const MigrationGuideModal({super.key});
@@ -54,6 +55,19 @@ class MigrationGuideModal extends StatefulWidget {
 class _MigrationGuideModalState extends State<MigrationGuideModal> {
   bool _suppress = false;
 
+    @override
+    void initState() {
+        super.initState();
+        // 「次回から表示しない」の状態をUIに反映（←これが無いと常にfalse表示になる）
+        SharedPreferences.getInstance().then((prefs) {
+            if (!mounted) return;
+            setState(() {
+              _suppress = prefs.getBool('migrationGuide_suppress') ?? false;
+            });
+          });
+      }
+
+
   Future<void> _toggleSuppress(bool v) async {
     setState(() => _suppress = v);
     final prefs = await SharedPreferences.getInstance();
@@ -61,10 +75,27 @@ class _MigrationGuideModalState extends State<MigrationGuideModal> {
   }
 
   Future<void> _openWeb() async {
-    final uri = Uri.parse('https://www.happiness-h3.com/');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    // final uri = Uri.parse('https://www.happiness-h3.com/');
+    // if (await canLaunchUrl(uri)) {
+    //   await launchUrl(uri, mode: LaunchMode.externalApplication);
+    // }
+
+        final t = AppLocalizations.of(context)!;
+        final uri = Uri.parse('https://www.happiness-h3.com/support');
+        final ok = await canLaunchUrl(uri);
+        if (!ok) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(t.commonLinkOpenFailed)),
+          );
+          return;
+        }
+        final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!launched && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(t.commonLinkOpenFailed)),
+          );
+        }
   }
 
   Widget _step({
@@ -120,6 +151,7 @@ class _MigrationGuideModalState extends State<MigrationGuideModal> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     final isRelease = kReleaseMode;
 
     return ConstrainedBox(
@@ -138,7 +170,8 @@ class _MigrationGuideModalState extends State<MigrationGuideModal> {
                 children: [
                   const Expanded(
                     child: Text(
-                      'データ移行ガイド（旧アプリ → Pro）',
+                     // 'データ移行ガイド（旧アプリ → Pro）',
+                      '', // ← ここは下で Text(t.xxx) を使うので const を外す
                       style: TextStyle(
                           fontSize: 18, fontWeight: FontWeight.w700),
                     ),
@@ -149,35 +182,54 @@ class _MigrationGuideModalState extends State<MigrationGuideModal> {
                   )
                 ],
               ),
+                // ↑のconstを外したいので、タイトルはここで改めて描画
+                Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        t.migrationGuideTitle,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                ),
               const SizedBox(height: 4),
-              const Text(
-                '旧アプリのデータは「バックアップファイル（CSV形式）」として保存し、Pro版に読み込むだけで引き継げます。',
-                style: TextStyle(fontSize: 14, color: Colors.black87),
-              ),
+              const SizedBox(height: 4),
+              // const Text(
+              //   '旧アプリのデータは「バックアップファイル（CSV形式）」として保存し、Pro版に読み込むだけで引き継げます。',
+              //   style: TextStyle(fontSize: 14, color: Colors.black87),
+              // ),
+            Text(
+                t.migrationGuideIntro,
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
+                ),
               const SizedBox(height: 16),
 
               // ステップ
               _step(
                 no: 1,
-                title: '旧アプリでバックアップを作成',
-                body:
-                '旧アプリを最新にアップデート後、メニューから「データを書き出す」を選択。'
-                    '“バックアップファイル（CSV形式）”として保存します。',
+                // title: '旧アプリでバックアップを作成',
+                // body:
+                // '旧アプリを最新にアップデート後、メニューから「データを書き出す」を選択。'
+                //     '“バックアップファイル（CSV形式）”として保存します。',
+                title: t.migrationGuideStep1Title,
+                body: t.migrationGuideStep1Body,
               ),
               const SizedBox(height: 10),
               _step(
                 no: 2,
-                title: 'Pro版で読み込む',
-                body:
-                '「幸せ感ナビPro」をインストールし、設定 → データ移行 から、'
-                    'さきほどのバックアップファイルを選択して読み込みます。',
+                // title: 'Pro版で読み込む',
+                // body:
+                // '「幸せ感ナビPro」をインストールし、設定 → データ移行 から、'
+                //     'さきほどのバックアップファイルを選択して読み込みます。',
+                title: t.migrationGuideStep2Title,
+                body: t.migrationGuideStep2Body,
               ),
               const SizedBox(height: 10),
               _step(
                 no: 3,
-                title: 'AIパートナーを使いはじめる',
-                body:
-                '日次のひとこと／週次・月次のふりかえりを確認。必要に応じて「再生成」も可能です。',
+                // title: 'AIパートナーを使いはじめる',
+                // body:
+                // '日次のひとこと／週次・月次のふりかえりを確認。必要に応じて「再生成」も可能です。',
+                title: t.migrationGuideStep3Title,
+                body: t.migrationGuideStep3Body,
               ),
               const SizedBox(height: 14),
 
@@ -192,7 +244,8 @@ class _MigrationGuideModalState extends State<MigrationGuideModal> {
                     child: TextButton.icon(
                       onPressed: _openWeb,
                       icon: const Icon(Icons.open_in_new),
-                      label: const Text('詳しい手順（公式サイト）'),
+                     // label: const Text('詳しい手順（公式サイト）'),
+                      label: Text(t.migrationGuideMoreDetails),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -204,9 +257,12 @@ class _MigrationGuideModalState extends State<MigrationGuideModal> {
                         value: _suppress,
                         onChanged: (v) => _toggleSuppress(v ?? false),
                       ),
-                      const Text(
-                        '次回から表示しない',
-                        style: TextStyle(fontSize: 13),
+                      // const Text(
+                      //   '次回から表示しない',
+                      //   style: TextStyle(fontSize: 13),
+                  Text(
+                        t.migrationGuideDontShowAgain,
+                        style: const TextStyle(fontSize: 13),
                       ),
                     ],
                   ),
@@ -221,7 +277,8 @@ class _MigrationGuideModalState extends State<MigrationGuideModal> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('今はしない'),
+                   // child: const Text('今はしない'),
+                    child: Text(t.commonNotNow),
                   ),
                   const Spacer(),
                   ElevatedButton.icon(
@@ -230,7 +287,8 @@ class _MigrationGuideModalState extends State<MigrationGuideModal> {
                       // 必要ならここで「データ移行」画面に遷移
                     },
                     icon: const Icon(Icons.file_upload),
-                    label: const Text('移行をはじめる'),
+                    //label: const Text('移行をはじめる'),
+                    label: Text(t.migrationGuideStart),
                   ),
                 ],
               ),
@@ -241,6 +299,7 @@ class _MigrationGuideModalState extends State<MigrationGuideModal> {
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
+                   // '[DEBUG] 表示制御',
                     '[DEBUG] 表示制御',
                     style: TextStyle(fontSize: 12),
                   ),
@@ -254,13 +313,15 @@ class _MigrationGuideModalState extends State<MigrationGuideModal> {
                         await prefs.remove('migrationGuide_suppress');
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('抑止フラグを削除しました'),
-                            ),
+                            // const SnackBar(
+                            //   content: Text('抑止フラグを削除しました'),
+                            // ),
+                            SnackBar(content: Text(t.migrationGuideDebugCleared)),
                           );
                         }
                       },
-                      child: const Text('抑止フラグをクリア'),
+                     // child: const Text('抑止フラグをクリア'),
+                      child: Text(t.migrationGuideDebugClearButton),
                     ),
                   ],
                 ),

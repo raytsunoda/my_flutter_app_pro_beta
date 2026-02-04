@@ -75,6 +75,24 @@
   "memoSectionTitle": " Today's note (shared with AI)",
   "memoNone": "No memo for this day",
 
+
+    "migrationGuideTitle": "Data Migration Guide (Legacy → Pro)",
+    "migrationGuideIntro": "You can transfer your legacy app data by saving it as a backup file (CSV) and importing it into the Pro app.",
+    "migrationGuideStep1Title": "Create a backup in the legacy app",
+    "migrationGuideStep1Body": "After updating the legacy app, select “Export data” from the menu and save it as a backup file (CSV).",
+    "migrationGuideStep2Title": "Import in the Pro app",
+    "migrationGuideStep2Body": "Install “Happiness Navi Pro”, then go to Settings → Data Migration and select the backup CSV to import.",
+    "migrationGuideStep3Title": "Start using AI Partner",
+    "migrationGuideStep3Body": "Check daily messages and weekly/monthly reviews. You can regenerate when needed.",
+    "migrationGuideMoreDetails": "More details (official website)",
+    "migrationGuideDontShowAgain": "Don’t show again",
+    "commonNotNow": "Not now",
+    "migrationGuideStart": "Start migration",
+    "migrationGuideDebugHeader": "[DEBUG] Display control",
+    "migrationGuideDebugClearButton": "Clear suppress flag",
+    "migrationGuideDebugCleared": "Suppress flag cleared",
+
+
   "motivationLabel": " Motivation",
   "msgCsvImportDone": "CSV import completed (list updated).",
   "msgNoDataPleaseInput": "⚠️ No data found. Please enter your record.",
@@ -100,10 +118,44 @@
   "navTitle": "Navigation",
   "noDataPleaseInput": "⚠️ No data yet. Please enter today’s record.",
   "noDataForSelectedDate": "No data for the selected date.",
+
+
+
+
   "ok": "OK",
   "overwrite": "Overwrite",
   "oneDayGraphTitle": "1-Day Graph",
   "oneDayNoDataMessage": "No data for the selected date.",
+
+  "paywallTitleEnable": "Enable Pro",
+  "paywallTitleManage": "Manage In-App Purchases",
+  "paywallDescEnable": "Enable Pro to use “AI Partner message”.\nPricing: Monthly plan ¥500/month (auto-renew), Yearly plan ¥4,800/year (auto-renew).",
+  "paywallDescManage": "If you changed devices or reinstalled, use “Restore purchases” (no duplicate charge).\nTo cancel or change your subscription, use “Manage subscription”.",
+  "paywallHelpTooltip": "Help",
+  "paywallHelpTitle": "About this screen",
+  "paywallHelpBody": "• Enable Pro: Unlock features like AI Partner messages.\n  Monthly plan ¥500/month (auto-renew), Yearly plan ¥4,800/year (auto-renew).\n• Restore purchases: Restores past purchases on this device (no duplicate charge).\n• Manage subscription: Opens the system subscription management screen.",
+  "paywallFirstMonthNote": "The first month is time to get used to this app.\nYou can decide later whether to continue.",
+  "paywallSubscriptionHeader": "About subscriptions",
+  "paywallSubscriptionBody": "• Monthly: ¥500 / month (auto-renew)\n• Yearly: ¥4,800 / year (auto-renew)\n• Payment will be charged to your Apple ID after confirmation\n• Subscriptions renew automatically unless canceled at least 24 hours before the end of the period",
+  "paywallLinkTerms": "Terms of Use",
+  "paywallLinkPrivacy": "Privacy Policy",
+  "paywallMonthlyPreparing": "¥500 / month (preparing)",
+  "paywallYearlyPreparing": "¥4,800 / year (preparing)",
+  "paywallMonthlyCta": "{price} / month – Enable monthly plan",
+  "@paywallMonthlyCta": { "placeholders": { "price": {} } },
+  "paywallYearlyCta": "{price} / year – Enable yearly plan",
+  "@paywallYearlyCta": { "placeholders": { "price": {} } },
+  "paywallRestore": "Restore purchases",
+  "paywallRestoring": "Restoring...",
+  "paywallManageSubscription": "Manage subscription",
+  "paywallPurchaseVerified": "Purchase verified. Pro is enabled.",
+
+
+
+
+
+
+
   "periodSelectTitle": "Select period",
     "periodSelectMessage": "Choose a period to display",
     "periodOptionDay": "1 day",
