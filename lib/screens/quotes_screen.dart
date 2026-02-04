@@ -4,6 +4,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:csv/csv.dart';
 import 'dart:math';
 import 'package:my_flutter_app_pro/widgets/load_more_button.dart';
+import '../gen_l10n/app_localizations.dart';
 
 class QuotesScreen extends StatefulWidget {
   const QuotesScreen({super.key});
@@ -65,9 +66,11 @@ class _QuotesScreenState extends State<QuotesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('名言をチェック'),
+        //title: const Text('名言をチェック'),
+        title: Text(t.quotesTitle),
       ),
       body: _displayQuotes.isEmpty
           ? const Center(child: CircularProgressIndicator())
@@ -105,7 +108,8 @@ class _QuotesScreenState extends State<QuotesScreen> {
                             Text(commentary),
                           const SizedBox(height: 8),
                           Text(
-                            state == 0 ? '🔵 タップして解説を見る' : '🔵 タップして名言に戻る',
+                            //state == 0 ? '🔵 タップして解説を見る' : '🔵 タップして名言に戻る',
+                            state == 0 ? t.tipsTapToExplanation : t.tipsBackToQuote,
                             style: const TextStyle(color: Colors.blue),
                           ),
                         ],

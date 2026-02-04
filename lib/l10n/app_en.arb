@@ -5,6 +5,11 @@
   "appTitle": "Happiness Navi Pro",
   "btnRetry": "Try Again",
   "cancel": "Cancel",
+  "chartHappinessLevel": "Happiness Level",
+    "chartSleepQuality": "Sleep Quality",
+    "chartWalkingMinutes": "Walking (min)",
+    "chartGratitudeCount": "Gratitude (count)",
+
   "close": "Close",
   "confirmSaveMessage": "Do you want to save this data?",
   "confirmTitle": "Confirm",
@@ -13,6 +18,39 @@
   "dateDuplicateTitle": "Duplicate date",
   "dlgContinue": "Do you want to continue?",
   "errSumNotOne": "The total is not 1.0.",
+
+      "favoriteWordsTitle": "⭐ Your Favorite Words",
+      "favoriteWordsEmptyIntro": "Your saved words will appear here.\nNo need to add more if you don't feel like it.",
+      "favoriteWordsViewFileDebug": "View file contents (debug)",
+      "favoriteWordsReload": "Reload",
+      "favoriteWordsDeleted": "Deleted.",
+
+      "favoriteWordsCsvCheckTitle": "favorite_words.csv (debug)",
+      "favoriteWordsCsvCheckBody": "path:\n{path}\n\ncontent:\n{content}",
+      "@favoriteWordsCsvCheckBody": {
+        "placeholders": {
+          "path": { "type": "String" },
+          "content": { "type": "String" }
+        }
+      },
+
+      "favoriteWordsLoadFailed": "Failed to load: {error}",
+      "@favoriteWordsLoadFailed": {
+        "placeholders": {
+          "error": { "type": "String" }
+        }
+      },
+
+      "favoriteWordsDeleteFailed": "Failed to delete: {error}",
+      "@favoriteWordsDeleteFailed": {
+        "placeholders": {
+          "error": { "type": "String" }
+        }
+      },
+
+
+
+
   "goToNavigation": "Go to Navigation",
   "gratitude1": "Gratitude 1",
   "gratitude2": "Gratitude 2",
@@ -30,6 +68,8 @@
   "homeProCardTitle": "Enable Pro / Restore",
   "homeTagline": "Supporting healthy habits for your mind and body",
   "homeWelcomeTitle": "Welcome to\nHappiness Navi Pro",
+
+  "loadMore3": "Show next 3",
   "memoCharCount": "{count}/200",
   "memoPlaceholder": "e.g., I feel a bit better than yesterday 🌱",
   "memoSectionTitle": " Today's note (shared with AI)",
@@ -64,11 +104,42 @@
   "overwrite": "Overwrite",
   "oneDayGraphTitle": "1-Day Graph",
   "oneDayNoDataMessage": "No data for the selected date.",
+  "periodSelectTitle": "Select period",
+    "periodSelectMessage": "Choose a period to display",
+    "periodOptionDay": "1 day",
+    "periodOptionWeek": "1 week",
+    "periodOptionFourWeeks": "4 weeks",
+    "periodOptionYear": "1 year",
+    "periodShowButton": "Load saved data and show charts 📊",
+    "periodDayGraphHint": "For the 1-day graph, please use “View 1-day graph” on the Navigation screen.",
+    "periodChartTitleWeek": "📊 1-Week Graph",
+    "periodChartTitleFourWeeks": "📊 4-Week Graph",
+    "periodChartTitleYear": "📊 1-Year Graph",
+
+    "periodSwipeHintWeek": "Swipe left/right to view previous/next week",
+      "periodSwipeHintFourWeeks": "Swipe left/right to view previous/next 4 weeks",
+      "periodSwipeHintYear": "Swipe left/right to view previous/next year",
+
+      "periodRangeLabel": "Period",
+
+      "periodWeekTitle": "1-Week Graph",
+      "periodFourWeeksTitle": "4-Week Graph",
+      "periodYearTitle": "1-Year Graph",
+      "periodGraphDefaultTitle": "Graph",
+
+
+
   "pickDate": "Pick date",
   "pickAnotherDate": "Pick another date",
   "proEnableAction": "Enable",
   "proEnableDescription": "Pro is required to use the AI Partner message.\nIf you changed devices or reinstalled the app, please restore your purchase (no duplicate charges).",
   "proEnableTitle": "Enable / Restore Pro",
+  "quotesTitle": "Check Quotes",
+    "quotesDescription": "Take a moment to read an inspiring quote.",
+    "quotesReload": "Show another quote",
+    "quotesAuthorPrefix": "— ",
+    "quotesEmpty": "No quotes available at the moment.",
+
   "radarSleepQuality": "Sleep Quality",
   "radarGratitude": "Gratitude",
   "radarWalking": "Walking",
@@ -80,6 +151,62 @@
   "settings": "Settings",
   "settingsBackupAiAllSubtitle": "Back up all history (today/weekly/monthly) to CSV",
   "settingsImportOldCsvSubtitle": "Import CSV from the old app",
+
+    "settingsTitle": "Settings",
+
+    "settingsNotificationsTitle": "Notifications",
+    "settingsNotificationsHeader": "Notification time",
+    "settingsNotificationsDesc": "Notifications are optional. You can keep them off and still use the app. If you want reminders in the morning and evening, please allow notifications.",
+    "settingsMorningNotificationTime": "Morning time",
+    "settingsEveningNotificationTime": "Evening time",
+    "commonSave": "Save",
+    "settingsNotifPermissionDenied": "Notifications remain off (you can keep using the app as usual).",
+    "settingsNotifSavedRescheduled": "Saved and rescheduled notifications.",
+
+    "settingsWeightsTitle": "Weights",
+    "settingsWeightsHint": "Please make the total 1.0.",
+    "settingsWeightsTotal": "Total: {total} / 1.0",
+    "settingsWeightsEdit": "Edit",
+    "settingsWeightsEditing": "Editing",
+    "settingsWeightsLabelSleep": "Sleep",
+    "settingsWeightsLabelStretch": "Stretch",
+    "settingsWeightsLabelWalking": "Walking",
+    "settingsWeightsLabelAppreciation": "Gratitude",
+    "settingsWeightsSaved": "Saved weights.",
+    "settingsWeightsTotalNotOne": "Total is not 1.0.",
+
+    "settingsCallNameTitle": "Name to call you",
+    "settingsCallNameDesc": "We will call you with “-san”.",
+    "settingsCallNameHint": "e.g. Taro (blank: “User-san”)",
+    "settingsCallNameSaved": "Saved your name.",
+
+    "settingsSavedDataTitle": "Manage saved data",
+    "settingsSavedDataEmpty": "No saved data.",
+    "settingsDeleteSelected": "Delete selected",
+    "settingsDeleteAll": "Delete all",
+    "settingsConfirmTitle": "Confirm",
+    "settingsDeleteSelectedConfirmBody": "Delete data for the selected dates. Continue?",
+    "settingsCancel": "Cancel",
+    "settingsRun": "Run",
+    "settingsDeleteAllConfirmTitle": "Confirm delete all",
+    "settingsDeleteAllConfirmBody": "Delete all ({count} items)? This cannot be undone.",
+    "settingsDeletedCount": "Deleted {count} items.",
+    "settingsAllDeleted": "Deleted all.",
+
+    "settingsSupportTitle": "Support",
+    "settingsSupportTerms": "Terms of Service",
+    "settingsSupportPrivacy": "Privacy Policy",
+    "settingsSupportPage": "Support page",
+    "commonLinkOpenFailed": "Could not open the link.",
+
+    "settingsDataMigrationTitle": "Data migration",
+    "settingsDataMigrationSubtitle": "Import CSV from the old app",
+    "settingsCsvImportedSafely": "Imported CSV safely.",
+
+    "settingsImportCompleteTitle": "Import complete",
+    "settingsImportCompleteBody": "Imported CSV with safe-merge (kept existing non-empty fields and recalculated gratitude count).",
+
+
   "sleepDeepLabel": " Deep sleep feeling",
   "sleepFallingAsleepLabel": " Falling asleep satisfaction",
   "sleepHoursLabel": " Sleep (hours)",
@@ -87,6 +214,55 @@
   "sleepWakeupLabel": " Wake-up feeling",
   "stretchYesterdayMinutes": "🧘 Stretching yesterday (minutes)",
   "threeGratitudesTitle": "Three gratitudes",
+  "tipsTitle": "Tips to Feel a Bit Better",
+    "tipsDescription": "Here’s a gentle tip to support your current mood.",
+    "tipsReload": "Show another tip",
+    "tipsClose": "Close",
+    "tipsEmpty": "No tips available at the moment.",
+      "tipsMissingNegative": "Tips data is missing (negative).",
+      "@tipsMissingNegative": {
+        "description": "Shown when negative tips list could not be loaded."
+      },
+
+      "tipsMissingPositive": "Tips data is missing (positive).",
+      "@tipsMissingPositive": {
+        "description": "Shown when positive tips list could not be loaded."
+      },
+
+      "tipsMissingEpisode": "Tips data is missing (episode).",
+      "@tipsMissingEpisode": {
+        "description": "Shown when episode tips list could not be loaded."
+      },
+
+      "tipsNoPrefix": "Tip",
+      "@tipsNoPrefix": {
+        "description": "Prefix label when no category/emoji prefix is used."
+      },
+
+      "tipsTapToPositive": "Tap for a positive tip",
+      "@tipsTapToPositive": {
+        "description": "Hint text to switch to positive tips."
+      },
+
+      "tipsTapToEpisode": "Tap for an episode tip",
+      "@tipsTapToEpisode": {
+        "description": "Hint text to switch to episode tips."
+      },
+
+      "tipsTapToNegative": "Tap for a negative tip",
+      "@tipsTapToNegative": {
+        "description": "Hint text to switch to negative tips."
+      },
+
+      "tipsNext3": "Show next 3 🔄",
+      "@tipsNext3": {
+        "description": "Button label to load next 3 tips."
+      },
+
+ "tipsTapToExplanation": "🔵 Tap to see explanation",
+  "tipsBackToQuote": "🔵 Back to quote",
+
+
   "walkingYesterdayMinutes": "🚶 Walking yesterday (minutes)",
   "@memoCharCount": {
     "placeholders": {

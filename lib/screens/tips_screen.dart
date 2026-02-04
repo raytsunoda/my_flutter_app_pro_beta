@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:my_flutter_app_pro/utils/csv_loader.dart';
+import 'package:my_flutter_app_pro/gen_l10n/app_localizations.dart';
 
 class TipsScreen extends StatefulWidget {
   const TipsScreen({super.key});
@@ -45,11 +46,26 @@ class _TipsScreenState extends State<TipsScreen> {
   String _textForStep(Map<String, String> tip, int step) {
     switch (step) {
       case 0:
-        return tip['negative'] ?? tip['ネガ'] ?? tip['ネガティブ表現'] ?? '（ネガティブ表現なし）';
+     //   return tip['negative'] ?? tip['ネガ'] ?? tip['ネガティブ表現'] ?? '（ネガティブ表現なし）';
+      return tip['negative'] ??
+        tip['ネガ'] ??
+        tip['ネガティブ表現'] ??
+        (AppLocalizations.of(context)!.tipsMissingNegative);
+
       case 1:
-        return tip['positive'] ?? tip['ポジ'] ?? tip['ポジティブ表現'] ?? '（ポジティブ表現なし）';
+        //return tip['positive'] ?? tip['ポジ'] ?? tip['ポジティブ表現'] ?? '（ポジティブ表現なし）';
+      return tip['positive'] ??
+        tip['ポジ'] ??
+        tip['ポジティブ表現'] ??
+        (AppLocalizations.of(context)!.tipsMissingPositive);
+
       case 2:
-        return tip['episode'] ?? tip['エピソード'] ?? '（エピソードなし）';
+       // return tip['episode'] ?? tip['エピソード'] ?? '（エピソードなし）';
+      return tip['episode'] ??
+        tip['エピソード'] ??
+        (AppLocalizations.of(context)!.tipsMissingEpisode);
+
+
       default:
         return '';
     }
@@ -66,10 +82,13 @@ class _TipsScreenState extends State<TipsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.lightBlue.shade50,
       appBar: AppBar(
-        title: const Text('気持ちが少し楽になるヒント'),
+        //title: const Text('気持ちが少し楽になるヒント'),
+        title: Text(t.tipsTitle),
         backgroundColor: Colors.teal.shade400,
       ),
       body: _currentTips.isEmpty
@@ -101,8 +120,9 @@ class _TipsScreenState extends State<TipsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('No.${tip['No.'] ?? '-'}',
-                      style: const TextStyle(
+                //  Text('No.${tip['No.'] ?? '-'}',
+                  Text('${t.tipsNoPrefix}${tip['No.'] ?? '-'}',
+                    style: const TextStyle(
                           fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 8),
                   Text(
@@ -117,9 +137,12 @@ class _TipsScreenState extends State<TipsScreen> {
                     alignment: Alignment.bottomRight,
                     child: Text(
                       switch (step) {
-                        0 => 'タップしてポジ表現へ ▶️',
-                        1 => 'タップしてエピソードへ ▶️',
-                        2 => 'タップしてネガ表現に戻る 🔄',
+                        // 0 => 'タップしてポジ表現へ ▶️',
+                        // 1 => 'タップしてエピソードへ ▶️',
+                        // 2 => 'タップしてネガ表現に戻る 🔄',
+                        0 => t.tipsTapToPositive,
+                        1 => t.tipsTapToEpisode,
+                        2 => t.tipsTapToNegative,
                         _ => ''
                       },
                       style: TextStyle(
@@ -139,7 +162,8 @@ class _TipsScreenState extends State<TipsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: ElevatedButton.icon(
           icon: const Icon(Icons.refresh),
-          label: const Text('次の3件を見る'),
+          //label: const Text('次の3件を見る'),
+          label: Text(t.tipsNext3),
           style: ElevatedButton.styleFrom(
             minimumSize: const Size.fromHeight(52),
             backgroundColor: Colors.teal.shade400,

@@ -5,6 +5,11 @@
   "appTitle": "幸せ感ナビPro",
   "btnRetry": "もう一度試す",
   "cancel": "キャンセル",
+   "chartHappinessLevel": "幸せ感レベル",
+    "chartSleepQuality": "睡眠の質",
+    "chartWalkingMinutes": "ウォーキング時間(分)",
+    "chartGratitudeCount": "感謝(件)",
+
   "close": "閉じる",
   "confirmSaveMessage": "この内容で保存してよろしいですか？",
   "confirmTitle": "確認",
@@ -13,6 +18,38 @@
   "dateDuplicateTitle": "日付の重複",
   "dlgContinue": "続行しますか？",
   "errSumNotOne": "合計が1.0ではありません",
+
+
+        "favoriteWordsTitle": "⭐ お気に入りのあなたの言葉",
+        "favoriteWordsEmptyIntro": "ここには、あなたが残した言葉が並びます。\n無理に増やさなくて大丈夫です。",
+        "favoriteWordsViewFileDebug": "ファイル内容を見る（デバッグ）",
+        "favoriteWordsReload": "再読み込み",
+        "favoriteWordsDeleted": "削除しました",
+
+        "favoriteWordsCsvCheckTitle": "favorite_words.csv 確認",
+        "favoriteWordsCsvCheckBody": "path:\n{path}\n\ncontent:\n{content}",
+        "@favoriteWordsCsvCheckBody": {
+          "placeholders": {
+            "path": { "type": "String" },
+            "content": { "type": "String" }
+          }
+        },
+
+        "favoriteWordsLoadFailed": "読み込みに失敗しました: {error}",
+        "@favoriteWordsLoadFailed": {
+          "placeholders": {
+            "error": { "type": "String" }
+          }
+        },
+
+        "favoriteWordsDeleteFailed": "削除に失敗しました: {error}",
+        "@favoriteWordsDeleteFailed": {
+          "placeholders": {
+            "error": { "type": "String" }
+          }
+        },
+
+
   "goToNavigation": "ナビゲーション画面へ",
   "gratitude1": "感謝 1",
   "gratitude2": "感謝 2",
@@ -30,6 +67,8 @@
   "homeProCardTitle": "Pro機能の有効化 / 復元",
   "homeTagline": "心と身体の“健康習慣”づくりをサポート",
   "homeWelcomeTitle": "幸せ感ナビProに\nようこそ",
+
+  "loadMore3": "次の３件を見る",
   "memoCharCount": "{count} / 200文字",
   "memoPlaceholder": "例：昨日より少し元気が出た気がします🌱",
   "memoSectionTitle": "🌱 今日のひとことメモ（AIと共有されます）",
@@ -63,11 +102,44 @@
   "overwrite": "上書き",
   "oneDayGraphTitle": "1日グラフ",
   "oneDayNoDataMessage": "指定の日のデータが未入力のため、表示されません。",
+  "periodSelectTitle": "期間を選択",
+    "periodSelectMessage": "表示する期間を選んでください",
+    "periodOptionDay": "1日",
+    "periodOptionWeek": "1週間",
+    "periodOptionFourWeeks": "4週間",
+    "periodOptionYear": "1年",
+    "periodShowButton": "保存データを読み込み📊を表示",
+    "periodDayGraphHint": "1日グラフはナビ画面の「1日グラフで見る」からご覧ください",
+    "periodChartTitleWeek": "📊1週間グラフ",
+    "periodChartTitleFourWeeks": "📊4週間グラフ",
+    "periodChartTitleYear": "📊1年グラフ",
+
+    "periodSwipeHintWeek": "左右にスワイプで、前後の週を表示",
+      "periodSwipeHintFourWeeks": "左右にスワイプで、前後の4週を表示",
+      "periodSwipeHintYear": "左右にスワイプで、前後の1年を表示",
+
+      "periodRangeLabel": "期間",
+
+      "periodWeekTitle": "1週間グラフ",
+      "periodFourWeeksTitle": "4週間グラフ",
+      "periodYearTitle": "1年グラフ",
+      "periodGraphDefaultTitle": "グラフ",
+
+
+
+
   "pickDate": "日付を選ぶ",
   "pickAnotherDate": "別の日付を選ぶ",
   "proEnableAction": "有効化",
   "proEnableDescription": "「AIパートナーのひとこと」を使うにはProが必要です。\n機種変更・再インストール時は「過去の購入を復元」をご利用ください（重複課金なし）。",
   "proEnableTitle": "Pro機能の有効化 / 復元",
+  "quotesTitle": "名言をチェック",
+    "quotesDescription": "前向きな言葉や考え方に触れてみましょう。",
+    "quotesReload": "別の名言を見る",
+    "quotesAuthorPrefix": "― ",
+    "quotesEmpty": "表示できる名言がありません。",
+
+
   "radarSleepQuality": "睡眠の質",
   "radarGratitude": "感謝",
   "radarWalking": "ウォーキング",
@@ -79,6 +151,62 @@
   "settings": "設定",
   "settingsBackupAiAllSubtitle": "今日のひとこと／週次／月次の全履歴をCSVにバックアップ",
   "settingsImportOldCsvSubtitle": "旧アプリのCSVを取り込む",
+
+
+    "settingsTitle": "設定",
+
+    "settingsNotificationsTitle": "通知設定",
+    "settingsNotificationsHeader": "通知時刻設定",
+    "settingsNotificationsDesc": "※ 通知は任意です。オフのままでもアプリはご利用いただけますが、朝と夜のリマインダーを受け取りたい場合は、通知を許可してください。",
+    "settingsMorningNotificationTime": "朝の通知時間",
+    "settingsEveningNotificationTime": "夜の通知時間",
+    "commonSave": "保存",
+    "settingsNotifPermissionDenied": "通知はオフのままです（アプリ自体はこのままご利用いただけます）",
+    "settingsNotifSavedRescheduled": "通知時刻を保存・再スケジュールしました",
+
+    "settingsWeightsTitle": "重み設定",
+    "settingsWeightsHint": "合計は1.0にしてください。",
+    "settingsWeightsTotal": "合計: {total} / 1.0",
+    "settingsWeightsEdit": "編集",
+    "settingsWeightsEditing": "編集中",
+    "settingsWeightsLabelSleep": "睡眠",
+    "settingsWeightsLabelStretch": "ストレッチ",
+    "settingsWeightsLabelWalking": "ウォーキング",
+    "settingsWeightsLabelAppreciation": "感謝",
+    "settingsWeightsSaved": "重みを保存しました",
+    "settingsWeightsTotalNotOne": "合計が1.0ではありません",
+
+    "settingsCallNameTitle": "呼びかけ名",
+    "settingsCallNameDesc": "さん付けで呼びます",
+    "settingsCallNameHint": "例：太郎（空なら「ユーザーさん」）",
+    "settingsCallNameSaved": "呼びかけ名を保存しました",
+
+    "settingsSavedDataTitle": "保存データの管理",
+    "settingsSavedDataEmpty": "保存データが存在しません。",
+    "settingsDeleteSelected": "選択削除",
+    "settingsDeleteAll": "全削除",
+    "settingsConfirmTitle": "確認",
+    "settingsDeleteSelectedConfirmBody": "選択した日付のデータを削除します。よろしいですか？",
+    "settingsCancel": "キャンセル",
+    "settingsRun": "実行",
+    "settingsDeleteAllConfirmTitle": "全件削除の確認",
+    "settingsDeleteAllConfirmBody": "{count} 件すべてのデータを削除しますか？この操作は元に戻せません。",
+    "settingsDeletedCount": "{count} 件のデータを削除しました",
+    "settingsAllDeleted": "全件削除しました",
+
+    "settingsSupportTitle": "サポート",
+    "settingsSupportTerms": "利用規約",
+    "settingsSupportPrivacy": "プライバシーポリシー",
+    "settingsSupportPage": "サポートページ",
+    "commonLinkOpenFailed": "リンクを開けませんでした",
+
+    "settingsDataMigrationTitle": "データ移行",
+    "settingsDataMigrationSubtitle": "旧アプリのCSVを取り込む",
+    "settingsCsvImportedSafely": "CSVを安全に取り込みました",
+    "settingsImportCompleteTitle": "取り込み完了",
+    "settingsImportCompleteBody": "CSVを安全マージで取り込みました（既存の非空は維持・感謝数は再計算）。",
+
+
   "sleepDeepLabel": " 深い睡眠感",
   "sleepFallingAsleepLabel": " 寝付きの満足度",
   "sleepHoursLabel": " 睡眠時間（時間）",
@@ -86,6 +214,54 @@
   "sleepWakeupLabel": " 目覚め感",
   "stretchYesterdayMinutes": "🧘 昨日のストレッチ（分）",
   "threeGratitudesTitle": "3つの感謝",
+  "tipsTitle": "気持ちが少し楽になるヒント",
+  "tipsDescription": "今の気分にそっと寄り添うヒントを表示します。",
+  "tipsReload": "別のヒントを見る",
+  "tipsClose": "閉じる",
+  "tipsEmpty": "表示できるヒントがありません。",
+    "tipsMissingNegative": "ヒントデータが見つかりません（ネガティブ）。",
+    "@tipsMissingNegative": {
+      "description": "ネガティブ系ヒントの読み込み失敗時に表示。"
+    },
+
+    "tipsMissingPositive": "ヒントデータが見つかりません（ポジティブ）。",
+    "@tipsMissingPositive": {
+      "description": "ポジティブ系ヒントの読み込み失敗時に表示。"
+    },
+
+    "tipsMissingEpisode": "ヒントデータが見つかりません（エピソード）。",
+    "@tipsMissingEpisode": {
+      "description": "エピソード系ヒントの読み込み失敗時に表示。"
+    },
+
+    "tipsNoPrefix": "ヒント",
+    "@tipsNoPrefix": {
+      "description": "カテゴリ/絵文字プレフィックスが無い場合の先頭ラベル。"
+    },
+
+    "tipsTapToPositive": "ポジティブのヒントを見る",
+    "@tipsTapToPositive": {
+      "description": "ポジティブ系へ切り替える案内テキスト。"
+    },
+
+    "tipsTapToEpisode": "エピソードのヒントを見る",
+    "@tipsTapToEpisode": {
+      "description": "エピソード系へ切り替える案内テキスト。"
+    },
+
+    "tipsTapToNegative": "ネガティブのヒントを見る",
+    "@tipsTapToNegative": {
+      "description": "ネガティブ系へ切り替える案内テキスト。"
+    },
+
+    "tipsNext3": "次の3件を見る 🔄",
+    "@tipsNext3": {
+      "description": "次の3件を表示するボタン文言。"
+    },
+
+"tipsTapToExplanation": "🔵 タップして解説を見る",
+  "tipsBackToQuote": "🔵 タップして名言に戻る",
+
   "walkingYesterdayMinutes": "🚶 昨日のウォーキング（分）",
   "@memoCharCount": {
     "placeholders": {

@@ -4,12 +4,14 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // for HapticFeedback
-
-
+import 'package:intl/intl.dart';
+import '../gen_l10n/app_localizations.dart';
 
 enum PeriodKind { week, fourWeeks, year }
 
 class PeriodChartsScreen extends StatefulWidget {
+
+
   const PeriodChartsScreen({
     super.key,
     required this.csvData,
@@ -311,151 +313,169 @@ class _PeriodChartsScreenState extends State<PeriodChartsScreen> with SingleTick
     );
   }
 // スワイプ案内文
-  String _swipeHint() {
-    switch (widget.period) {
-      case PeriodKind.week:
-        return '左右にスワイプで、前後の週を表示';
-      case PeriodKind.fourWeeks:
-        return '左右にスワイプで、前後の4週を表示';
-      case PeriodKind.year:
-        return '左右にスワイプで、前後の1年を表示';
+  //String _swipeHint() {
+    String _swipeHint(AppLocalizations t) {
+      switch (widget.period) {
+        case PeriodKind.week:
+       //   return '左右にスワイプで、前後の週を表示';
+        return t.periodSwipeHintWeek;
+        case PeriodKind.fourWeeks:
+        //  return '左右にスワイプで、前後の4週を表示';
+        return t.periodSwipeHintFourWeeks;
+        case PeriodKind.year:
+          //return '左右にスワイプで、前後の1年を表示';
+          return t.periodSwipeHintYear;
+      }
     }
-  }
 
-  Widget _header() {
-    final start = _start;
-    final end = _end;
-    final periodText = '期間: ${_yyyyMMdd(start)} - ${_yyyyMMdd(end)}';
-    return GestureDetector(
-      onHorizontalDragEnd: (details) {
-        final v = details.primaryVelocity ?? 0;
-        if (v.abs() < 50) return;
-        final dir = (v > 0) ? -1 : 1; // 右フリック=過去, 左=未来
-        final next = _clampEnd(_end.add(Duration(days: dir * _days)));
-        final changed = next != _end;
-        setState(() {
-          _animDir = dir;
-          _end = next;
-        });
-        if (changed) HapticFeedback.lightImpact();
-      },
+    //Widget _header() {
+    Widget _header(AppLocalizations t) {
+      final start = _start;
+      final end = _end;
+      //inal periodText = '期間: ${_yyyyMMdd(start)} - ${_yyyyMMdd(end)}';
+      final periodText = '${t.periodRangeLabel}: ${_yyyyMMdd(start)} - ${_yyyyMMdd(end)}';
+
+      return GestureDetector(
+        onHorizontalDragEnd: (details) {
+          final v = details.primaryVelocity ?? 0;
+          if (v.abs() < 50) return;
+          final dir = (v > 0) ? -1 : 1; // 右フリック=過去, 左=未来
+          final next = _clampEnd(_end.add(Duration(days: dir * _days)));
+          final changed = next != _end;
+          setState(() {
+            _animDir = dir;
+            _end = next;
+          });
+          if (changed) HapticFeedback.lightImpact();
+        },
 
 
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-        child: Text(
-          periodText,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+          child: Text(
+            periodText,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+          ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
-  Widget _hintBar() {
-    final text = _swipeHint();
+    // Widget _hintBar() {
+    //   final text = _swipeHint();
+  Widget _hintBar(AppLocalizations t) {
+    final text = _swipeHint(t);
     final iconColor = Colors.grey.shade600;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SlideTransition(
-            position: Tween<Offset>(begin: const Offset(-0.12, 0), end: Offset.zero)
-                .animate(_chevAnim),
-            child: FadeTransition(
-              opacity: Tween<double>(begin: 0.35, end: 1.0).animate(_chevAnim),
-              child: Icon(Icons.chevron_left, size: 18, color: iconColor),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(text, textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: iconColor)),
-          const SizedBox(width: 6),
-          SlideTransition(
-            position: Tween<Offset>(begin: const Offset(0.12, 0), end: Offset.zero)
-                .animate(_chevAnim),
-            child: FadeTransition(
-              opacity: Tween<double>(begin: 0.35, end: 1.0).animate(_chevAnim),
-              child: Icon(Icons.chevron_right, size: 18, color: iconColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-
-
-
-  @override
-  Widget build(BuildContext context) {
-    final titleText = widget.title ??
-        ({
-          PeriodKind.week: '1週間グラフ',
-          PeriodKind.fourWeeks: '4週間グラフ',
-          PeriodKind.year: '1年グラフ',
-        }[widget.period] ?? 'グラフ');
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(titleText, style: const TextStyle(fontSize: 16)),
-        centerTitle: true,
-
-
-          actions: const []
-
-
-
-
-
-      ),
-      body: Stack(
-        children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            transitionBuilder: (child, anim) {
-              final dx = _animDir == 0 ? 0.0 : (_animDir > 0 ? 1.0 : -1.0);
-              return SlideTransition(
-                position: Tween<Offset>(begin: Offset(dx, 0), end: Offset.zero)
-                    .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
-                child: child,
-              );
-            },
-            child: KeyedSubtree(
-              key: ValueKey('${_start.toIso8601String()}_${_end.toIso8601String()}'),
-              child: ListView(
-                padding: const EdgeInsets.only(bottom: 16),
-                children: [
-                  //
-                  _hintBar(),
-
-                  _header(),
-                  const SizedBox(height: 4),
-                  _chart(title: '幸せ感レベル', chartIndex: 0),
-                  _chart(title: '睡眠の質', chartIndex: 1),
-                  _chart(title: 'ウォーキング時間(分)', chartIndex: 2),
-                  _chart(title: '感謝(件)', chartIndex: 3),
-                ],
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SlideTransition(
+              position: Tween<Offset>(begin: const Offset(-0.12, 0), end: Offset.zero)
+                  .animate(_chevAnim),
+              child: FadeTransition(
+                opacity: Tween<double>(begin: 0.35, end: 1.0).animate(_chevAnim),
+                child: Icon(Icons.chevron_left, size: 18, color: iconColor),
               ),
             ),
-          ),
-
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onHorizontalDragUpdate: (d) => _dragX += d.delta.dx,
-              onHorizontalDragEnd: (_) {
-                const threshold = 96;
-                if (_dragX.abs() > threshold) {
-                  _shiftByOnePage(_dragX < 0 ? 1 : -1);
-                }
-                _dragX = 0;
-              },
+            const SizedBox(width: 6),
+            Text(text, textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: iconColor)),
+            const SizedBox(width: 6),
+            SlideTransition(
+              position: Tween<Offset>(begin: const Offset(0.12, 0), end: Offset.zero)
+                  .animate(_chevAnim),
+              child: FadeTransition(
+                opacity: Tween<double>(begin: 0.35, end: 1.0).animate(_chevAnim),
+                child: Icon(Icons.chevron_right, size: 18, color: iconColor),
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    }
+
+
+
+
+    @override
+    Widget build(BuildContext context) {
+      final t = AppLocalizations.of(context)!;
+      final titleText = widget.title ??
+          ({
+          //   PeriodKind.week: '1週間グラフ',
+          //   PeriodKind.fourWeeks: '4週間グラフ',
+          //   PeriodKind.year: '1年グラフ',
+          // }[widget.period] ?? 'グラフ');
+    PeriodKind.week: t.periodWeekTitle,
+             PeriodKind.fourWeeks: t.periodFourWeeksTitle,
+              PeriodKind.year: t.periodYearTitle,
+           }[widget.period] ?? t.periodGraphDefaultTitle);
+
+      return Scaffold(
+        appBar: AppBar(
+            title: Text(titleText, style: const TextStyle(fontSize: 16)),
+            centerTitle: true,
+
+
+            actions: const []
+
+        ),
+
+        body: Stack(
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              transitionBuilder: (child, anim) {
+                final dx = _animDir == 0 ? 0.0 : (_animDir > 0 ? 1.0 : -1.0);
+                return SlideTransition(
+                  position: Tween<Offset>(begin: Offset(dx, 0), end: Offset.zero)
+                      .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+                  child: child,
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey('${_start.toIso8601String()}_${_end.toIso8601String()}'),
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  children: [
+                    //
+                   // _hintBar(),
+                    _hintBar(t),
+
+                    //_header(),
+                    _header(t),
+                    const SizedBox(height: 4),
+                    // _chart(title: '幸せ感レベル', chartIndex: 0),
+                    // _chart(title: '睡眠の質', chartIndex: 1),
+                    // _chart(title: 'ウォーキング時間(分)', chartIndex: 2),
+                    // _chart(title: '感謝(件)', chartIndex: 3),
+                    _chart(title: t.chartHappinessLevel, chartIndex: 0),
+                    _chart(title: t.chartSleepQuality, chartIndex: 1),
+                    _chart(title: t.chartWalkingMinutes, chartIndex: 2),
+                    _chart(title: t.chartGratitudeCount, chartIndex: 3),
+                  ],
+                ),
+              ),
+            ),
+
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onHorizontalDragUpdate: (d) => _dragX += d.delta.dx,
+                onHorizontalDragEnd: (_) {
+                  const threshold = 96;
+                  if (_dragX.abs() > threshold) {
+                    _shiftByOnePage(_dragX < 0 ? 1 : -1);
+                  }
+                  _dragX = 0;
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
-}
+//}

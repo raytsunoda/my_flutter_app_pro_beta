@@ -22,6 +22,7 @@ import 'package:my_flutter_app_pro/services/purchase_service.dart';
 import 'package:my_flutter_app_pro/widgets/migration_guide_modal.dart';
 import 'package:my_flutter_app_pro/services/notification_service.dart'; // ← 追加
 import 'package:url_launcher/url_launcher.dart';
+import '../gen_l10n/app_localizations.dart';
 
 
 
@@ -207,6 +208,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _saveNotificationTimes() async {
+    final t = AppLocalizations.of(context)!;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('morning_hour', _morningTime.hour);
     await prefs.setInt('morning_minute', _morningTime.minute);
@@ -221,9 +223,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('通知はオフのままです（アプリ自体はこのままご利用いただけます）'),
-        ),
+        // const SnackBar(
+        //   content: Text('通知はオフのままです（アプリ自体はこのままご利用いただけます）'),
+        // ),
+        SnackBar(content: Text(t.settingsNotifPermissionDenied)),
       );
       return;
     }
@@ -245,7 +248,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('通知時刻を保存・再スケジュールしました')),
+      //const SnackBar(content: Text('通知時刻を保存・再スケジュールしました')),
+      SnackBar(content: Text(t.settingsNotifSavedRescheduled)),
     );
   }
 
@@ -296,31 +300,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildTimePickerSection() {
+    final t = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('通知時刻設定', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        //const Text('通知時刻設定', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(t.settingsNotificationsHeader, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        const Text(
-          '※ 通知は任意です。オフのままでもアプリはご利用いただけますが、'
-              '朝と夜のリマインダーを受け取りたい場合は、通知を許可してください。',
-          style: TextStyle(fontSize: 12),
-        ),
+        // const Text(
+        //   '※ 通知は任意です。オフのままでもアプリはご利用いただけますが、'
+        //       '朝と夜のリマインダーを受け取りたい場合は、通知を許可してください。',
+        //   style: TextStyle(fontSize: 12),
+        Text(t.settingsNotificationsDesc, style: const TextStyle(fontSize: 12)),
+        //),
         const SizedBox(height: 8),
         ListTile(
-          title: const Text('朝の通知時間'),
+         // title: const Text('朝の通知時間'),
+          title: Text(t.settingsMorningNotificationTime),
           trailing: Text(_morningTime.format(context)),
           onTap: () => _pickTime(isMorning: true),
         ),
         ListTile(
-          title: const Text('夜の通知時間'),
+          //title: const Text('夜の通知時間'),
+          title: Text(t.settingsEveningNotificationTime),
           trailing: Text(_eveningTime.format(context)),
           onTap: () => _pickTime(isMorning: false),
         ),
         Center(
           child: ElevatedButton(
             onPressed: _saveNotificationTimes,
-            child: const Text('保存'),
+            //child: const Text('保存'),
+            child: Text(t.commonSave),
           ),
         ),
       ],
@@ -364,44 +374,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 // 重み設定：ExpansionTile なしで中身だけ描く版
   Widget _buildWeightSectionBody() {
+    final t = AppLocalizations.of(context)!;
     final total = _weightSleep + _weightStretch + _weightWalking + _weightAppreciation;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+         Padding(
           padding: EdgeInsets.all(8.0),
-          child: Text('合計は1.0にしてください。'),
+          //child: Text('合計は1.0にしてください。'),
+          child: Text(t.settingsWeightsHint),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('合計: ${total.toStringAsFixed(1)} / 1.0'),
+              //Text('合計: ${total.toStringAsFixed(1)} / 1.0'),
+              Text(t.settingsWeightsTotal(total.toStringAsFixed(1))),
               TextButton(
                 onPressed: () => setState(() => _isEditing = !_isEditing),
-                child: Text(_isEditing ? '編集中' : '編集'),
+               // child: Text(_isEditing ? '編集中' : '編集'),
+                child: Text(_isEditing ? t.settingsWeightsEditing : t.settingsWeightsEdit),
               ),
             ],
           ),
         ),
-        _buildSlider('睡眠', _weightSleep, (v) => _weightSleep = v),
-        _buildSlider('ストレッチ', _weightStretch, (v) => _weightStretch = v),
-        _buildSlider('ウォーキング', _weightWalking, (v) => _weightWalking = v),
-        _buildSlider('感謝', _weightAppreciation, (v) => _weightAppreciation = v),
+        // _buildSlider('睡眠', _weightSleep, (v) => _weightSleep = v),
+        // _buildSlider('ストレッチ', _weightStretch, (v) => _weightStretch = v),
+        // _buildSlider('ウォーキング', _weightWalking, (v) => _weightWalking = v),
+        // _buildSlider('感謝', _weightAppreciation, (v) => _weightAppreciation = v),
+        _buildSlider(t.settingsWeightsLabelSleep, _weightSleep, (v) => _weightSleep = v),
+        _buildSlider(t.settingsWeightsLabelStretch, _weightStretch, (v) => _weightStretch = v),
+        _buildSlider(t.settingsWeightsLabelWalking, _weightWalking, (v) => _weightWalking = v),
+        _buildSlider(t.settingsWeightsLabelAppreciation, _weightAppreciation, (v) => _weightAppreciation = v),
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: ElevatedButton(
             onPressed: () {
               if (total.toStringAsFixed(1) == '1.0') {
                 _saveWeightPreferences();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('重みを保存しました')));
+                //ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('重みを保存しました')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.settingsWeightsSaved)));
                 setState(() => _isEditing = false);
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('合計が1.0ではありません')));
+               // ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('合計が1.0ではありません')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.settingsWeightsTotalNotOne)));
               }
             },
-            child: const Text('保存'),
+            //child: const Text('保存'),
+            child: Text(t.commonSave),
           ),
         ),
       ],
@@ -431,10 +452,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
   Widget _buildCallNameEditor() {
+    final t = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('呼びかけ名（さん付けで呼びます）'),
+        //const Text('呼びかけ名（さん付けで呼びます）'),
+        Text('${t.settingsCallNameTitle}（${t.settingsCallNameDesc}）'),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -443,23 +466,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Expanded(
               child: TextField(
                 controller: _displayNameCtrl, // 既存のControllerを利用
-                decoration: const InputDecoration(
-                  hintText: '例：太郎（空なら「ユーザーさん」）',
+                //decoration: const InputDecoration(
+                //  hintText: '例：太郎（空なら「ユーザーさん」）',
+                decoration: InputDecoration(hintText: t.settingsCallNameHint),
                 ),
               ),
-            ),
+
             const SizedBox(width: 8),
             ElevatedButton(
               onPressed: () async {
                 final name = _displayNameCtrl.text.trim();
                 await UserPrefs.setDisplayName(name); // 既存の保存関数
-                if (mounted) {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(const SnackBar(content: Text('呼びかけ名を保存しました')));
+                //if (mounted) {
+                if (!mounted) return;
+                  // ScaffoldMessenger.of(context)
+                  //     .showSnackBar(const SnackBar(content: Text('呼びかけ名を保存しました')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(t.settingsCallNameSaved)),
+                  );
                   setState(() {}); // 再描画
-                }
+                //}
               },
-              child: const Text('保存'),
+              //child: const Text('保存'),
+                child: Text(t.commonSave),
             ),
           ],
         ),
@@ -679,6 +708,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// チェックされた行を削除
   Future<void> _deleteSelectedRows() async {
+    final t = AppLocalizations.of(context)!;
+
     final datesToDelete = <String>{};
     for (int i = 0; i < _selected.length; i++) {
       if (_selected[i]) {
@@ -722,10 +753,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${datesToDelete.length} 件のデータを削除しました'),
-          duration: const Duration(seconds: 2),
-        ),
+        // SnackBar(
+          // content: Text('${datesToDelete.length} 件のデータを削除しました'),
+          SnackBar(content: Text(t.settingsDeletedCount(datesToDelete.length))),
+       //  duration: const Duration(seconds: 2),
+       // ),
       );
     }
   }
@@ -765,6 +797,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: const Text("設定")),
       body: ListView(children: [
@@ -772,7 +805,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // 折りたたみ：通知設定
         _sectionTile(
           icon: Icons.notifications,
-          title: '通知設定',
+        //  title: '通知設定',
+          title: t.settingsNotificationsTitle,
           child: _buildTimePickerSection(),
           initiallyExpanded: false, // ← 初期は閉じる
         ),
@@ -780,7 +814,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 // 折りたたみ：重み設定
         _sectionTile(
           icon: Icons.tune,
-          title: '重み設定',
+          //title: '重み設定',
+          title: t.settingsWeightsTitle,
           child: _buildWeightSectionBody(),
           initiallyExpanded: false,
         ),
@@ -788,7 +823,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 // 折りたたみ：呼びかけ名
         _sectionTile(
           icon: Icons.badge,
-          title: '呼びかけ名',
+          //title: '呼びかけ名',
+          title: t.settingsCallNameTitle,
           child: _buildCallNameEditor(), // ← 入力UIの本体を使う
           initiallyExpanded: false,
         ),
@@ -856,16 +892,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 
         ExpansionTile(
+
           leading: const Icon(Icons.folder_copy_outlined),
-          title: const Text(
-          '保存データの管理',
-          style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          children: [
+          // title: const Text(
+          // '保存データの管理',
+          // style: TextStyle(fontWeight: FontWeight.w600),
+          // ),
+            title: Text(t.settingsSavedDataTitle, style: const TextStyle(fontWeight: FontWeight.w600)),
+
+            children: [
             if (_csvData.isEmpty)
-              const Padding(
+               Padding(
                 padding: EdgeInsets.all(8.0),
-                child: Text('保存データが存在しません。'),
+                //child: Text('保存データが存在しません。'),
+                child: Text(t.settingsSavedDataEmpty),
               )
             else
               Column(
@@ -994,24 +1034,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      ElevatedButton(onPressed: _deleteSelectedRows, child: const Text('選択削除')),
+                      //ElevatedButton(onPressed: _deleteSelectedRows, child: const Text('選択削除')),
+                      ElevatedButton(onPressed: _deleteSelectedRows, child: Text(t.settingsDeleteSelected)),
                       ElevatedButton(
                         onPressed: () async {
                           final ok = await showDialog<bool>(
                             context: context,
                             builder: (_) => AlertDialog(
-                              title: const Text('すべてのデータを削除しますか？'),
-                              content: const Text('この操作は元に戻せません。'),
+                              // title: const Text('すべてのデータを削除しますか？'),
+                              // content: const Text('この操作は元に戻せません。'),
+                              title: Text(t.settingsConfirmTitle),
+                              content: Text(t.settingsDeleteSelectedConfirmBody),
+
                               actions: [
-                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('キャンセル')),
-                                TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('削除')),
+                                // TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('キャンセル')),
+                                // TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('削除')),
+                                TextButton(onPressed: () => Navigator.pop(context, false), child: Text(t.settingsCancel)),
+                                ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text(t.settingsRun)),
                               ],
                             ),
                           );
                           if (ok != true) return;
                           _deleteAll();
                         },
-                        child: const Text('全削除'),
+                        //child: const Text('全削除'),
+                        child: Text(t.settingsDeleteAll),
                       ),
                     ],
                   ),
@@ -1025,23 +1072,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
 // ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
         _sectionTile(
           icon: Icons.help_outline,
-          title: 'サポート',
+          // title: 'サポート',
+          title: t.settingsSupportTitle,
           initiallyExpanded: false,
           child: Column(
             children: [
               ListTile(
                 leading: const Icon(Icons.description_outlined),
-                title: const Text('利用規約'),
+                //title: const Text('利用規約'),
+                title: Text(t.settingsSupportTitle),
                 onTap: () => _launchUrl('https://www.happiness-h3.com/terms'),
               ),
               ListTile(
                 leading: const Icon(Icons.privacy_tip_outlined),
-                title: const Text('プライバシーポリシー'),
+                //title: const Text('プライバシーポリシー'),
+                title: Text(t.settingsSupportPrivacy),
                 onTap: () => _launchUrl('https://www.happiness-h3.com/privacy-policy'),
               ),
               ListTile(
                 leading: const Icon(Icons.support_agent),
-                title: const Text('サポートページ'),
+                //title: const Text('サポートページ'),
+                title: Text(t.settingsSupportPage),
                 onTap: () => _launchUrl('https://www.happiness-h3.com/support'),
               ),
             ],
@@ -1056,12 +1107,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         ListTile(
           leading: const Icon(Icons.refresh),               // 左端アイコン追加
-          title: const Text(
-            'データ移行',
-            style: TextStyle(fontWeight: FontWeight.w600),  // タイトルを太字
-          ),
-          subtitle: const Text('旧アプリのCSVを取り込む'),
-            onTap: () async {
+          // title: const Text(
+          //   'データ移行',
+          //   style: TextStyle(fontWeight: FontWeight.w600),  // タイトルを太字
+          // ),
+          // subtitle: const Text('旧アプリのCSVを取り込む'),
+          title: Text(t.settingsDataMigrationTitle, style: const TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Text(t.settingsDataMigrationSubtitle),
+
+          onTap: () async {
               await MigrationGuideModal.show(context);  // ← まずガイドを表示
               // その後、実際の取り込み画面へ遷移させたい場合は、show の直後に push する
               // Navigator.push(context, MaterialPageRoute(builder: (_) => const DataImportScreen()));
@@ -1079,7 +1133,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // 再読込（既存の関数を呼ぶ）
               await _reloadSavedDates();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('CSVを安全に取り込みました')),
+               // const SnackBar(content: Text('CSVを安全に取り込みました')),
+                SnackBar(content: Text(t.settingsCsvImportedSafely)),
               );
             },
          ),
@@ -1330,11 +1385,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _launchUrl(String url) async {
+    final t = AppLocalizations.of(context)!;
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('リンクを開けませんでした')),
+         // const SnackBar(content: Text('リンクを開けませんでした')),
+          SnackBar(content: Text(t.commonLinkOpenFailed)),
         );
       }
     }

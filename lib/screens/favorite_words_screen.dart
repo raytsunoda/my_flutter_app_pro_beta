@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 //import '../utils/csv_loader.dart';
 import 'package:my_flutter_app_pro/utils/csv_loader.dart';
+import '../gen_l10n/app_localizations.dart';
 
 class FavoriteWordsScreen extends StatefulWidget {
   const FavoriteWordsScreen({super.key});
@@ -42,9 +43,13 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
     } catch (e) {
       if (!mounted) return;
 
+      final t = AppLocalizations.of(context)!;
+
       // 例外でも必ず画面を復帰させる
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('読み込みに失敗しました: $e')),
+      //  SnackBar(content: Text('読み込みに失敗しました: $e')),
+        SnackBar(content: Text(t.favoriteWordsLoadFailed(e.toString()))),
+
       );
     } finally {
       if (!mounted) return;
@@ -56,15 +61,23 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
     await CsvLoader.deleteFavoriteWord(createdAt: createdAt);
     await _load();
     if (!mounted) return;
+
+    final t = AppLocalizations.of(context)!;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('削除しました')),
+  //    const SnackBar(content: Text('削除しました')),
+      SnackBar(content: Text(t.favoriteWordsDeleted)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('⭐ お気に入りのあなたの言葉')),
+      //appBar: AppBar(title: const Text('⭐ お気に入りのあなたの言葉')),
+      appBar: AppBar(title: Text(t.favoriteWordsTitle)),
+
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _items.isEmpty
@@ -73,10 +86,16 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'ここには、あなたが残した言葉が並びます。\n無理に増やさなくて大丈夫です。',
-              style: TextStyle(fontSize: 16),
+            // const Text(
+            //   'ここには、あなたが残した言葉が並びます。\n無理に増やさなくて大丈夫です。',
+            //   style: TextStyle(fontSize: 16),
+            // ),
+
+            Text(
+                t.favoriteWordsEmptyIntro,
+                style: const TextStyle(fontSize: 16),
             ),
+
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: () async {
@@ -87,21 +106,27 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
                 showDialog(
                   context: context,
                   builder: (_) => AlertDialog(
-                    title: const Text('favorite_words.csv 確認'),
+                    //title: const Text('favorite_words.csv 確認'),
+                    title: Text(t.favoriteWordsCsvCheckTitle),
                     content: SingleChildScrollView(
-                      child: Text('path:\n${file.path}\n\ncontent:\n$content'),
+                    //  child: Text('path:\n${file.path}\n\ncontent:\n$content'),
+                    child: Text(
+                        t.favoriteWordsCsvCheckBody(file.path, content),
+                      ),
                     ),
                   ),
                 );
               },
-              child: const Text('ファイル内容を見る（デバッグ）'),
+              //child: const Text('ファイル内容を見る（デバッグ）'),
+              child: Text(t.favoriteWordsViewFileDebug),
             ),
             const SizedBox(height: 8),
             TextButton(
               onPressed: () async {
                 await _load();
               },
-              child: const Text('再読み込み'),
+           //   child: const Text('再読み込み'),
+              child: Text(t.favoriteWordsReload),
             ),
           ],
         ),
@@ -145,13 +170,15 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
 
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('削除しました')),
+                    //const SnackBar(content: Text('削除しました')),
+                    SnackBar(content: Text(t.favoriteWordsDeleted)),
                   );
                 }
               } catch (e) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('削除に失敗しました: $e')),
+                  //SnackBar(content: Text('削除に失敗しました: $e')),
+                  SnackBar(content: Text(t.favoriteWordsDeleteFailed('$e'))),
                 );
                 // 失敗時は画面を復元するため再読み込み
                 await _load();
