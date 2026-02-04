@@ -196,6 +196,10 @@
   "radarGratitude": "Gratitude",
   "radarWalking": "Walking",
   "radarStretching": "Stretching",
+
+
+    "safetyNoticeText": "AI responses may not always be accurate. For important decisions related to health, medical, or legal matters, please consult professionals or official sources.",
+
   "save": "Save",
   "saveFailedColumnMismatch": "Save failed (unexpected columns).",
   "selectDateButton": "Select date",

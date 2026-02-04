@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../gen_l10n/app_localizations.dart';
 
 class SafetyNotice extends StatelessWidget {
   final EdgeInsetsGeometry padding;
@@ -7,6 +8,7 @@ class SafetyNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = AppLocalizations.of(context)!;
     return Container(
       padding: padding,
       decoration: BoxDecoration(
@@ -21,8 +23,9 @@ class SafetyNotice extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'AIの回答は必ずしも正確とは限りません。健康・医療・法律など重要な判断は、'
-                  '必ず専門家や公的情報でご確認ください。',
+              // 'AIの回答は必ずしも正確とは限りません。健康・医療・法律など重要な判断は、'
+              //     '必ず専門家や公的情報でご確認ください。',
+              t.safetyNoticeText,
               style: theme.textTheme.bodySmall,
             ),
           ),

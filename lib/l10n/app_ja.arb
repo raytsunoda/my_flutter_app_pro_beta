@@ -192,6 +192,10 @@
   "radarGratitude": "感謝",
   "radarWalking": "ウォーキング",
   "radarStretching": "ストレッチ",
+
+
+    "safetyNoticeText": "AIの回答は必ずしも正確とは限りません。健康・医療・法律など重要な判断は、必ず専門家や公的情報でご確認ください。",
+
   "save": "保存",
   "saveFailedColumnMismatch": "保存に失敗しました（列数が異常です）",
   "selectDateButton": "日付を選ぶ",
