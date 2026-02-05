@@ -797,9 +797,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     final t = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text("設定")),
+      appBar: AppBar(
+        title: Text(t.settingsTitle),
+      ),
       body: ListView(children: [
         // 見出し → 内容：通知設定
         // 折りたたみ：通知設定
