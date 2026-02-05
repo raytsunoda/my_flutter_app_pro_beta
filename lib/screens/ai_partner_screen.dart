@@ -1,15 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:ui';
 
 import '../services/ai_comment_service.dart';
 //import '../utils/csv_loader.dart';
 import '../utils/date_utils.dart';
 import 'ai_comment_history_screen.dart';
-import 'package:my_flutter_app_pro/l10n/strings_ja.dart';
+//import 'package:my_flutter_app_pro/l10n/strings_ja.dart';
 import 'package:my_flutter_app_pro/widgets/safety_notice.dart';
 import 'dart:async';
 import 'package:my_flutter_app_pro/utils/csv_loader.dart';
+import 'package:my_flutter_app_pro/l10n/strings.dart';
 
 
 DateTime _computePrevMonthEnd(DateTime latestDate) {
@@ -50,22 +52,30 @@ String? _getByKeys(Map<String, String> row, List<String> candidates) {
 
 
 class AIPartnerScreen extends StatefulWidget {
+
   const AIPartnerScreen({super.key});
   @override
   State<AIPartnerScreen> createState() => _AIPartnerScreenState();
 }
 
 class _AIPartnerScreenState extends State<AIPartnerScreen> {
+    // ローカライズ文字列をどこからでも取れるようにする
+//    S get s => S.of(context);
   // ---- State ----
   final DateFormat _f = DateFormat('yyyy/MM/dd');
  // String _todayStr = DateFormat('yyyy/MM/dd').format(DateTime.now());
 
   Map<String, String>? _todayRow; // 今日のCSV行（厳密一致）
   // 画面上部の「今日のひとことメモ」専用の表示用テキスト
-  String _memoText = J.memoNone;
+  //String _memoText = s.memoNone;
+  String _memoText = '';
   bool _memoLoaded = false; // ← 追加していない場合は必ず追加
+
+  bool _memoLoadRequested = false; // ★追加：buildからの多重予約防止
+
   //late final String _todayStr;            // 'yyyy/MM/dd' 固定文字列
-  String aiResponse = J.thinking;
+  //String aiResponse = s.thinking;
+  String aiResponse = '';
   String? _weeklyMessage;
   String? _monthlyMessage;
   String _selectedRowDate = '';
@@ -77,8 +87,27 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
   bool _showWeekly = false;
   bool _showMonthly = false;
 
+  bool _stringsInitialized = false;
+
   // 週次プレビュー（“月曜0:00解禁の直前日曜”のみ）
   Map<String, dynamic>? _weeklyPreview;
+      // l10n（context依存）を安全に扱う
+      late S _s;
+      bool _sReady = false;
+      S get s => _sReady ? _s : S(const Locale('en'));
+
+      @override
+      void didChangeDependencies() {
+          super.didChangeDependencies();
+          _s = S.of(context);
+          _sReady = true;
+          // 初期文言が空ならローカライズを適用
+          if (_memoText.isEmpty) _memoText = s.memoNone;
+          if (aiResponse.isEmpty) aiResponse = s.thinking;
+        }
+
+
+
 
   // ---- helpers ----
   String _sanitize(String? v) => (v ?? '').replaceAll('\u3000', ' ').trim();
@@ -159,52 +188,15 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
     debugPrint('[AI] _findRowStrict miss for $key');
     return null;
   }
-// ===== ai_partner_screen.dart: 置換版 _findRowStrict 終了 =====
-
-/*
-  Future<void> _loadTodayMemo() async {
-    try {
-      final ymd = DateFormat('yyyy/MM/dd').format(DateTime.now());
-      final rows = await CsvLoader.loadCsv('HappinessLevelDB1_v2.csv');
-
-      Map<String, String>? todayRow;
-      for (final r in rows) {
-        if ((r['日付'] ?? '').trim() == ymd) {
-          todayRow = r;
-          break;
-        }
-      }
-
-      // ヘッダの揺れに強く（memo / メモ / 今日のひとことメモ）
-      final memo = (todayRow?['memo'] ??
-          todayRow?['メモ'] ??
-          todayRow?['今日のひとことメモ'] ??
-          '')
-          .toString()
-          .trim();
-
-      setState(() {
-        _memoText = memo.isNotEmpty ? memo : J.memoNone;
-      });
-
-      debugPrint('[AI] _loadTodayMemo: date=$ymd memo="${_memoText}"');
-    } catch (e, st) {
-      debugPrint('[AI] _loadTodayMemo error: $e\n$st');
-      // 失敗しても画面は出したいので既定文にしておく
-      setState(() => _memoText = J.memoNone);
-    }
-  }
-*/
-
-
-
 
 
   // 今日のメモだけを**最優先**で State に反映
   // ※既存の _loadTodayMemoFirst() をこの実装で「丸ごと置換」してください。
   Future<void> _loadTodayMemoFirst() async {
-    // 重複呼び出しガード（ログで3回呼ばれていたため）
-    if (_memoLoaded) return;
+    // // 重複呼び出しガード（ログで3回呼ばれていたため）
+    // if (_memoLoaded) return;
+    // 重複呼び出しガード：予約済み/実行済みなら何もしない
+      if (_memoLoaded) return;
     try {
       final ymd = DateFormat('yyyy/MM/dd').format(DateTime.now());
       final row = await _findRowStrict(ymd);
@@ -212,16 +204,18 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
       setState(() {
         _todayRow = row;
         final memo = row == null ? '' : _pickMemo(row);
-        _memoText = memo.isNotEmpty ? memo : J.memoNone;
+        _memoText = memo.isNotEmpty ? memo : s.memoNone;
         _memoLoaded = true;
+        _memoLoadRequested = false; // ★追加：成功後は解除（次回画面再生成でも安定）
       });
 
       debugPrint('[AI] _loadTodayMemoFirst: date=$ymd memo="${_memoText}"');
     } catch (e, st) {
       debugPrint('[AI] _loadTodayMemoFirst error: $e\n$st');
       setState(() {
-        _memoText = J.memoNone;
+        _memoText = s.memoNone;
         _memoLoaded = true;
+        _memoLoadRequested = false; // ★追加：失敗時も解除
       });
     }
   }
@@ -285,11 +279,22 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
     _fetchAiComment(); // ← 既存呼び出しのままでOK（ただし後述の修正を反映）
   }
 
+    // @override
+    // void didChangeDependencies() {
+    //     super.didChangeDependencies();
+    //     if (_stringsInitialized) return;
+    //     _stringsInitialized = true;
+    //
+    //     // フィールド初期化では context が使えないのでここで入れる
+    //     if (_memoText.trim().isEmpty) _memoText = s.memoNone;
+    //     if (aiResponse.trim().isEmpty) aiResponse = s.thinking;
+    //   }
+
 
   Future<void> _fetchAiComment() async {
     // まずは「考え中です…」表示にする
     setState(() {
-      aiResponse = J.thinking;
+      aiResponse = s.thinking;
     });
 
     try {
@@ -306,7 +311,7 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
       if (row == null || !_hasAnyInput(row)) {
         if (!mounted) return;
         setState(() {
-          aiResponse = J.aiNone;
+          aiResponse = s.aiNone;
           _hasTodayDaily = false;
           _weeklyPreview = null;
         });
@@ -340,7 +345,10 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
       setState(() {
         aiResponse = dailyText.isNotEmpty
             ? dailyText
-            : '⚠️ コメントの取得に時間がかかったか、うまく作れなかったようです。\n時間をおいてもう一度お試しください。';
+         //   : '⚠️ コメントの取得に時間がかかったか、うまく作れなかったようです。\n時間をおいてもう一度お試しください。';
+      : '⚠️ ${s.isJa ? "コメントの取得に時間がかかったか、うまく作れなかったようです。\\n時間をおいてもう一度お試しください。" : "It took too long or couldn’t generate a comment. Please try again later."}';
+
+
         _weeklyPreview = weekly;
         _hasTodayDaily = dailyText.isNotEmpty;
       });
@@ -350,7 +358,10 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
       if (!mounted) return;
       setState(() {
         aiResponse =
-        '⚠️ コメントの取得中にエラーが発生しました。\n時間をおいてもう一度お試しください。';
+     //   '⚠️ コメントの取得中にエラーが発生しました。\n時間をおいてもう一度お試しください。';
+      '⚠️ ${s.isJa ? "コメントの取得中にエラーが発生しました。\\n時間をおいてもう一度お試しください。" : "An error occurred while fetching the comment. Please try again later."}';
+
+
         _weeklyPreview = null;
       });
     }
@@ -374,9 +385,11 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
       final comment = (r['comment'] ?? '').toString().trim();
 
       _weeklyMessage = comment.isEmpty
-          ? '（対象週末日: $dateLabel）\n※この週のコメントは保存されていません。\n'
-          '週次コメントは必要なデータが保存されていれば「毎週日曜」に生成されます。'
-          : '（対象週末日: $dateLabel）\n$comment';
+          // ? '（対象週末日: $dateLabel）\n※この週のコメントは保存されていません。\n'
+          // '週次コメントは必要なデータが保存されていれば「毎週日曜」に生成されます。'
+          // : '（対象週末日: $dateLabel）\n$comment';
+          ? '${s.weeklyTarget(dateLabel)}\n${s.isJa ? '※この週のコメントは保存されていません。\n週次コメントは必要なデータが保存されていれば「毎週日曜」に生成されます。' : 'No saved comment for this week.'}'
+          : '${s.weeklyTarget(dateLabel)}\n$comment';
 
       _hasFetchedWeekly = true;
     });
@@ -429,9 +442,16 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
   }
   @override
   Widget build(BuildContext context) {
-    // 👇 初回だけ、描画直後に今日のメモを必ず読み込む
-    if (!_memoLoaded) {
-      _memoLoaded = true;
+ //   final s = S.of(context);
+    final s = this.s;
+    // // 👇 初回だけ、描画直後に今日のメモを必ず読み込む
+    // if (!_memoLoaded) {
+    //   _memoLoaded = true;
+    //   WidgetsBinding.instance.addPostFrameCallback((_) => _loadTodayMemoFirst());
+    // }
+// 👇 初回だけ、描画直後に今日のメモを必ず読み込む（フラグを先にtrueにしない）
+    if (!_memoLoaded && !_memoLoadRequested) {
+      _memoLoadRequested = true;
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadTodayMemoFirst());
     }
 
@@ -440,31 +460,36 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
     final canGenerateMonthly = isMonthlyActionAllowed(now); // 注記表示用
 
     // 👇 画面表示用（空/未設定なら J.memoNone を出す）
-    final String displayMemo = _memoText.trim().isEmpty ? J.memoNone : _memoText.trim();
+    final String displayMemo = _memoText.trim().isEmpty ? s.memoNone : _memoText.trim();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('💛AIパートナー')),
+  //    appBar: AppBar(title: const Text('💛AIパートナー')),
+      appBar: AppBar(title: Text(s.aiPartnerTitle)),
+
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
           const SafetyNotice(),                   // ★ 注意喚起（先頭に1回だけ）
           const SizedBox(height: 12),
           // ✅ 今日のひとことメモ：_memoText だけを見る（CSV は一切触らない）
-          _buildCommentBox('📝 今日のひとことメモ:\n$displayMemo'),
-
+        //  _buildCommentBox('📝 今日のひとことメモ:\n$displayMemo'),
+          _buildCommentBox('${s.todayMemoTitle}\n$displayMemo'),
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               onPressed: () => _showFavoriteWordDialog(context),
               icon: const Icon(Icons.star_outline),
-              label: const Text('⭐ お気に入りに"あなたの言葉"を残す'),
+          //    label: const Text('⭐ お気に入りに"あなたの言葉"を残す'),
+              label: Text(s.saveFavoriteWord),
+
+
             ),
           ),
 
           // ✅ AI パートナーのひとこと（表示時サニタイズを最終適用）
-          _buildCommentBox('💛 AIパートナーからのひとこと\n\n${_sanitizeForDisplay(aiResponse)}'),
-
+          //_buildCommentBox('💛 AIパートナーからのひとこと\n\n${_sanitizeForDisplay(aiResponse)}'),
+          _buildCommentBox('${s.aiPartnerCommentTitle}\n\n${_sanitizeForDisplay(aiResponse)}'),
           // ✅ タイムアウト時は、その場で再試行できるようにする（Releaseでも表示）
                   if (aiResponse.trim().startsWith('⚠️'))
                 Padding(
@@ -476,7 +501,7 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                      // ① 画面表示を「考え中」に戻す
                      if (!mounted) return;
                      setState(() {
-                       aiResponse = J.thinking;
+                       aiResponse = s.thinking;
                      });
 
                      // ② 「その日付のdailyコメント」を強制削除（⚠️が保存済み扱いになってる事故を解除）
@@ -487,8 +512,8 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                      await _fetchAiComment();
                    },
                    icon: const Icon(Icons.refresh),
-                   label: const Text('もう一度試す'),
-
+                //   label: const Text('もう一度試す'),
+                   label: Text(s.retry),
                  ),
                 ),
 
@@ -497,9 +522,13 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
 
           // --- 週次プレビュー（公開済みの最新日曜のみ） ---
           if (_weeklyPreview != null) ...[
-            _sectionDivider('AIコメント（週次プレビュー）'),
+         //   _sectionDivider('AIコメント（週次プレビュー）'),
+            _sectionDivider(s.weeklyPreviewSection),
+
             _buildCommentBox(
-              '（対象週末日: ${_weeklyPreview!['date']}）\n'
+           //   '（対象週末日: ${_weeklyPreview!['date']}）\n'
+              '${s.weeklyTarget((_weeklyPreview!['date'] ?? '').toString())}\n'
+
                   '${(_weeklyPreview!['comment'] ?? '').toString()}',
             ),
           ],
@@ -532,7 +561,8 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                     const Icon(Icons.tune, size: 18),
                     const SizedBox(width: 6),
                     Text(
-                      '操作メニュー',
+                  //    '操作メニュー',
+                      s.menuTitle,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -552,7 +582,8 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                   }
                       : null,
                   icon: const Icon(Icons.calendar_view_week),
-                  label: const Text('週次のふりかえり'),
+               //   label: const Text('週次のふりかえり'),
+                  label: Text(s.weeklyButton),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     textStyle: const TextStyle(fontWeight: FontWeight.bold),
@@ -563,7 +594,8 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 6, left: 4),
                     child: Text(
-                      '※ 週次：生成は毎週月曜10:00。今日は保存済みの内容のみ表示します。',
+                   //   '※ 週次：生成は毎週月曜10:00。今日は保存済みの内容のみ表示します。',
+                      s.weeklyNote,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.black54,
                       ),
@@ -581,7 +613,8 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                     setState(() {});
                   },
                   icon: const Icon(Icons.calendar_month),
-                  label: const Text('月次のふりかえり'),
+                  //label: const Text('月次のふりかえり'),
+                  label: Text(s.monthlyButton),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     textStyle: const TextStyle(fontWeight: FontWeight.bold),
@@ -592,7 +625,8 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 6, left: 4),
                     child: Text(
-                      '※ 月次：生成は毎月1日10:00。今日は保存済みの内容のみ表示します。',
+                   //   '※ 月次：生成は毎月1日10:00。今日は保存済みの内容のみ表示します。',
+                      s.monthlyNote,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.black54,
                       ),
@@ -609,7 +643,8 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                     );
                   },
                   icon: const Icon(Icons.history),
-                  label: const Text('🗂 コメント履歴を見る'),
+                 // label: const Text('🗂 コメント履歴を見る'),
+                  label: Text(s.historyButton),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     textStyle: const TextStyle(fontWeight: FontWeight.bold),
@@ -621,11 +656,13 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
 
           // --- 既存の表示（週次／月次コメント） ---
           if (_showWeekly && _hasFetchedWeekly && _weeklyMessage != null) ...[
-            _sectionDivider('AIコメント（週次のふりかえり）'),
+           // _sectionDivider('AIコメント（週次のふりかえり）'),
+            _sectionDivider(s.weeklySection),
             _buildCommentBox(_weeklyMessage!),
           ],
           if (_showMonthly && _hasFetchedMonthly && _monthlyMessage != null) ...[
-            _sectionDivider('AIコメント（月次のふりかえり）'),
+          //  _sectionDivider('AIコメント（月次のふりかえり）'),
+            _sectionDivider(s.monthlySection),
             _buildCommentBox(_monthlyMessage!),
           ],
 
@@ -648,7 +685,8 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
       return Padding(
         padding: const EdgeInsets.only(top: 8),
         child: Text(
-          'この日のAIコメントは保存済みです。再生成はできません。',
+        //  'この日のAIコメントは保存済みです。再生成はできません。',
+          s.dailyAlreadySaved,
           style: Theme.of(context).textTheme.bodySmall,
         ),
       );
@@ -661,11 +699,13 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
         await _refreshHasDaily();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('AIコメントを保存しました')),
+       //   const SnackBar(content: Text('AIコメントを保存しました')),
+          SnackBar(content: Text(s.savedSnack)),
         );
       },
       icon: const Icon(Icons.smart_toy),
-      label: const Text('AIコメントを生成して保存'),
+     // label: const Text('AIコメントを生成して保存'),
+      label: Text(s.debugGenerateAndSave),
     );
   }
 
@@ -706,26 +746,34 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
       context: context,
       builder: (_) {
         return AlertDialog(
-          title: const Text('お気に入りのあなたの言葉'),
+        //  title: const Text('お気に入りのあなたの言葉'),
+          title: Text(s.favoriteDialogTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('（40文字以内）'),
+            //  const Text('（40文字以内）'),
+              Text(s.favoriteLimit),
               const SizedBox(height: 8),
               TextField(
                 controller: controller,
                 maxLength: 40,
                 maxLines: 2,
-                decoration: const InputDecoration(
-                  hintText: '例：私は私のペースで大丈夫',
+               //  decoration: const InputDecoration(
+               // //   hintText: '例：私は私のペースで大丈夫',
+               //    hintText: null,
+               //  ),
+                decoration: InputDecoration(
+                  hintText: s.favoriteHint,
                 ),
+
               ),
               const SizedBox(height: 6),
-              const Text(
-                '※ 今日のメモの中から、\n　残しておきたいあなたの言葉があれば書いてください',
-                style: TextStyle(fontSize: 12),
-              ),
+              // const Text(
+              //   '※ 今日のメモの中から、\n　残しておきたいあなたの言葉があれば書いてください',
+              //   style: TextStyle(fontSize: 12),
+              // ),
+              Text(s.favoriteHelp, style: const TextStyle(fontSize: 12)),
             ],
           ),
           actions: [
@@ -733,11 +781,13 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
             IconButton(
               onPressed: () => Navigator.pop(context, false),
               icon: const Icon(Icons.close),
-              tooltip: '閉じる',
+             // tooltip: '閉じる',
+              tooltip: s.close,
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('保存'),
+            //  child: const Text('保存'),
+              child: Text(s.save),
             ),
           ],
         );
@@ -757,19 +807,16 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('⚠️ 保存に失敗しました: $e')),
+      //  SnackBar(content: Text('⚠️ 保存に失敗しました: $e')),
+        SnackBar(content: Text(s.favoriteSaveFailed('$e'))),
       );
       return;
     }
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('⭐ お気に入りに保存しました')),
+    //  const SnackBar(content: Text('⭐ お気に入りに保存しました')),
+      SnackBar(content: Text(s.favoriteSaved)),
     );
-
   }
-
-
-
-
 }

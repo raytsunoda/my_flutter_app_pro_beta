@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/ai_comment_service.dart';
 import 'package:my_flutter_app_pro/ui/common_error_dialog.dart';
+import 'package:my_flutter_app_pro/l10n/strings.dart';
 
 class AiCommentHistoryScreen extends StatefulWidget {
   final int initialTab;
@@ -73,10 +74,19 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
   Future<void> _reloadAllFromLog() async {
     setState(() => _isLoading = true);
 
-    // まず週次の不足があれば生成する（←★案Aのポイント）
+    //// まず週次の不足があれば生成する（←★案Aのポイント）
+    // まず週次の不足があれば生成する（直近の日曜をキーにする）
     try {
-      // ensureWeeklySaved は「今日の日付」を受け取る仕様なので DateTime.now() を渡す
-      await AiCommentService.ensureWeeklySaved(DateTime.now());
+      // // ensureWeeklySaved は「今日の日付」を受け取る仕様なので DateTime.now() を渡す
+      // await AiCommentService.ensureWeeklySaved(DateTime.now());
+    DateTime prevOrSameSunday(DateTime d) {
+        final localMidnight = DateTime(d.year, d.month, d.day);
+        final back = localMidnight.weekday % 7; // Sun=0
+        return localMidnight.subtract(Duration(days: back));
+      }
+    await AiCommentService.ensureWeeklySaved(prevOrSameSunday(DateTime.now()));
+
+
     } catch (e) {
       debugPrint('ensureWeeklySaved error: $e');
     }
@@ -141,17 +151,26 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
 
 
   Future<void> _backfillCurrentTab() async {
+    final s = S.of(context);
     final labels = ['日次', '週次', '月次'];
     final idx = _tab.index;
 
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('${labels[idx]}の欠け分を補完'),
-        content: const Text('不足しているAIコメントを一括生成します（APIコストあり）。続行しますか？'),
+        // title: Text('${labels[idx]}の欠け分を補完'),
+        // content: const Text('不足しているAIコメントを一括生成します（APIコストあり）。続行しますか？'),
+        title: Text(idx == 0 ? s.backfillTitleDaily : idx == 1 ? s.backfillTitleWeekly : s.backfillTitleMonthly),
+        content: Text(s.backfillBody),
+
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('キャンセル')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('実行する')),
+          // TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('キャンセル')),
+          // ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('実行する')),
+
+        TextButton(onPressed: () => Navigator.pop(context, false), child: Text(s.cancel)),
+        ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text(s.run)),
+
+
         ],
       ),
     );
@@ -212,13 +231,15 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
         OutlinedButton.icon(
           onPressed: _isLoading ? null : _reloadAllFromLog,
           icon: const Icon(Icons.refresh),
-          label: const Text('最新データを再読込'),
+        //  label: const Text('最新データを再読込'),
+          label: Text(S.of(context).reload),
         ),
         const SizedBox(width: 8),
         ElevatedButton.icon(
           onPressed: _isLoading ? null : _backfillCurrentTab,
           icon: const Icon(Icons.construction),
-          label: const Text('欠け分を補完'),
+       //   label: const Text('欠け分を補完'),
+          label: Text(S.of(context).backfill),
         ),
       ],
     ),
@@ -229,7 +250,8 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
       _tabHeaderButtons(),
       Expanded(
         child: _daily.isEmpty
-            ? const Center(child: Text('コメントが保存されていません'))
+        //    ? const Center(child: Text('コメントが保存されていません'))
+            ? Center(child: Text(S.of(context).emptyDaily))
             : ListView.builder(
           itemCount: _daily.length,
           itemBuilder: (_, i) {
@@ -246,7 +268,8 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
       _tabHeaderButtons(),
       Expanded(
         child: _weekly.isEmpty
-            ? const Center(child: Text('この週のコメントは保存されていません'))
+        //    ? const Center(child: Text('この週のコメントは保存されていません'))
+            ? Center(child: Text(S.of(context).emptyWeekly))
             : ListView.builder(
           itemCount: _weekly.length,
           itemBuilder: (_, i) {
@@ -264,7 +287,8 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
       _tabHeaderButtons(),
       Expanded(
         child: _monthly.isEmpty
-            ? const Center(child: Text('この月のコメントは保存されていません'))
+          //  ? const Center(child: Text('この月のコメントは保存されていません'))
+            ? Center(child: Text(S.of(context).emptyMonthly))
             : ListView.builder(
           itemCount: _monthly.length,
           itemBuilder: (_, i) {
@@ -279,12 +303,15 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AIコメント履歴'),
+        //title: const Text('AIコメント履歴'),
+        title: Text(s.historyTitle),
         bottom: TabBar(
           controller: _tab,
-          tabs: const [Tab(text: '日次'), Tab(text: '週次'), Tab(text: '月次')],
+         // tabs: const [Tab(text: '日次'), Tab(text: '週次'), Tab(text: '月次')],
+            tabs: [Tab(text: s.tabDaily), Tab(text: s.tabWeekly), Tab(text: s.tabMonthly)],
         ),
       ),
       body: _isLoading
