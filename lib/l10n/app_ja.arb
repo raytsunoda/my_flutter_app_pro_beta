@@ -126,18 +126,44 @@
 
     "paywallTitleEnable": "Proを有効化",
     "paywallTitleManage": "アプリ内課金の管理",
-    "paywallDescEnable": "Proを有効化すると「AIパートナーのひとこと」が使えるようになります。\n料金：月額プランは¥500/月（自動更新）、年額プランは¥4,800/年（自動更新）です。",
+
+    "paywallDescEnable": "Proを有効化すると「AIパートナーのひとこと」が使えるようになります。\n料金：月額プランは{monthlyPrice}/月（自動更新）、年額プランは{yearlyPrice}/年（自動更新）です。",
+      "@paywallDescEnable": {
+        "placeholders": {
+          "monthlyPrice": { "type": "String" },
+          "yearlyPrice": { "type": "String" }
+        }
+      },
+
     "paywallDescManage": "機種変更・再インストール時は「購入を復元」をご利用ください（重複課金は発生しません）。\n購読の解約・切替は「購読管理」から行えます。",
     "paywallHelpTooltip": "説明",
     "paywallHelpTitle": "この画面について",
-    "paywallHelpBody": "・Proを有効化：AIパートナーのひとこと等の機能を使えるようにします。\n月額プランは¥500/月（自動更新）、年額プランは¥4,800/年（自動更新）です。\n購入を復元：機種変更や再インストール時に、過去の購入を端末に戻します（重複課金なし）。\n購読管理：端末のサブスクリプション管理画面を開きます",
+
+     "paywallHelpBody": "・Proを有効化：AIパートナーのひとこと等の機能を使えるようにします。\n月額プランは{monthlyPrice}/月（自動更新）、年額プランは{yearlyPrice}/年（自動更新）です。\n購入を復元：機種変更や再インストール時に、過去の購入を端末に戻します（重複課金なし）。\n購読管理：端末のサブスクリプション管理画面を開きます",
+      "@paywallHelpBody": {
+        "placeholders": {
+          "monthlyPrice": { "type": "String" },
+          "yearlyPrice": { "type": "String" }
+        }
+      },
+
     "paywallFirstMonthNote": "最初の1ヶ月は、このアプリに慣れるための時間です。\n続けるかどうかは、あとで決めてください。",
     "paywallSubscriptionHeader": "サブスクリプションについて",
-    "paywallSubscriptionBody": "・月額プラン：¥500 / 月（自動更新）\n・年額プラン：¥4,800 / 年（自動更新）\n・購入確定後、Apple ID に請求されます\n・期間終了の24時間前までに解約しない限り自動更新されます",
+
+     "paywallSubscriptionBody": "・月額：{monthlyPrice} / 月（自動更新）\n・年額：{yearlyPrice} / 年（自動更新）\n・購入確定後、Apple ID に請求されます\n・期間終了の24時間前までに解約しない限り自動更新されます",
+      "@paywallSubscriptionBody": {
+        "placeholders": {
+          "monthlyPrice": { "type": "String" },
+          "yearlyPrice": { "type": "String" }
+        }
+      },
+
     "paywallLinkTerms": "利用規約",
     "paywallLinkPrivacy": "プライバシーポリシー",
-    "paywallMonthlyPreparing": "¥500 / 月（準備中）",
-    "paywallYearlyPreparing": "¥4,800（年額プラン・準備中）",
+
+      "paywallMonthlyPreparing": "月額プラン（準備中）",
+      "paywallYearlyPreparing": "年額プラン（準備中）",
+
     "paywallMonthlyCta": "{price} / 月で月額プラン有効化",
     "@paywallMonthlyCta": { "placeholders": { "price": {} } },
     "paywallYearlyCta": "{price} /年で年額プラン有効化",

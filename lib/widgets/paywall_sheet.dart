@@ -63,7 +63,8 @@ class _PaywallSheetState extends State<PaywallSheet> {
   bool _restoring = false;
 
   // 「この画面について」ダイアログ
-  void _showHelpDialog(BuildContext context) {
+  void _showHelpDialog(BuildContext context, {required String monthlyPrice, required String yearlyPrice}) {
+
     final t = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
@@ -78,8 +79,9 @@ class _PaywallSheetState extends State<PaywallSheet> {
       // ),
     builder: (_) => AlertDialog(
       title: Text(t.paywallHelpTitle),
-      content: Text(t.paywallHelpBody),
-      ),
+      content: Text(t.paywallHelpBody(monthlyPrice, yearlyPrice)),
+
+    ),
     );
   }
 
@@ -126,6 +128,10 @@ class _PaywallSheetState extends State<PaywallSheet> {
             final monthly = byId[PurchaseIds.monthly];
             final yearly  = byId[PurchaseIds.yearly];
 
+            final monthlyPrice = monthly?.price ?? t.paywallMonthlyPreparing;
+            final yearlyPrice  = yearly?.price  ?? t.paywallYearlyPreparing;
+
+
             // デバッグ用：通貨 / 取得ID / 見つからないID（空でもテキスト化）
             final currencyDebug = [
               if (monthly != null) monthly.currencyCode,
@@ -151,15 +157,28 @@ class _PaywallSheetState extends State<PaywallSheet> {
                       //tooltip: '説明',
                       tooltip: t.paywallHelpTooltip,
                       icon: const Icon(Icons.help_outline),
-                      onPressed: () => _showHelpDialog(context),
+                      onPressed: () => _showHelpDialog(
+                        context,
+                        monthlyPrice: monthlyPrice,
+                        yearlyPrice: yearlyPrice,
+                      ),
+
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
+                // Text(
+                //   desc,
+                //   style: TextStyle(color: Colors.black.withValues(alpha: 0.7)),
+                // ),
                 Text(
-                  desc,
+                  mode == PaywallMode.enable
+                      ? t.paywallDescEnable(monthlyPrice, yearlyPrice)
+                      : t.paywallDescManage,
                   style: TextStyle(color: Colors.black.withValues(alpha: 0.7)),
                 ),
+
+
                 const SizedBox(height: 12),
 
 
@@ -201,7 +220,11 @@ class _PaywallSheetState extends State<PaywallSheet> {
                     //       '・期間終了の24時間前までに解約しない限り自動更新されます',
                     //   style: TextStyle(fontSize: 12),
                     // ),
-                    Text(t.paywallSubscriptionBody, style: const TextStyle(fontSize: 12)),
+                    Text(
+                      t.paywallSubscriptionBody(monthlyPrice, yearlyPrice),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+
                     const SizedBox(height: 8),
                     Row(
                       children: [

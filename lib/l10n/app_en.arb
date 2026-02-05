@@ -129,18 +129,46 @@
 
   "paywallTitleEnable": "Enable Pro",
   "paywallTitleManage": "Manage In-App Purchases",
-  "paywallDescEnable": "Enable Pro to use “AI Partner message”.\nPricing: Monthly plan ¥500/month (auto-renew), Yearly plan ¥4,800/year (auto-renew).",
+
+   "paywallDescEnable": "Enable Pro to use “AI Partner message”.\nPricing: Monthly plan {monthlyPrice}/month (auto-renew), Yearly plan {yearlyPrice}/year (auto-renew).",
+    "@paywallDescEnable": {
+      "placeholders": {
+        "monthlyPrice": { "type": "String" },
+        "yearlyPrice": { "type": "String" }
+      }
+    },
+
+
   "paywallDescManage": "If you changed devices or reinstalled, use “Restore purchases” (no duplicate charge).\nTo cancel or change your subscription, use “Manage subscription”.",
   "paywallHelpTooltip": "Help",
   "paywallHelpTitle": "About this screen",
-  "paywallHelpBody": "• Enable Pro: Unlock features like AI Partner messages.\n  Monthly plan ¥500/month (auto-renew), Yearly plan ¥4,800/year (auto-renew).\n• Restore purchases: Restores past purchases on this device (no duplicate charge).\n• Manage subscription: Opens the system subscription management screen.",
+
+  "paywallHelpBody": "• Enable Pro: Unlock features like AI Partner messages.\n  Monthly plan {monthlyPrice}/month (auto-renew), Yearly plan {yearlyPrice}/year (auto-renew).\n• Restore purchases: Restores past purchases on this device (no duplicate charge).\n• Manage subscription: Opens the system subscription management screen.",
+    "@paywallHelpBody": {
+      "placeholders": {
+        "monthlyPrice": { "type": "String" },
+        "yearlyPrice": { "type": "String" }
+      }
+    },
+
+
   "paywallFirstMonthNote": "The first month is time to get used to this app.\nYou can decide later whether to continue.",
   "paywallSubscriptionHeader": "About subscriptions",
-  "paywallSubscriptionBody": "• Monthly: ¥500 / month (auto-renew)\n• Yearly: ¥4,800 / year (auto-renew)\n• Payment will be charged to your Apple ID after confirmation\n• Subscriptions renew automatically unless canceled at least 24 hours before the end of the period",
+
+   "paywallSubscriptionBody": "• Monthly: {monthlyPrice} / month (auto-renew)\n• Yearly: {yearlyPrice} / year (auto-renew)\n• Payment will be charged to your Apple ID after confirmation\n• Subscriptions renew automatically unless canceled at least 24 hours before the end of the period",
+    "@paywallSubscriptionBody": {
+      "placeholders": {
+        "monthlyPrice": { "type": "String" },
+        "yearlyPrice": { "type": "String" }
+      }
+    },
+
   "paywallLinkTerms": "Terms of Use",
   "paywallLinkPrivacy": "Privacy Policy",
-  "paywallMonthlyPreparing": "¥500 / month (preparing)",
-  "paywallYearlyPreparing": "¥4,800 / year (preparing)",
+
+   "paywallMonthlyPreparing": "Monthly plan (preparing)",
+   "paywallYearlyPreparing": "Yearly plan (preparing)",
+
   "paywallMonthlyCta": "{price} / month – Enable monthly plan",
   "@paywallMonthlyCta": { "placeholders": { "price": {} } },
   "paywallYearlyCta": "{price} / year – Enable yearly plan",
