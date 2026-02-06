@@ -31,7 +31,7 @@ class E {
 
   // Favorite word dialog
   static const String favoriteDialogTitle = 'Your favorite phrase';
-  static const String favoriteLimit = '(Up to 40 characters)';
+  static const String favoriteLimit = '(Up to 100 characters)';
   static const String favoriteHint = 'e.g., I\'m okay at my own pace.';
   static const String favoriteHelp = 'Tip: If there’s a line from today you want to keep, write it here.';
   static const String close = 'Close';

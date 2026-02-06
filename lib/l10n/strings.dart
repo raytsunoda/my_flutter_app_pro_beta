@@ -60,7 +60,7 @@ class S {
 
     // Favorite dialog (AIPartner)
     String get favoriteDialogTitle => isJa ? 'お気に入りのあなたの言葉' : E.favoriteDialogTitle;
-    String get favoriteLimit => isJa ? '（40文字以内）' : E.favoriteLimit;
+    String get favoriteLimit => isJa ? '（100文字以内）' : E.favoriteLimit;
     String get favoriteHint => isJa ? '例：私は私のペースで大丈夫' : E.favoriteHint;
     String get favoriteHelp => isJa ? '※ 今日のメモの中から、\n　残しておきたいあなたの言葉があれば書いてください' : E.favoriteHelp;
 

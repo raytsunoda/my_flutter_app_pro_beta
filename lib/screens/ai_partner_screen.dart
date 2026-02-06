@@ -758,7 +758,7 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: controller,
-                maxLength: 40,
+                maxLength: 100,
                 maxLines: 2,
                //  decoration: const InputDecoration(
                // //   hintText: '例：私は私のペースで大丈夫',

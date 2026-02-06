@@ -65,6 +65,12 @@ Map<String, String>? _toRow(Map<String, dynamic> m) {
   return {'date': date, 'type': type, 'comment': comment};
 }
 
+
+
+
+
+
+
 Future<http.Response> _postWithTimeout(
     String url, {
       required Map<String, String> headers,
@@ -160,6 +166,43 @@ DateTime _monthlyVisibleCutoff(DateTime now) =>
 
 
 class AiCommentService {
+
+  // --- ADD: 英語用の感謝追記（保険） ---
+  static String _ensureGratitudeMentionEn(String text, List<String> candidates) {
+
+  final first = candidates.firstWhere((e) => e.trim().isNotEmpty, orElse: () => '');
+    if (first.isEmpty) return text;
+
+    // "感謝"候補キューが日本語の場合もあるので、存在チェックはゆるめ
+    final already = RegExp(r'\bthank', caseSensitive: false).hasMatch(text) || text.contains(first);
+    return already ? text : '$text\n\nP.S. Being thankful for “$first” sounds meaningful today.';
+  }
+
+// --- ADD: 英語用のメモ追記（保険） ---
+  static String _appendMemoLineIfMissingEn(String text, String memoCue, bool hasMemo) {
+    if (!hasMemo) return text;
+    final cue = memoCue.trim();
+    if (cue.isEmpty) return text;
+
+    final s = text.trim();
+    final already = s.contains(cue) || RegExp(r'\bmemo\b', caseSensitive: false).hasMatch(s);
+    if (already) return s;
+
+    final variants = <String>[
+      'P.S. Your memo about “$cue” feels important—keep that in your pocket.',
+      'P.S. The idea “$cue” from your memo could gently guide your next step.',
+      'P.S. Writing “$cue” down was a good move—small clarity helps.',
+    ];
+    final idx = cue.hashCode.abs() % variants.length;
+
+    final withPeriod = RegExp(r'[.!?]$').hasMatch(s) ? s : '$s.';
+    return '$withPeriod ${variants[idx]}';
+  }
+
+
+
+
+
 // 例：既存の実装名が違うならエイリアスでも可
   static Future<void> deleteCommentsForDates(List<String> ymdList) async {
     // ← あなたが作った削除実装をここで呼ぶ or 本体をここに置く
@@ -239,8 +282,14 @@ class AiCommentService {
     return s;
   }
 // --- 出力に「感謝」の言及が無ければ1つだけ追記する（保険） ---
-  static String _ensureGratitudeMention(String text, List<String> candidates) {
-    // candidates: pickedMemos など（感謝1〜3を含む候補）
+  //static String _ensureGratitudeMention(String text, List<String> candidates) {
+  //static String _ensureGratitudeMention(String text, List<String> candidates, {required String lang}) {
+  static String _ensureGratitudeMention(
+      String text,
+      List<String> candidates, {
+        required String lang, // 'ja' or 'en'
+      }) {
+  // candidates: pickedMemos など（感謝1〜3を含む候補）
     final first = candidates.firstWhere(
           (e) => e.trim().isNotEmpty,
       orElse: () => '',
@@ -248,9 +297,18 @@ class AiCommentService {
     if (first.isEmpty) return text;
 
     final alreadyMentions =
-        text.contains('感謝') || text.contains(first) || RegExp(r'ありがとう').hasMatch(text);
+        text.contains('感謝') ||
+            text.contains(first) ||
+            RegExp(r'ありがとう').hasMatch(text) ||
+            RegExp(r'\bthank', caseSensitive: false).hasMatch(text);
 
-    return alreadyMentions ? text : '$text\n\n追伸：今日は「$first」に感謝ですね。';
+    if (alreadyMentions) return text;
+
+    if (lang == 'en') {
+      return '$text\n\nP.S. Being thankful for "$first" feels meaningful today.';
+    }
+
+    return '$text\n\n追伸：今日は「$first」に感謝ですね。';
   }
 
 
@@ -862,10 +920,33 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     final walkMin  = radar.length > 1 ? radar[1] : 0.0; // 分
     final stretch  = radar.length > 2 ? radar[2] : 0.0; // 分
 
-    final callName = await _callName();
+   // final callName = await _callName();
 
 
     final languageCode = PlatformDispatcher.instance.locale.languageCode; // 'ja' or 'en'
+
+    final deviceLang = PlatformDispatcher.instance.locale.languageCode; // 'ja' or 'en'
+
+    bool looksEnglish(String s) {
+      final t = s.trim();
+      if (t.isEmpty) return false;
+      final letters = RegExp(r'[A-Za-z]').allMatches(t).length;
+      return letters >= 15;
+    }
+
+    final effectiveLang = looksEnglish(memoStr) ? 'en' : deviceLang;
+    final rawName = (await _resolveDisplayName()).trim();
+
+// 日本語用：さん付け
+    final callNameJa = rawName.isEmpty
+        ? 'ユーザーさん'
+        : (rawName.endsWith('さん') ? rawName : '${rawName}さん');
+
+// 英語用：さん無し（未設定時は User）
+    final callNameEn = rawName.isEmpty ? 'User' : rawName;
+
+// ★英語のときは callNameEn を使う
+    final callName = (effectiveLang == 'en') ? callNameEn : callNameJa;
 
 
     // デバッグ追跡用の軽いプレビュー
@@ -934,6 +1015,9 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       📝 ${hasMemo ? memoStr : '(なし)'}
       
 ''';
+
+
+
 // --- 新規：英語プロンプト（日次） ---
     final promptEn = '''
 
@@ -982,7 +1066,18 @@ ${hasMemo ? memoStr : '(none)'}
 ''';
 
 
-final prompt = (languageCode == 'en') ? promptEn : promptJa;
+//final prompt = (languageCode == 'en') ? promptEn : promptJa;
+final prompt = (effectiveLang == 'en') ? promptEn : promptJa;
+
+    if (LOG_AI) {
+      debugPrint('[AI LANG] device=$deviceLang effective=$effectiveLang usePrompt=${effectiveLang=='en'?'EN':'JA'}');
+      debugPrint('--- AI LANG DEBUG (daily) ---');
+      debugPrint('deviceLang    = $deviceLang');
+      debugPrint('effectiveLang = $effectiveLang');
+      final headLen = min(120, prompt.length);
+      debugPrint('promptHead    = ${prompt.substring(0, headLen)}');
+      debugPrint('-----------------------------');
+    }
 
 
 
@@ -1003,7 +1098,7 @@ final prompt = (languageCode == 'en') ? promptEn : promptJa;
         'callName': callName,
         'name': callName,
         'prompt': prompt,
-        'languageCode': languageCode, // ← ★これを追加
+        'languageCode':   effectiveLang, // ← ★これを追加
         'metrics': {
           'happiness': scoreStr,
           'sleepQ': sleepQ,
@@ -1051,16 +1146,27 @@ final prompt = (languageCode == 'en') ? promptEn : promptJa;
               .map((s) {
             final cut = s.replaceAll(RegExp(r'\s+'), ' ').trim();
             final head = cut.split(RegExp(r'[、。]|は|が|を|に|で|と')).first.trim();
-            return head.isEmpty
-                ? ''
-                : (head.length > 12 ? '${head.substring(0, 12)}…' : head) + 'に感謝';
+            // return head.isEmpty
+            //     ? ''
+            //     : (head.length > 12 ? '${head.substring(0, 12)}…' : head) + 'に感謝';
+                        if (head.isEmpty) return '';
+                        final shortHead = head.length > 12 ? '${head.substring(0, 12)}…' : head;
+                        return (effectiveLang == 'en')
+                            ? shortHead
+                            : '${shortHead}に感謝';
+
           })
               .where((t) => t.isNotEmpty)
               .toList();
-          text = _ensureGratitudeMention(text, cues);
-
-          // ★メモ反映の最終チェック：触れていなければ短い一文を自動追記
-          text = _appendMemoLineIfMissing(text, _memoCue(memoStr), hasMemo);
+          if (effectiveLang == 'en') {
+            //text = _ensureGratitudeMentionEn(text, cues);
+            text = _ensureGratitudeMention(text, cues, lang: effectiveLang);
+            text = _appendMemoLineIfMissingEn(text, _memoCue(memoStr), hasMemo);
+          } else {
+           // text = _ensureGratitudeMention(text, cues);
+            text = _ensureGratitudeMention(text, cues, lang: effectiveLang);
+            text = _appendMemoLineIfMissing(text, _memoCue(memoStr), hasMemo);
+          }
 
           text = text.replaceAll('大切にできると良さそうです。', '次の一歩に活かせそうです。');
           return text;
@@ -1173,10 +1279,9 @@ final prompt = (languageCode == 'en') ? promptEn : promptJa;
       return 'この${type == "weekly" ? "週" : "月"}のコメントは既に保存されています。';
     }
 
-    final locale = PlatformDispatcher.instance.locale;
-    final languageCode = locale.languageCode; // 'ja' or 'en'
+    // final locale = PlatformDispatcher.instance.locale;
+    // final languageCode = locale.languageCode; // 'ja' or 'en'
 
-  //  final languageCode = PlatformDispatcher.instance.locale.languageCode; // 'ja' or 'en'
 
     // 期間データの読み出し（従来ロジックを活用）
     final rows = await CsvLoader.loadCsvDataBetween(startDate, endDate);
@@ -1237,6 +1342,23 @@ final prompt = (languageCode == 'en') ? promptEn : promptJa;
     final titleJa = (type == 'weekly') ? '週次' : '月次';
     final periodLabel =
         '${DateFormat('yyyy/MM/dd').format(startDate)} ～ ${DateFormat('yyyy/MM/dd').format(endDate)}';
+
+
+
+    final languageCode = PlatformDispatcher.instance.locale.languageCode; // 'ja' or 'en'
+
+    final deviceLang = PlatformDispatcher.instance.locale.languageCode;
+
+    bool looksEnglishBulk(List<String> ms) {
+      final joined = ms.join(' ');
+      final letters = RegExp(r'[A-Za-z]').allMatches(joined).length;
+      return letters >= 30;
+    }
+
+    final effectiveLang =
+    looksEnglishBulk(pickedMemos) ? 'en' : deviceLang;
+
+
 
 
 
@@ -1305,7 +1427,18 @@ $memosForPrompt
 
 ''';
 
-final prompt = (languageCode == 'en') ? promptEn : promptJa;
+//final prompt = (languageCode == 'en') ? promptEn : promptJa;
+final prompt = (effectiveLang == 'en') ? promptEn : promptJa;
+
+    if (LOG_AI) {
+      debugPrint('[AI LANG] device=$deviceLang effective=$effectiveLang usePrompt=${effectiveLang=='en'?'EN':'JA'}');
+      debugPrint('--- AI LANG DEBUG (daily) ---');
+      debugPrint('deviceLang    = $deviceLang');
+      debugPrint('effectiveLang = $effectiveLang');
+      final headLen = min(120, prompt.length);
+      debugPrint('promptHead    = ${prompt.substring(0, headLen)}');
+      debugPrint('-----------------------------');
+    }
 
 
 
@@ -1317,7 +1450,7 @@ final prompt = (languageCode == 'en') ? promptEn : promptJa;
         'callName': callName,
         'name': callName,
         'prompt': prompt,
-        'languageCode': languageCode, // ← ★これを追加
+        'languageCode': effectiveLang,// ← ★これを追加
         'metrics': {
           'avg_happiness': happyAvg,
           'avg_sleepQ': sleepAvg,
@@ -1337,7 +1470,13 @@ final prompt = (languageCode == 'en') ? promptEn : promptJa;
           } catch (e, st) {
             debugPrint('[enforceCallName] ignore: $e\n$st');
           }
-          text = _ensureGratitudeMention(text, gratitudeCues);
+          text = _ensureGratitudeMention(
+            text,
+            gratitudeCues,
+            lang: effectiveLang, // ← ここが必須
+          );
+
+          //text = _ensureGratitudeMention(text, gratitudeCues, lang: effectiveLang);
           return text;
         }
       }
