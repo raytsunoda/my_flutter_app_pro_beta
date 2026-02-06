@@ -13,6 +13,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/user_prefs.dart';
 import 'package:path/path.dart' as p;
 import 'dart:async';
+import 'dart:ui'; // ← Locale を使うため（未importなら追加）
+
+
+
 
 // === DEBUG: AIプロンプト/応答ログ制御（--dart-define=LOG_AI=true で有効） ===
 const bool LOG_AI = bool.fromEnvironment('LOG_AI', defaultValue: false);
@@ -859,6 +863,11 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     final stretch  = radar.length > 2 ? radar[2] : 0.0; // 分
 
     final callName = await _callName();
+
+
+    final languageCode = PlatformDispatcher.instance.locale.languageCode; // 'ja' or 'en'
+
+
     // デバッグ追跡用の軽いプレビュー
     try {
       debugPrint('[AI daily] $ymdLabel memoPreview="${_preview(memoStr, 40)}"');
@@ -937,7 +946,9 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
         'kind': 'daily',
         'date': ymdLabel,
         'callName': callName,
+        'name': callName,
         'prompt': prompt,
+        'languageCode': languageCode, // ← ★これを追加
         'metrics': {
           'happiness': scoreStr,
           'sleepQ': sleepQ,
@@ -1107,6 +1118,9 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       return 'この${type == "weekly" ? "週" : "月"}のコメントは既に保存されています。';
     }
 
+
+    final languageCode = PlatformDispatcher.instance.locale.languageCode; // 'ja' or 'en'
+
     // 期間データの読み出し（従来ロジックを活用）
     final rows = await CsvLoader.loadCsvDataBetween(startDate, endDate);
 
@@ -1192,7 +1206,9 @@ $memosForPrompt
         'kind': type, // 'weekly'|'monthly'
         'date': endDateStr,
         'callName': callName,
+        'name': callName,
         'prompt': prompt,
+        'languageCode': languageCode, // ← ★これを追加
         'metrics': {
           'avg_happiness': happyAvg,
           'avg_sleepQ': sleepAvg,

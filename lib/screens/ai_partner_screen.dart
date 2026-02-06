@@ -292,6 +292,7 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
 
 
   Future<void> _fetchAiComment() async {
+    final langCode = S.of(context).locale.languageCode; // ←追加
     // まずは「考え中です…」表示にする
     setState(() {
       aiResponse = s.thinking;
