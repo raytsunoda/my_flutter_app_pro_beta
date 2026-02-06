@@ -881,7 +881,10 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
         ? '・メモがある場合：本文の前半2文のうち最低1文で「${callName}」のメモの要点を具体語で要約し（コピペ不可・短く言い換える）、その内容に直結する次の一歩を1つだけ提示する。'
         : '・メモが無い場合：メモには一切触れない（「未入力」等にも触れない）。';
     // プロンプト強化：メモに必ず触れる・一般論回避・伴走トーンひと言
-    final prompt = '''
+
+// --- 既存の日本語プロンプト（変更しない） ---
+    //final prompt = '''
+    final promptJa = '''
       
       ${callName} へ。あなたはユーザーの心に寄り添い、前向きな気持ちを支える、共感的かつ実践的なAIパートナーです。
       **当日のスコア、3つの感謝、今日のひとことメモ**（※メモが空なら無理に触れない）を参照し、薄味な一般論ではなく ${callName} 個人の今日に寄り添う短文コメントを作成してください。
@@ -931,6 +934,58 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       📝 ${hasMemo ? memoStr : '(なし)'}
       
 ''';
+// --- 新規：英語プロンプト（日次） ---
+    final promptEn = '''
+
+To ${callName}. You are an empathetic and practical AI partner who stays close to the user and supports their emotional well-being.
+
+Using **today’s score, up to three gratitude entries, and today’s short memo**
+(if the memo is empty, do not forcefully mention it),
+write a short, personal comment that reflects *${callName}’s specific day* rather than a generic message.
+
+【Required conditions】
+- Write in **English**, within a length roughly equivalent to the Japanese version (about 3–4 sentences).
+- Follow this structure:
+  “Warm, empathetic opening
+   → Today’s characteristics (mention the memo **only once and only if it exists**)
+   → One brief gratitude mention (paraphrased; no copying)
+   → One small, realistic next step (about one sentence; concrete and gentle)
+   → Reassuring closing”
+- Always address the user as “${callName}”. Do **not** use casual second-person openings.
+- If a memo exists, reflect **one key point** in your own words.
+- Mention **at least one** gratitude item, briefly paraphrased (no direct copying).
+- Include **only one** “next step”, small and achievable.
+- Use “amazing” or similar praise **only if the happiness score is 80 or above**.
+- Describe happiness levels in **natural language** (e.g. “in the 50s”, “fairly steady”); do not mention decimals.
+- Avoid emojis, lecturing, exaggerated politeness, or numeric-only praise.
+- Avoid negative or preachy language; maintain a gentle, companion-like tone.
+- When a memo exists, let **30–40% of the message reflect its key idea**, using concrete words rather than general advice.
+
+【Writing hints (do not include in output)】
+- Paraphrase one or two key ideas from the memo briefly.
+- Add one short gratitude phrase (e.g. “being thankful for …”).
+- Make the next step very small and realistic (e.g. “take three slow breaths before sleep”).
+
+【Today’s data】
+Date: $ymdLabel
+Happiness level: $scoreStr
+Sleep quality: ${sleepQ.toStringAsFixed(0)}%
+Walking: ${walkMin.toStringAsFixed(0)} minutes
+Stretching: ${stretch.toStringAsFixed(0)} minutes
+
+【Gratitude entries】 (for paraphrased reference only)
+${thanksStr.isEmpty ? '(none)' : thanksStr}
+
+【Today’s short memo】 (reflect once if present)
+${hasMemo ? memoStr : '(none)'}
+
+''';
+
+
+final prompt = (languageCode == 'en') ? promptEn : promptJa;
+
+
+
 
 // === 送信直前ログ（プロンプト/メモ/感謝が入っているか可視化） ===
     if (LOG_AI) {
@@ -1118,8 +1173,10 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       return 'この${type == "weekly" ? "週" : "月"}のコメントは既に保存されています。';
     }
 
+    final locale = PlatformDispatcher.instance.locale;
+    final languageCode = locale.languageCode; // 'ja' or 'en'
 
-    final languageCode = PlatformDispatcher.instance.locale.languageCode; // 'ja' or 'en'
+  //  final languageCode = PlatformDispatcher.instance.locale.languageCode; // 'ja' or 'en'
 
     // 期間データの読み出し（従来ロジックを活用）
     final rows = await CsvLoader.loadCsvDataBetween(startDate, endDate);
@@ -1181,8 +1238,18 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     final periodLabel =
         '${DateFormat('yyyy/MM/dd').format(startDate)} ～ ${DateFormat('yyyy/MM/dd').format(endDate)}';
 
+
+
+
     // ❶ “伴走トーン＆約1.5倍” のプロンプト（あなた禁止／構成＆最大300文字）
-    final prompt = '''
+ //   final prompt = '''
+
+// --- 既存の日本語プロンプト（変更しない） ---
+final promptJa = '''
+
+
+
+    
 ${callName} へ。共感的で実践的なAIパートナーとして、以下の期間データを踏まえた${titleJa}コメントを作成します。一般論ではなく ${callName} 個人に寄り添う言葉でまとめてください。
 
 【出力仕様（厳守）】
@@ -1200,6 +1267,48 @@ ${callName} へ。共感的で実践的なAIパートナーとして、以下の
 【メモ要点（必要に応じて1〜2つ言及）】
 $memosForPrompt
 ''';
+
+// --- 新規：英語プロンプト（週次／月次） ---
+    final promptEn = '''
+
+To ${callName}. As an empathetic and practical AI partner, write a ${type == 'weekly' ? 'weekly' : 'monthly'} reflection based on the period data below.
+Avoid general advice and focus on insights that are personal to ${callName}.
+
+【Output requirements (strict)】
+- Always open by addressing “${callName}”.
+- Write in **English**, with a gentle and supportive tone, up to a length roughly equivalent to the Japanese version.
+- Follow this structure:
+  “Empathetic opening
+   → One or two notable characteristics of the period (with light evidence)
+   → One brief gratitude mention (paraphrased)
+   → One small, realistic next step (about one sentence)
+   → Gentle, reassuring closing”
+- Do not use “you” as a casual or directive form.
+- Avoid emojis, emoticons, preachy language, or excessive praise.
+- Describe happiness levels using **natural expressions** (e.g. “in the 50s”, “fairly steady”); avoid decimals.
+- Avoid negative framing; speak as a steady companion.
+- Include **only one** next step, small and achievable (e.g. “take three slow breaths before bed”).
+
+【Period】
+$periodLabel
+
+【General trends (rough averages)】
+Happiness: $happyAvg  
+Sleep: $sleepAvg  
+Walking: $walkAvg  
+
+【Gratitude cues】 (paraphrase if used)
+${gratitudeCues.isEmpty ? '(none)' : gratitudeCues.join(' / ')}
+
+【Memo highlights】 (mention 1–2 points only if helpful)
+$memosForPrompt
+
+''';
+
+final prompt = (languageCode == 'en') ? promptEn : promptJa;
+
+
+
 
     try {
       final res = await _postJsonWithRetry(_aiEndpoint, {
