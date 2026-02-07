@@ -798,6 +798,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
 
+    final isJa = Localizations.localeOf(context).languageCode == 'ja';
+
     final t = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
@@ -893,7 +895,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
 
-
         ExpansionTile(
 
           leading: const Icon(Icons.folder_copy_outlined),
@@ -901,7 +902,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // '保存データの管理',
           // style: TextStyle(fontWeight: FontWeight.w600),
           // ),
-            title: Text(t.settingsSavedDataTitle, style: const TextStyle(fontWeight: FontWeight.w600)),
+          //  title: Text(t.settingsSavedDataTitle, style: const TextStyle(fontWeight: FontWeight.w600)),
+// 置き換え（title: Text(...) の行だけ）
+
+            title: Text(
+            isJa ? t.settingsSavedDataTitle : 'Manage saved data',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
 
             children: [
             if (_csvData.isEmpty)
@@ -964,24 +971,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     final g3         = v(['感謝3'], 16);
                                     final memo       = v(['memo','メモ','今日のひとことメモ'], 17);
 
-                                    final fields = <Map<String,String>>[
-                                      {'key':'幸せ感レベル', 'val': happy},
-                                      {'key':'ストレッチ時間', 'val': stretch},
-                                      {'key':'ウォーキング時間', 'val': walk},
-                                      {'key':'睡眠の質', 'val': sleepQ},
-                                      {'key':'睡眠時間（時間換算）', 'val': sleepHour},
-                                      {'key':'睡眠時間（分換算）', 'val': sleepMinQ},
-                                      {'key':'睡眠時間（時間）', 'val': sleepHourCol},
-                                      {'key':'睡眠時間（分）', 'val': sleepMinCol},
-                                      {'key':'寝付きの満足度', 'val': sleepEase},
-                                      {'key':'深い睡眠感', 'val': deepSleep},
-                                      {'key':'目覚め感', 'val': wakeFeel},
-                                      {'key':'モチベーション', 'val': motive},
-                                      {'key':'感謝数', 'val': thanksCnt},
-                                      {'key':'感謝1', 'val': g1},
-                                      {'key':'感謝2', 'val': g2},
-                                      {'key':'感謝3', 'val': g3},
-                                      {'key':'今日のひとことメモ', 'val': memo},
+                                    // final fields = <Map<String,String>>[
+                                    //   {'key':'幸せ感レベル', 'val': happy},
+                                    //   {'key':'ストレッチ時間', 'val': stretch},
+                                    //   {'key':'ウォーキング時間', 'val': walk},
+                                    //   {'key':'睡眠の質', 'val': sleepQ},
+                                    //   {'key':'睡眠時間（時間換算）', 'val': sleepHour},
+                                    //   {'key':'睡眠時間（分換算）', 'val': sleepMinQ},
+                                    //   {'key':'睡眠時間（時間）', 'val': sleepHourCol},
+                                    //   {'key':'睡眠時間（分）', 'val': sleepMinCol},
+                                    //   {'key':'寝付きの満足度', 'val': sleepEase},
+                                    //   {'key':'深い睡眠感', 'val': deepSleep},
+                                    //   {'key':'目覚め感', 'val': wakeFeel},
+                                    //   {'key':'モチベーション', 'val': motive},
+                                    //   {'key':'感謝数', 'val': thanksCnt},
+                                    //   {'key':'感謝1', 'val': g1},
+                                    //   {'key':'感謝2', 'val': g2},
+                                    //   {'key':'感謝3', 'val': g3},
+                                    //   {'key':'今日のひとことメモ', 'val': memo},
+                                    // ];
+
+                                    final fields = <Map<String, String>>[
+                                      {'keyJa': '幸せ感レベル', 'labelEn': 'Happiness level', 'val': happy},
+                                      {'keyJa': 'ストレッチ時間', 'labelEn': 'Stretch time', 'val': stretch},
+                                      {'keyJa': 'ウォーキング時間', 'labelEn': 'Walking time', 'val': walk},
+                                      {'keyJa': '睡眠の質', 'labelEn': 'Sleep quality', 'val': sleepQ},
+                                      {'keyJa': '睡眠時間（時間換算）', 'labelEn': 'Sleep (hours, calculated)', 'val': sleepHour},
+                                      {'keyJa': '睡眠時間（分換算）', 'labelEn': 'Sleep (minutes, calculated)', 'val': sleepMinQ},
+                                      {'keyJa': '睡眠時間（時間）', 'labelEn': 'Sleep hours', 'val': sleepHourCol},
+                                      {'keyJa': '睡眠時間（分）', 'labelEn': 'Sleep minutes', 'val': sleepMinCol},
+                                      {'keyJa': '寝付きの満足度', 'labelEn': 'Falling asleep satisfaction', 'val': sleepEase},
+                                      {'keyJa': '深い睡眠感', 'labelEn': 'Deep sleep feeling', 'val': deepSleep},
+                                      {'keyJa': '目覚め感', 'labelEn': 'Wake-up feeling', 'val': wakeFeel},
+                                      {'keyJa': 'モチベーション', 'labelEn': 'Motivation', 'val': motive},
+                                      {'keyJa': '感謝数', 'labelEn': 'Gratitude count', 'val': thanksCnt},
+                                      {'keyJa': '感謝1', 'labelEn': 'Gratitude 1', 'val': g1},
+                                      {'keyJa': '感謝2', 'labelEn': 'Gratitude 2', 'val': g2},
+                                      {'keyJa': '感謝3', 'labelEn': 'Gratitude 3', 'val': g3},
+                                      {'keyJa': '今日のひとことメモ', 'labelEn': 'Today’s note', 'val': memo},
                                     ];
 
                                     final widgets = <Widget>[
@@ -989,21 +1016,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       const SizedBox(height: 8),
                                     ];
 
+                                    // for (final f in fields) {
+                                    //   final k = _s(f['key']);      // ← どんな型でも安全に String 化 + trim
+                                    //   final rawVal = _s(f['val']); // ← 同上
+                                    //   final val = _formatDisplayValue(k, rawVal);
+                                    //
+                                    //   if (k == '今日のひとことメモ') {
+                                    //     widgets.add(
+                                    //       Padding(
+                                    //         padding: const EdgeInsets.symmetric(vertical: 2),
+                                    //         child: Column(
+                                    //           crossAxisAlignment: CrossAxisAlignment.start,
+                                    //           children: [
+                                    //             Text(k, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54)),
+                                    //             const SizedBox(height: 2),
+                                    //             Text(val.isEmpty ? '（未入力）' : val, softWrap: true),
+                                    //           ],
+                                    //         ),
+                                    //       ),
+                                    //     );
+                                    //   } else {
+                                    //     widgets.add(
+                                    //       Padding(
+                                    //         padding: const EdgeInsets.symmetric(vertical: 2),
+                                    //         child: Row(
+                                    //           crossAxisAlignment: CrossAxisAlignment.start,
+                                    //           children: [
+                                    //             Text(k, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54)),
+                                    //             const SizedBox(width: 8),
+                                    //             Expanded(child: Text(val.isEmpty ? '—' : val)),
+                                    //           ],
+                                    //         ),
+                                    //       ),
+                                    //     );
+                                    //   }
+                                    // }
                                     for (final f in fields) {
-                                      final k = _s(f['key']);      // ← どんな型でも安全に String 化 + trim
-                                      final rawVal = _s(f['val']); // ← 同上
-                                      final val = _formatDisplayValue(k, rawVal);
+                                      final keyJa = _s(f['keyJa']);            // ← フォーマット判定は日本語キーで固定
+                                      final label = isJa ? keyJa : _s(f['labelEn']); // ← 画面表示だけ英語/日本語切替
 
-                                      if (k == '今日のひとことメモ') {
+                                      final rawVal = _s(f['val']);
+                                      final val = _formatDisplayValue(keyJa, rawVal);
+
+                                      final notEntered = isJa ? '（未入力）' : '(Not entered)';
+
+                                      if (keyJa == '今日のひとことメモ') {
                                         widgets.add(
                                           Padding(
                                             padding: const EdgeInsets.symmetric(vertical: 2),
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Text(k, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54)),
+                                                Text(label,
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: const TextStyle(color: Colors.black54)),
                                                 const SizedBox(height: 2),
-                                                Text(val.isEmpty ? '（未入力）' : val, softWrap: true),
+                                                Text(val.isEmpty ? notEntered : val, softWrap: true),
                                               ],
                                             ),
                                           ),
@@ -1015,7 +1084,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                             child: Row(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Text(k, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54)),
+                                                Text(label,
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: const TextStyle(color: Colors.black54)),
                                                 const SizedBox(width: 8),
                                                 Expanded(child: Text(val.isEmpty ? '—' : val)),
                                               ],
