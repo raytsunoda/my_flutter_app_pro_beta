@@ -24,6 +24,8 @@ import 'package:my_flutter_app_pro/services/notification_service.dart'; // ← �
 import 'package:url_launcher/url_launcher.dart';
 import '../gen_l10n/app_localizations.dart';
 
+import 'package:my_flutter_app_pro/utils/notification_scheduler.dart';
+
 
 
 // ==== helpers (robust cell access) ====
@@ -232,25 +234,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
 
-    // ✅ 許可された場合だけ、実際にスケジュールを登録
+    final isJa = Localizations.localeOf(context).languageCode == 'ja';
+
     await _scheduleNotification(
       id: 1,
       time: _morningTime,
-      title: 'おはようございます☀️',
-      body: '今日の記録✏️をつけましょう',
+      title: isJa ? 'おはようございます☀️' : 'Good morning ☀️',
+      body:  isJa ? '今日の記録✏️をつけましょう' : 'Let’s log today’s entry ✏️',
     );
     await _scheduleNotification(
       id: 2,
       time: _eveningTime,
-      title: '今日も1日お疲れ様でした🌙',
-      body: '気持ちを整えるヒント💡をチェックしてみませんか？',
+      title: isJa ? '今日も1日お疲れ様でした🌙' : 'Good work today 🌙',
+      body:  isJa ? '気持ちを整えるヒント💡をチェックしてみませんか？' : 'Want to check a calming tip 💡?',
     );
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      //const SnackBar(content: Text('通知時刻を保存・再スケジュールしました')),
-      SnackBar(content: Text(t.settingsNotifSavedRescheduled)),
-    );
   }
 
 
@@ -327,12 +325,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onTap: () => _pickTime(isMorning: false),
         ),
         Center(
-          child: ElevatedButton(
-            onPressed: _saveNotificationTimes,
-            //child: const Text('保存'),
-            child: Text(t.commonSave),
+          child: Column(
+            children: [
+              ElevatedButton(
+                onPressed: _saveNotificationTimes,
+                child: Text(t.commonSave),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.refresh),
+                onPressed: () async {
+                  // 既存予約（1001/1002）をキャンセルして、英日ラベルで再予約
+                  await rescheduleNotifications();
+
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        Localizations.localeOf(context).languageCode == 'ja'
+                            ? '通知を再予約しました（言語も更新）'
+                            : 'Notifications rescheduled (language updated)',
+                      ),
+                    ),
+                  );
+                },
+                label: Text(
+                  Localizations.localeOf(context).languageCode == 'ja'
+                      ? '通知を再予約する'
+                      : 'Reschedule notifications',
+                ),
+              ),
+            ],
           ),
         ),
+
       ],
     );
   }

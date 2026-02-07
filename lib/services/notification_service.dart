@@ -3,8 +3,13 @@ import 'dart:developer' as dev;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
-
 import '../screens/ai_comment_history_screen.dart';
+import 'dart:ui' show PlatformDispatcher; // ★追加
+
+// ★追加：端末言語で出し分け（context不要）
+bool _isJa() => PlatformDispatcher.instance.locale.languageCode == 'ja';
+String _tx({required String ja, required String en}) => _isJa() ? ja : en;
+
 
 class NotificationService {
   NotificationService._();
@@ -67,7 +72,10 @@ class NotificationService {
         NotificationChannel(
           channelKey: _channelKey,
           channelName: 'AI Comments',
-          channelDescription: 'AIコメントの振り返りリマインダー',
+          channelDescription: _tx(
+            ja: 'AIコメントの振り返りリマインダー',
+            en: 'Reminders to review your AI comments',
+          ),
           importance: NotificationImportance.High,
         ),
       ],
@@ -168,75 +176,81 @@ class NotificationService {
     final d = delay ?? const Duration(seconds: 10);
     Future.delayed(d, () async {
       await _safe(() => AwesomeNotifications().createNotification(
-            content: NotificationContent(
-              id: DateTime.now().millisecondsSinceEpoch.remainder(1 << 31),
-              channelKey: _channelKey,
-              title: 'デバッグ通知',
-              body: 'タップでAIコメント履歴へ移動',
-              payload: {'route': '/history', 'tab': tab},
-              category: NotificationCategory.Reminder,
-              displayOnForeground: true,
-              wakeUpScreen: true,
-              autoDismissible: false,
-            ),
-          ));
+        content: NotificationContent(
+          id: DateTime.now().millisecondsSinceEpoch.remainder(1 << 31),
+          channelKey: _channelKey,
+          title: _tx(ja: 'デバッグ通知', en: 'Debug notification'),
+          body: _tx(ja: 'タップでAIコメント履歴へ移動', en: 'Tap to open AI comment history'),
+          payload: {'route': '/history', 'tab': tab},
+          category: NotificationCategory.Reminder,
+          displayOnForeground: true,
+          wakeUpScreen: true,
+          autoDismissible: false,
+        ),
+      ));
     });
-
-
   }
 
   // ====================== スケジュール ======================
 
   /// 週次（先週の振り返り）…毎週 **月曜 10:00**
   static Future<void> scheduleWeeklyOnMonday10() async {
-
     if (!await _ensureAllowed(requestIfDenied: false)) return;
     await _safe(() => AwesomeNotifications().cancel(_idWeekly));
     await _safe(() => AwesomeNotifications().createNotification(
-          content: NotificationContent(
-            id: _idWeekly,
-            channelKey: _channelKey,
-            title: '週次のAIコメントを確認しましょう',
-            body: 'タップで履歴（週次）へ',
-            payload: {'route': '/history', 'tab': 'weekly'},
-            category: NotificationCategory.Reminder,
-          ),
-          schedule: NotificationCalendar(
-            weekday: DateTime.monday,
-            hour: 10,
-            minute: 0,
-            second: 0,
-            repeats: true,
-            preciseAlarm: true,
-          ),
-        ));
+      content: NotificationContent(
+        id: _idWeekly,
+        channelKey: _channelKey,
+        title: _tx(
+          ja: '週次のAIコメントを確認しましょう',
+          en: 'Your weekly AI comment is ready',
+        ),
+        body: _tx(
+          ja: 'タップで履歴（週次）へ',
+          en: 'Tap to open history (Weekly)',
+        ),
+        payload: {'route': '/history', 'tab': 'weekly'},
+        category: NotificationCategory.Reminder,
+      ),
+      schedule: NotificationCalendar(
+        weekday: DateTime.monday,
+        hour: 10,
+        minute: 0,
+        second: 0,
+        repeats: true,
+        preciseAlarm: true,
+      ),
+    ));
   }
 
   /// 月次（前月の振り返り）…毎月 **1日 10:00**
   static Future<void> scheduleMonthlyOnFirstDay10() async {
-
-  if (!await _ensureAllowed(requestIfDenied: false)) return;
-      await _safe(() => AwesomeNotifications().cancel(_idMonthly));
-      await _safe(() => AwesomeNotifications().createNotification(
-                content: NotificationContent(
-                  id: _idMonthly,
-                  channelKey: _channelKey,
-                  title: '月次のAIコメントを見直しましょう',
-                  body: 'タップで履歴（月次）へ',
-                  payload: {'route': '/history', 'tab': 'monthly'},
-                  category: NotificationCategory.Reminder,
-                ),
-                schedule: NotificationCalendar(
-                  day: 1,
-                  hour: 10,
-                  minute: 0,
-                  second: 0,
-                  repeats: true,
-                  preciseAlarm: true,
-                ),
-          ));
-
-
+    if (!await _ensureAllowed(requestIfDenied: false)) return;
+    await _safe(() => AwesomeNotifications().cancel(_idMonthly));
+    await _safe(() => AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: _idMonthly,
+        channelKey: _channelKey,
+        title: _tx(
+          ja: '月次のAIコメントを見直しましょう',
+          en: 'Your monthly AI comment is ready',
+        ),
+        body: _tx(
+          ja: 'タップで履歴（月次）へ',
+          en: 'Tap to open history (Monthly)',
+        ),
+        payload: {'route': '/history', 'tab': 'monthly'},
+        category: NotificationCategory.Reminder,
+      ),
+      schedule: NotificationCalendar(
+        day: 1,
+        hour: 10,
+        minute: 0,
+        second: 0,
+        repeats: true,
+        preciseAlarm: true,
+      ),
+    ));
   }
 
   /// 旧スケジュールの残骸がある場合に自分のIDだけ掃除
