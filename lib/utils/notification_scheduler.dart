@@ -115,13 +115,3 @@ Future<void> scheduleWeeklyReminderOnSunday() async {
     ),
   );
 }
-// ★追加：既存予約を英語文面に置き換えるための再予約
-Future<void> rescheduleAllReminders() async {
-  // 既存の予約をキャンセル（IDはあなたの運用どおり 1001/1002）
-  await AwesomeNotifications().cancel(1001);
-  await AwesomeNotifications().cancel(1002);
-
-  // その後、最新のローカライズ文言で再予約
-  await scheduleMonthlyReminderOnLastDay();
-  await scheduleWeeklyReminderOnSunday();
-}
