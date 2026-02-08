@@ -123,6 +123,10 @@ class MyApp extends StatelessWidget {
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
 
+      locale: kDebugMode ? const Locale('en') : null,
+      // ↑ リリースでは null → 端末言語に従う
+
+
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
 
       theme: ThemeData(useMaterial3: true),
