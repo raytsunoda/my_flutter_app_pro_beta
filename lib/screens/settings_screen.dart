@@ -234,20 +234,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
 
+    String _tx({required String ja, required String en}) {
+      final code = Localizations.localeOf(context).languageCode;
+      return code == 'ja' ? ja : en;
+    }
+
+
     final isJa = Localizations.localeOf(context).languageCode == 'ja';
 
-    await _scheduleNotification(
-      id: 1,
-      time: _morningTime,
-      title: isJa ? 'おはようございます☀️' : 'Good morning ☀️',
-      body:  isJa ? '今日の記録✏️をつけましょう' : 'Let’s log today’s entry ✏️',
-    );
-    await _scheduleNotification(
-      id: 2,
-      time: _eveningTime,
-      title: isJa ? '今日も1日お疲れ様でした🌙' : 'Good work today 🌙',
-      body:  isJa ? '気持ちを整えるヒント💡をチェックしてみませんか？' : 'Want to check a calming tip 💡?',
-    );
+    // await _scheduleNotification(
+    //   id: 1,
+    //   time: _morningTime,
+    //   title: _tx(ja: 'おはようございます☀️', en: 'Good morning ☀️'),
+    //   body: _tx(ja: '今日の記録✏️をつけましょう', en: 'Let’s log today ✏️'),
+    //   payload: const {
+    //     'navigate': 'nav',
+    //     'tab': 'input',
+    //   },
+    // );
+    //
+    // await _scheduleNotification(
+    //   id: 2,
+    //   time: _eveningTime,
+    //   title: _tx(ja: '今日も1日お疲れ様でした🌙', en: 'Great job today 🌙'),
+    //   body: _tx(
+    //     ja: '気持ちを整えるヒント💡をチェックしてみませんか？',
+    //     en: 'Want a quick tip to unwind? 💡',
+    //   ),
+    //   payload: {
+    //     'navigate': 'nav',
+    //     'tab': isJa ? 'tips' : 'home', // 英語端末はtips使わない方針ならhomeへ
+    //   },
+    // );
+    final code = Localizations.localeOf(context).languageCode;
+    await NotificationScheduler.rescheduleMorningEvening(appLocaleCode: code);
+
 
   }
 
@@ -257,12 +278,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required TimeOfDay time,
     required String title,
     required String body,
+    Map<String, String>? payload, // ★追加
   }) async {
     final now = DateTime.now();
-    var scheduledDate = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    var scheduledDate =
+    DateTime(now.year, now.month, now.day, time.hour, time.minute);
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
+
+    // ★同一IDの古い予約（古いpayload）を確実に消す
+    await AwesomeNotifications().cancel(id);
 
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
@@ -271,6 +297,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: title,
         body: body,
         notificationLayout: NotificationLayout.Default,
+        actionType: ActionType.Default, // ★追加（タップ安定化）
+        payload: payload,               // ★追加（ここが本丸）
       ),
       schedule: NotificationCalendar(
         hour: scheduledDate.hour,
@@ -280,6 +308,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+
+
 
   Future<void> _pickTime({required bool isMorning}) async {
     final picked = await showTimePicker(
@@ -336,7 +366,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: const Icon(Icons.refresh),
                 onPressed: () async {
                   // 既存予約（1001/1002）をキャンセルして、英日ラベルで再予約
-                  await rescheduleNotifications();
+                  //await rescheduleNotifications();
+                   final code = Localizations.localeOf(context).languageCode;
+                   await NotificationScheduler.rescheduleAll(appLocaleCode: code);
 
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(

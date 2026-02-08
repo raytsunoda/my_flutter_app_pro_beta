@@ -18,6 +18,10 @@ import 'services/purchase_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'gen_l10n/app_localizations.dart';
+import 'utils/notification_scheduler.dart';
+//import 'package:my_flutter_app_pro/utils/notification_scheduler.dart';
+import 'screens/navigation_screen.dart'; // ← NavigationScreen を使っているなら必須
+
 
 
 // 通知タップ遷移用のグローバル NavigatorKey（既にあれば重複不要）
@@ -56,16 +60,15 @@ Future<void> main() async {
     debug: kDebugMode,
   );
   await NotificationService.init(notificationNavigatorKey);
-  await NotificationService.listenNotificationActions(notificationNavigatorKey);
+  //await NotificationService.listenNotificationActions(notificationNavigatorKey);
 
   // ✅ 課金の初期化は main() の中で1回だけ
   await PurchaseService.I.init();
 
   // 既存のスケジュール系（そのまま）
-  await _rescheduleMorningEvening();
-  await NotificationService.clearAiCommentSchedules();
-  await NotificationService.scheduleWeeklyOnMonday10();
-  await NotificationService.scheduleMonthlyOnFirstDay10();
+  // await scheduleMorningReminder();
+  // await scheduleEveningReminder();
+  // await rescheduleNotifications();
 
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
@@ -73,9 +76,23 @@ Future<void> main() async {
 
   runApp(MyApp(navigatorKey: notificationNavigatorKey));
 
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    NotificationService.handleInitialAction();
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    // 1) cold start の通知アクション
+    await NotificationService.handleInitialAction();
+
+    // 2) ✅ アプリの locale を拾って “朝/夕” を再予約
+    final ctx = notificationNavigatorKey.currentContext;
+    final code = (ctx != null)
+        ? Localizations.localeOf(ctx).languageCode
+        : WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+
+    await NotificationScheduler.rescheduleMorningEvening(appLocaleCode: code);
   });
+
+// ✅ 週次/月次は main() 起動時に1回でOK（残すならここ）
+  await NotificationService.clearAiCommentSchedules();
+  await NotificationService.scheduleWeeklyOnMonday10();
+  await NotificationService.scheduleMonthlyOnFirstDay10();
 
   if (kDebugMode) {
     await NotificationService.debugOneShotToHistory(
@@ -121,11 +138,12 @@ class MyApp extends StatelessWidget {
         Locale('en'),
       ],
 
-      // 確認用：一度だけ英語強制（確認できたらコメントアウトでOK）
-       locale: const Locale('en'),
-
+      //✅⬇️ 確認用：一度だけ英語強制（確認できたらコメントアウトでOK）
+       //locale: const Locale('en'),
+      //✅⬆️locale: const Locale('en'), // ← テストが終わったら固定は外す（端末/ユーザーに追従）
       routes: {
         '/': (_) => const HomeScreen(csvData: []),
+        '/nav': (_) => const NavigationScreen(csvData: []),
         '/history': (_) => const AiCommentHistoryScreen(),
         '/data-migration': (_) => const DataMigrationScreen(),
       },

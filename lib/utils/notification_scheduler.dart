@@ -1,94 +1,128 @@
-
-import 'dart:ui' show PlatformDispatcher;
+// lib/utils/notification_scheduler.dart
+import 'dart:developer' as dev;
 import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-bool _isJa() => PlatformDispatcher.instance.locale.languageCode == 'ja';
+import '../services/notification_service.dart';
 
-String _tx({required String ja, required String en}) => _isJa() ? ja : en;
+class NotificationScheduler {
+  NotificationScheduler._();
 
-bool _isJaLocale() {
-  // 端末言語で分岐（アプリのLocaleを見たい場合は別途context経由にする）
-  final code = PlatformDispatcher.instance.locale.languageCode;
-  return code == 'ja';
-}
+  static const String _channelKey = 'basic_channel';
 
-String _t(String ja, String en) => _isJaLocale() ? ja : en;
+  static bool _isJaByCode(String? code) => (code ?? 'ja').toLowerCase().startsWith('ja');
+  static String _tx(String? code, {required String ja, required String en}) {
+    return _isJaByCode(code) ? ja : en;
+  }
 
+  /// 共通：毎日指定時刻（repeats=true）で作る。payloadも必ず入れる。
+  static Future<void> _scheduleDailyAt({
+    required int id,
+    required TimeOfDay time,
+    required String title,
+    required String body,
+    required Map<String, String> payload,
+  }) async {
+    // 古いpayload事故防止：同じIDは必ず消してから作る
+    await AwesomeNotifications().cancel(id);
 
-/// 毎月末の通知（正確に月末を計算）
-Future<void> scheduleMonthlyReminderOnLastDay() async {
-  final now = DateTime.now();
-  final lastDay = DateTime(now.year, now.month + 1, 0); // 翌月1日 - 1日 = 今月末
-
-  await AwesomeNotifications().createNotification(
-    content: NotificationContent(
-      id: 1001,
-      channelKey: 'basic_channel',
-      title: _tx(
-        ja: '🧡 今月を振り返りませんか？',
-        en: '🧡 Time to reflect on your month?',
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: id,
+        channelKey: _channelKey,
+        title: title,
+        body: body,
+        notificationLayout: NotificationLayout.Default,
+        actionType: ActionType.Default,
+        payload: payload,
       ),
+      schedule: NotificationCalendar(
+        hour: time.hour,
+        minute: time.minute,
+        second: 0,
+        repeats: true,
+      ),
+    );
+  }
+
+  /// ✅ 朝（入力へ）
+  static Future<void> scheduleMorningReminder({required String appLocaleCode}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final h = prefs.getInt('morning_hour') ?? 8;
+    final m = prefs.getInt('morning_minute') ?? 0;
+
+    await _scheduleDailyAt(
+      id: 1,
+      time: TimeOfDay(hour: h, minute: m),
+      title: _tx(appLocaleCode, ja: 'おはようございます☀️', en: 'Good morning ☀️'),
+      body: _tx(appLocaleCode, ja: '今日の記録✏️をつけましょう', en: 'Let’s log today ✏️'),
+      payload: const {
+        'navigate': 'nav',
+        'target': 'input',
+      },
+    );
+  }
+
+  /// ✅ 夕（日本語=tips / 英語=home）
+  static Future<void> scheduleEveningReminder({required String appLocaleCode}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final h = prefs.getInt('evening_hour') ?? 20;
+    final m = prefs.getInt('evening_minute') ?? 0;
+
+    final target = _isJaByCode(appLocaleCode) ? 'tips' : 'home';
+
+    await _scheduleDailyAt(
+      id: 2,
+      time: TimeOfDay(hour: h, minute: m),
+      title: _tx(appLocaleCode, ja: '今日も1日お疲れ様でした🌙', en: 'Great job today 🌙'),
       body: _tx(
-        ja: 'AIパートナーからの月次フィードバックを確認してみましょう！',
-        en: 'Check your AI partner’s monthly feedback.',
+        appLocaleCode,
+        ja: '気持ちを整えるヒント💡をチェックしてみませんか？',
+        en: 'Want a quick tip to unwind? 💡',
       ),
-      notificationLayout: NotificationLayout.Default,
-      actionType: ActionType.Default,
-      payload: {"navigate": "home"},
-    ),
-    schedule: NotificationCalendar(
-      year: lastDay.year,
-      month: lastDay.month,
-      day: lastDay.day,
-      hour: 20,
-      minute: 0,
-      second: 0,
-      repeats: true,
-    ),
-  );
+      payload: {
+        'navigate': 'nav',
+        'target': target,
+      },
+    );
+  }
+
+  /// ✅ 朝/夕をまとめて再予約（アプリlocaleを渡す）
+  static Future<void> rescheduleMorningEvening({required String appLocaleCode}) async {
+    // 権限チェック（ここで落ちないようにする）
+    final allowed = await AwesomeNotifications().isNotificationAllowed();
+    if (!allowed) {
+      dev.log('[notif] permission not allowed, skip morning/evening schedule');
+      return;
+    }
+
+    await scheduleMorningReminder(appLocaleCode: appLocaleCode);
+    await scheduleEveningReminder(appLocaleCode: appLocaleCode);
+  }
+
+  /// ✅ 全通知を再予約（設定の「通知を再予約する」ボタン用）
+  /// - 朝/夕：basic_channel
+  /// - 週次/月次：NotificationService 側（ai_comments チャンネル）
+  static Future<void> rescheduleAll({required String appLocaleCode}) async {
+    await rescheduleMorningEvening(appLocaleCode: appLocaleCode);
+
+    // AI履歴（週次/月次）も再予約（言語は NotificationService 内で PlatformDispatcher で決まる）
+    await NotificationService.clearAiCommentSchedules();
+    await NotificationService.scheduleWeeklyOnMonday10();
+    await NotificationService.scheduleMonthlyOnFirstDay10();
+  }
 }
 
-/// 毎週日曜の夜に通知
-Future<void> scheduleWeeklyReminderOnSunday() async {
-  await AwesomeNotifications().createNotification(
-    content: NotificationContent(
-      id: 1002,
-      channelKey: 'basic_channel',
-      title: _tx(
-        ja: '🧡 今週の振り返りメッセージが届いています',
-        en: '🧡 Your weekly reflection is ready',
-      ),
-      body: _tx(
-        ja: 'AIパートナーからの週次コメントを確認してみましょう！',
-        en: 'Check your AI partner’s weekly comment.',
-      ),
-      notificationLayout: NotificationLayout.Default,
-      actionType: ActionType.Default,
-      payload: {"navigate": "home"},
-    ),
-    schedule: NotificationCalendar(
-      weekday: DateTime.sunday,
-      hour: 20,
-      minute: 0,
-      second: 0,
-      repeats: true,
-    ),
-  );
-}
-Future<void> rescheduleNotifications() async {
-  // 既存予約をキャンセル（あなたのIDに合わせて必要分だけ）
-  await AwesomeNotifications().cancel(1001);
-  await AwesomeNotifications().cancel(1002);
+/// ------------------------------------------------------------
+/// 互換ラッパ（既存コードが呼んでいる名前を残して “未定義エラー” を消す）
+/// ※ 徐々に NotificationScheduler.xxx に置き換えてOK
+/// ------------------------------------------------------------
+Future<void> scheduleMorningReminder({required String appLocaleCode}) =>
+    NotificationScheduler.scheduleMorningReminder(appLocaleCode: appLocaleCode);
 
-  // 朝/夜もID固定ならここでキャンセル（例）
-  // await AwesomeNotifications().cancel(2001);
-  // await AwesomeNotifications().cancel(2002);
+Future<void> scheduleEveningReminder({required String appLocaleCode}) =>
+    NotificationScheduler.scheduleEveningReminder(appLocaleCode: appLocaleCode);
 
-  // 再予約
-  await scheduleMonthlyReminderOnLastDay();
-  await scheduleWeeklyReminderOnSunday();
-
-  // 朝/夜も再予約（関数があるなら呼ぶ）
-  // await scheduleMorningReminder();
-  // await scheduleEveningReminder();
-}
+Future<void> rescheduleNotifications({required String appLocaleCode}) =>
+    NotificationScheduler.rescheduleAll(appLocaleCode: appLocaleCode);

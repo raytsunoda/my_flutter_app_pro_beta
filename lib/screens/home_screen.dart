@@ -13,7 +13,7 @@ import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart'
 import 'package:flutter/foundation.dart';
 import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart' show openPaywall, PaywallMode;
 import '../gen_l10n/app_localizations.dart';
-
+import 'package:my_flutter_app_pro/utils/notification_scheduler.dart';
 
 
 
@@ -43,6 +43,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+
+
     debugPrint('[home] ENABLED=${PurchaseConfig.ENABLED}');
     // Pro状態も見たい時
     debugPrint('[home] hasPro=${PurchaseService.I.hasPro.value}');
@@ -52,8 +54,10 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) setState(() {});
 
       // 初期スケジュール（従来の microtask はここに移動）
-      await scheduleWeeklyReminderOnSunday();
-      await scheduleMonthlyReminderOnLastDay();
+      // await scheduleWeeklyReminderOnSunday();
+      // await scheduleMonthlyReminderOnLastDay();
+     // 週次/月次は main.dart → NotificationService/NotificationScheduler で一元管理
+
       final existing = await loadExistingDataDates();
       debugPrint('[DEBUG] existing dates: ${existing.map(fmtYMD).toList()}');
 

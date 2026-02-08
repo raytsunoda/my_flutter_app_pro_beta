@@ -145,24 +145,77 @@ class NotificationService {
     final nav = _navKey?.currentState;
     if (nav == null) return;
 
-    final route = payload['route'] ?? '/history';
-    final tab = (payload['tab'] ?? 'daily').toLowerCase();
+    // ★ 0) payloadが空なら「履歴」ではなく「ホーム」に倒す（事故防止）
+    if (payload.isEmpty) {
+      nav.pushNamedAndRemoveUntil('/', (r) => false);
+      return;
+    }
 
-    // ルート名不一致で失敗しないよう、画面を直接 push
+    // ★ 1) 新形式：navigate/target/tab を優先処理（朝/夕がこれ）
+    final navigate = (payload['navigate'] ?? '').toLowerCase().trim();
+    if (navigate.isNotEmpty) {
+      switch (navigate) {
+        case 'home':
+          nav.pushNamedAndRemoveUntil('/', (r) => false);
+          return;
+
+        case 'nav':
+          final target = (payload['target'] ?? '').toLowerCase().trim();
+
+          // ✅ ルート未定義事故を避ける：必ずホーム('/')へ戻す
+          // nav.pushNamedAndRemoveUntil(
+          //   '/',
+          //       (r) => false,
+          //   arguments: {'target': target},
+          // );
+           nav.pushNamedAndRemoveUntil(
+                 '/nav',
+                 (r) => false,
+                 arguments: {'target': target},
+               );
+          return;
+
+
+        case 'history':
+          final tab = (payload['tab'] ?? 'daily').toLowerCase().trim();
+          int initialIndex = 0;
+          if (tab == 'weekly') initialIndex = 1;
+          if (tab == 'monthly') initialIndex = 2;
+          nav.push(MaterialPageRoute(
+            builder: (_) => AiCommentHistoryScreen(initialTab: initialIndex),
+          ));
+          return;
+
+        default:
+        // 不明ならホームへ
+          nav.pushNamedAndRemoveUntil('/', (r) => false);
+          return;
+      }
+    }
+
+    // ★ 2) 旧形式：route/tab（週次・月次がこれ）
+    final route = (payload['route'] ?? '').trim();
+    final tab = (payload['tab'] ?? 'daily').toLowerCase().trim();
+
+    // route が無いならホーム
+    if (route.isEmpty) {
+      nav.pushNamedAndRemoveUntil('/', (r) => false);
+      return;
+    }
+
     if (route == '/history') {
       int initialIndex = 0;
       if (tab == 'weekly') initialIndex = 1;
       if (tab == 'monthly') initialIndex = 2;
-
       nav.push(MaterialPageRoute(
         builder: (_) => AiCommentHistoryScreen(initialTab: initialIndex),
       ));
       return;
     }
 
-    // 万一別ルートを使う場合のフォールバック
     nav.pushNamed(route, arguments: {'initialTab': tab});
   }
+
 
   // ====================== デバッグ用 ======================
 
