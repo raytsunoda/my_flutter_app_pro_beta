@@ -7,8 +7,25 @@ import '../screens/ai_comment_history_screen.dart';
 import 'dart:ui' show PlatformDispatcher; // ★追加
 
 // ★追加：端末言語で出し分け（context不要）
-bool _isJa() => PlatformDispatcher.instance.locale.languageCode == 'ja';
-String _tx({required String ja, required String en}) => _isJa() ? ja : en;
+// bool _isJa() => PlatformDispatcher.instance.locale.languageCode == 'ja';
+// String _tx({required String ja, required String en}) => _isJa() ? ja : en;
+// 端末言語ではなく「アプリが決めた言語コード」で出し分け
+bool _isJaCode(String? code) => (code ?? 'ja').toLowerCase().startsWith('ja');
+
+String _txByCode({
+  required String? localeCode,
+  required String ja,
+  required String en,
+}) =>
+    _isJaCode(localeCode) ? ja : en;
+
+// 互換用：既存コードが _tx(...) を呼んでも落ちないようにする
+// ※ここは端末言語で分岐（週次/月次は schedule 側で localeCode を渡すので英語化は維持）
+String _tx({required String ja, required String en}) => _txByCode(
+  localeCode: PlatformDispatcher.instance.locale.languageCode,
+  ja: ja,
+  en: en,
+);
 
 
 class NotificationService {
@@ -247,18 +264,21 @@ class NotificationService {
   // ====================== スケジュール ======================
 
   /// 週次（先週の振り返り）…毎週 **月曜 10:00**
-  static Future<void> scheduleWeeklyOnMonday10() async {
+  static Future<void> scheduleWeeklyOnMonday10({required String localeCode}) async {
     if (!await _ensureAllowed(requestIfDenied: false)) return;
+
     await _safe(() => AwesomeNotifications().cancel(_idWeekly));
     await _safe(() => AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: _idWeekly,
         channelKey: _channelKey,
-        title: _tx(
+        title: _txByCode(
+          localeCode: localeCode,
           ja: '週次のAIコメントを確認しましょう',
           en: 'Your weekly AI comment is ready',
         ),
-        body: _tx(
+        body: _txByCode(
+          localeCode: localeCode,
           ja: 'タップで履歴（週次）へ',
           en: 'Tap to open history (Weekly)',
         ),
@@ -276,19 +296,21 @@ class NotificationService {
     ));
   }
 
-  /// 月次（前月の振り返り）…毎月 **1日 10:00**
-  static Future<void> scheduleMonthlyOnFirstDay10() async {
+  static Future<void> scheduleMonthlyOnFirstDay10({required String localeCode}) async {
     if (!await _ensureAllowed(requestIfDenied: false)) return;
+
     await _safe(() => AwesomeNotifications().cancel(_idMonthly));
     await _safe(() => AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: _idMonthly,
         channelKey: _channelKey,
-        title: _tx(
+        title: _txByCode(
+          localeCode: localeCode,
           ja: '月次のAIコメントを見直しましょう',
           en: 'Your monthly AI comment is ready',
         ),
-        body: _tx(
+        body: _txByCode(
+          localeCode: localeCode,
           ja: 'タップで履歴（月次）へ',
           en: 'Tap to open history (Monthly)',
         ),
@@ -305,6 +327,9 @@ class NotificationService {
       ),
     ));
   }
+
+
+
 
   /// 旧スケジュールの残骸がある場合に自分のIDだけ掃除
   static Future<void> clearAiCommentSchedules() async {

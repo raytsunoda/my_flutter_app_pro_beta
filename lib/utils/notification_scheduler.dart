@@ -107,11 +107,13 @@ class NotificationScheduler {
   static Future<void> rescheduleAll({required String appLocaleCode}) async {
     await rescheduleMorningEvening(appLocaleCode: appLocaleCode);
 
-    // AI履歴（週次/月次）も再予約（言語は NotificationService 内で PlatformDispatcher で決まる）
+    // AI履歴（週次/月次）も再予約：main側で確定した appLocaleCode をそのまま使う
     await NotificationService.clearAiCommentSchedules();
-    await NotificationService.scheduleWeeklyOnMonday10();
-    await NotificationService.scheduleMonthlyOnFirstDay10();
+    await NotificationService.scheduleWeeklyOnMonday10(localeCode: appLocaleCode);
+    await NotificationService.scheduleMonthlyOnFirstDay10(localeCode: appLocaleCode);
   }
+
+
 }
 
 /// ------------------------------------------------------------

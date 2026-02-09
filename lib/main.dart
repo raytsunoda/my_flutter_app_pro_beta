@@ -77,22 +77,27 @@ Future<void> main() async {
   runApp(MyApp(navigatorKey: notificationNavigatorKey));
 
   WidgetsBinding.instance.addPostFrameCallback((_) async {
-    // 1) cold start の通知アクション
     await NotificationService.handleInitialAction();
 
-    // 2) ✅ アプリの locale を拾って “朝/夕” を再予約
     final ctx = notificationNavigatorKey.currentContext;
     final code = (ctx != null)
         ? Localizations.localeOf(ctx).languageCode
         : WidgetsBinding.instance.platformDispatcher.locale.languageCode;
 
     await NotificationScheduler.rescheduleMorningEvening(appLocaleCode: code);
+
+    // ★週次/月次もここで：appLocaleCode を渡して英語通知を確定させる
+    await NotificationService.clearAiCommentSchedules();
+    await NotificationService.scheduleWeeklyOnMonday10(localeCode: code);
+    await NotificationService.scheduleMonthlyOnFirstDay10(localeCode: code);
   });
 
-// ✅ 週次/月次は main() 起動時に1回でOK（残すならここ）
-  await NotificationService.clearAiCommentSchedules();
-  await NotificationService.scheduleWeeklyOnMonday10();
-  await NotificationService.scheduleMonthlyOnFirstDay10();
+// ↓この3行は削除（またはコメントアウト）
+// await NotificationService.clearAiCommentSchedules();
+// await NotificationService.scheduleWeeklyOnMonday10();
+// await NotificationService.scheduleMonthlyOnFirstDay10();
+
+
 
   if (kDebugMode) {
     await NotificationService.debugOneShotToHistory(

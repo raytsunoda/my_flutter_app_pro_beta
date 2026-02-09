@@ -237,15 +237,18 @@ class AiCommentService {
 
 // --- 呼びかけ名ヘルパ（常に「さん」付きに正規化） ---
   // --- 呼びかけ名ヘルパ（常に「さん」付きに正規化） ---
-  static Future<String> _callName() async {
+  static Future<String> _callName({required String lang}) async {
     final raw = (await _resolveDisplayName()).trim();
-    if (raw.isEmpty) return 'ユーザーさん'; // 未設定時の既定
 
-    // 末尾が「さん」以外なら付与（「様」「くん」「ちゃん」などが既に付いているなら、そのままでも良いが
-    // 今回は統一のため原則「さん」に正規化）
-    final normalized = raw.endsWith('さん') ? raw : '$rawさん';
+    if (lang.toLowerCase().startsWith('en')) {
+      if (raw.isEmpty) return 'User';
+      // もし保存名が「〜さん」なら英語では外す
+      return raw.endsWith('さん') ? raw.substring(0, raw.length - 1) : raw;
+    }
 
-    return normalized;
+    // 日本語（既存仕様維持）
+    if (raw.isEmpty) return 'ユーザーさん';
+    return raw.endsWith('さん') ? raw : '${raw}さん';
   }
 
 
@@ -1276,8 +1279,13 @@ final prompt = (effectiveLang == 'en') ? promptEn : promptJa;
     if (await CsvLoader.isCommentAlreadySaved(date: endDateStr, type: type)) {
       final saved = await getSavedComment(date: endDateStr, type: type);
       if (saved != null && saved.isNotEmpty) return saved;
-      return 'この${type == "weekly" ? "週" : "月"}のコメントは既に保存されています。';
+
+      final deviceLang = PlatformDispatcher.instance.locale.languageCode;
+      final msgJa = 'この${type == "weekly" ? "週" : "月"}のコメントは既に保存されています。';
+      final msgEn = 'This ${type == "weekly" ? "week" : "month"} comment is already saved.';
+      return deviceLang.toLowerCase().startsWith('en') ? msgEn : msgJa;
     }
+
 
     // final locale = PlatformDispatcher.instance.locale;
     // final languageCode = locale.languageCode; // 'ja' or 'en'
@@ -1328,25 +1336,35 @@ final prompt = (effectiveLang == 'en') ? promptEn : promptJa;
     final sleepAvg = _avg(sleepList);
     final walkAvg  = _avg(walkList);
 
-    // 感謝の原文を短いキューへ（原文コピペ防止）
-    String _toGratitudeCue(String s) {
-      final t = s.replaceAll(RegExp(r'\s+'), ' ').trim();
-      if (t.isEmpty) return '';
-      final cut = t.split(RegExp(r'[、。]|は|が|を|に|で|と')).first.trim();
-      final short = cut.length > 12 ? '${cut.substring(0,12)}…' : cut;
-      return '$shortに感謝';
-    }
-    final gratitudeCues = pickedGratitudes.map(_toGratitudeCue).where((t) => t.isNotEmpty).toList();
-
-    final callName = await _callName();
-    final titleJa = (type == 'weekly') ? '週次' : '月次';
-    final periodLabel =
-        '${DateFormat('yyyy/MM/dd').format(startDate)} ～ ${DateFormat('yyyy/MM/dd').format(endDate)}';
-
-
-
-    final languageCode = PlatformDispatcher.instance.locale.languageCode; // 'ja' or 'en'
-
+    // // 感謝の原文を短いキューへ（原文コピペ防止）
+    // String _toGratitudeCue(String s) {
+    //   final t = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+    //   if (t.isEmpty) return '';
+    //   final cut = t.split(RegExp(r'[、。]|は|が|を|に|で|と')).first.trim();
+    //   final short = cut.length > 12 ? '${cut.substring(0,12)}…' : cut;
+    //   return '$shortに感謝';
+    // }
+    // final gratitudeCues = pickedGratitudes.map(_toGratitudeCue).where((t) => t.isNotEmpty).toList();
+    //
+    // final callName = await _callName();
+    // final titleJa = (type == 'weekly') ? '週次' : '月次';
+    // final periodLabel =
+    //     '${DateFormat('yyyy/MM/dd').format(startDate)} ～ ${DateFormat('yyyy/MM/dd').format(endDate)}';
+    //
+    //
+    //
+    // final languageCode = PlatformDispatcher.instance.locale.languageCode; // 'ja' or 'en'
+    //
+    // final deviceLang = PlatformDispatcher.instance.locale.languageCode;
+    //
+    // bool looksEnglishBulk(List<String> ms) {
+    //   final joined = ms.join(' ');
+    //   final letters = RegExp(r'[A-Za-z]').allMatches(joined).length;
+    //   return letters >= 30;
+    // }
+    //
+    // final effectiveLang =
+    // looksEnglishBulk(pickedMemos) ? 'en' : deviceLang;
     final deviceLang = PlatformDispatcher.instance.locale.languageCode;
 
     bool looksEnglishBulk(List<String> ms) {
@@ -1354,10 +1372,37 @@ final prompt = (effectiveLang == 'en') ? promptEn : promptJa;
       final letters = RegExp(r'[A-Za-z]').allMatches(joined).length;
       return letters >= 30;
     }
+    final effectiveLang = looksEnglishBulk(pickedMemos) ? 'en' : deviceLang;
 
-    final effectiveLang =
-    looksEnglishBulk(pickedMemos) ? 'en' : deviceLang;
+// ★ callName を言語に合わせて作る（週次/月次の「Rayさん」根絶）
+    final callName = await _callName(lang: effectiveLang);
 
+// 感謝の原文を短いキューへ（原文コピペ防止）
+// ★英語では「〜に感謝」を作らない（日本語混入根絶）
+    String _toGratitudeCue(String s, {required String lang}) {
+      final t = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+      if (t.isEmpty) return '';
+
+      if (lang.toLowerCase().startsWith('en')) {
+        final head = t.split(RegExp(r'[、。,.!?:;]')).first.trim();
+        final short = head.length > 20 ? '${head.substring(0, 20)}…' : head;
+        return short.isEmpty ? '' : 'grateful for "$short"';
+      }
+
+      final cut = t.split(RegExp(r'[、。]|は|が|を|に|で|と')).first.trim();
+      final short = cut.length > 12 ? '${cut.substring(0,12)}…' : cut;
+      return short.isEmpty ? '' : '$shortに感謝';
+    }
+
+    final gratitudeCues = pickedGratitudes
+        .map((g) => _toGratitudeCue(g, lang: effectiveLang))
+        .where((t) => t.isNotEmpty)
+        .toList();
+
+// ★ここを追加：promptJa/promptEn が参照する変数を必ず定義
+    final titleJa = (type == 'weekly') ? '週次' : '月次';
+    final periodLabel =
+        '${DateFormat('yyyy/MM/dd').format(startDate)} ～ ${DateFormat('yyyy/MM/dd').format(endDate)}';
 
 
 
