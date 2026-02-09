@@ -12,29 +12,8 @@ import '../config/purchase_config.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 //import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
 // ...
-/*
-/// OSの購読管理画面を開く（URL遷移に一本化）
-Future<void> openManage() async {
-  PLog.info('manage: open subscriptions screen');
-  try {
-    final url = Platform.isIOS
-        ? 'https://apps.apple.com/account/subscriptions'
-        : 'https://play.google.com/store/account/subscriptions';
-    if (await canLaunchUrlString(url)) {
-      await launchUrlString(url, mode: LaunchMode.externalApplication);
-    } else {
-      PLog.error('manage: cannot open $url');
-    }
-  } catch (e, st) {
-    debugPrint('[manage] fatal: $e\n$st');
-    final url = Platform.isIOS
-        ? 'https://apps.apple.com/account/subscriptions'
-        : 'https://play.google.com/store/account/subscriptions';
-    await launchUrlString(url, mode: LaunchMode.externalApplication);
-  }
-}
-*/
-// Fallback / Android
+
+
 
 // ==== 追加：プロダクトID定義 ====
 class PurchaseIds {
@@ -47,11 +26,13 @@ class PurchaseIds {
 
 class PurchaseService {
 
-  bool get isProEffective {
-    // ここだけ見れば「Proとして扱うか」が決まる
-    return hasPro.value || PurchaseConfig.DEV_FORCE_PRO || !kReleaseMode;
-  }
+  // bool get isProEffective {
+  //   // ここだけ見れば「Proとして扱うか」が決まる
+  //   return hasPro.value || PurchaseConfig.DEV_FORCE_PRO || !kReleaseMode;
+  // }
 
+  bool get isProEffective =>
+      hasPro.value || PurchaseConfig.DEV_FORCE_PRO || _kForceProFromBuild;
 
 
   // 開発用：ビルドフラグでも強制Pro
@@ -141,17 +122,18 @@ class PurchaseService {
 
   Future<void> init() async {
     // ★DEV（debug/profile）だけ：ローカルスイッチで強制Pro
-    if (!kReleaseMode) {
+// kReleaseMode は profile でも true なので、kProfileMode も許可する
+    if (!kReleaseMode || kProfileMode) {
       final sp = await SharedPreferences.getInstance();
       final localForce = sp.getBool('dev_force_pro_local') ?? false;
       if (localForce) {
         debugPrint('[Purchase][DEV] local force pro ON (debug/profile).');
         hasPro.value = true;
-        // 既存UIが hasPro ではなく 'hasPro' を見ている可能性に備えて同期
-        await sp.setBool('hasPro', true);
+        await sp.setBool('hasPro', true); // 既存UI同期用
         return;
       }
     }
+
 
     if (PurchaseConfig.DEV_FORCE_PRO || _kForceProFromBuild) {
       debugPrint('[Purchase] FORCE_PRO enabled (env/build). gating OFF.');
