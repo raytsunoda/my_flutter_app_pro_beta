@@ -893,8 +893,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
 
 // ＝＝ AIコメント（週次／月次）再生成 ＝＝
-// 本番（リリース）では非表示。デバッグビルドのみ表示する
-        if (kDebugMode)
+        //// 本番（リリース）では非表示。デバッグビルドのみ表示する
+        //if (kDebugMode)
+        // 本番（リリース）では非表示。debug/profileで表示する
+        if (!kReleaseMode)
         _sectionTile(
           icon: Icons.auto_fix_high_outlined,
           title: 'AIコメント（日次/週次/月次）再生成',
@@ -908,7 +910,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             );
           }),
         ),
-        if (kDebugMode)
+        //if (kDebugMode)
+        if (!kReleaseMode)
           _sectionTile(
           icon: Icons.developer_mode,
           title: '開発者メニュー',
@@ -918,8 +921,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 
 // --- 課金（管理・復元） -----------------------------------------
-// 本番では非表示。開発ビルドのみ表示する
-        if (kDebugMode) ...[
+        //// 本番では非表示。開発ビルドのみ表示する
+        //if (kDebugMode) ...[
+        // 本番では非表示。debug/profileで表示する
+        if (!kReleaseMode) ...[
           ExpansionTile(
             leading: const Icon(Icons.workspace_premium_outlined),
             title: const Text(
@@ -933,7 +938,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => openPaywall(context, mode: PaywallMode.manage),
               ),
-              // ※デバッグでワンタップ復元も残したい場合は、ここにもう1個 ListTile 追加可
+             // // ※デバッグでワンタップ復元も残したい場合は、ここにもう1個 ListTile 追加可
+
+
+
+              FutureBuilder<bool>(
+                future: PurchaseService.I.debugGetForceProLocal(),
+                builder: (context, snap) {
+                  final current = snap.data ?? false;
+                  return SwitchListTile(
+                    title: const Text('DEV: Force Pro（ローカル）'),
+                    subtitle: const Text('debug/profileのみ有効。Releaseでは無効。'),
+                    value: current,
+                    onChanged: (v) async {
+                      await PurchaseService.I.debugSetForceProLocal(v);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('DEV Force Pro: ${v ? "ON" : "OFF"}')),
+                      );
+                      setState(() {}); // 表示更新
+                    },
+                  );
+                },
+              ),
+
+
+
+
             ],
           ),
         ],

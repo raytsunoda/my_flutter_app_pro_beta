@@ -136,6 +136,19 @@ class PurchaseService {
 
 
   Future<void> init() async {
+    // ★DEV（debug/profile）だけ：ローカルスイッチで強制Pro
+    if (!kReleaseMode) {
+      final sp = await SharedPreferences.getInstance();
+      final localForce = sp.getBool('dev_force_pro_local') ?? false;
+      if (localForce) {
+        debugPrint('[Purchase][DEV] local force pro ON (debug/profile).');
+        hasPro.value = true;
+        // 既存UIが hasPro ではなく 'hasPro' を見ている可能性に備えて同期
+        await sp.setBool('hasPro', true);
+        return;
+      }
+    }
+
     if (PurchaseConfig.DEV_FORCE_PRO || _kForceProFromBuild) {
       debugPrint('[Purchase] FORCE_PRO enabled (env/build). gating OFF.');
       hasPro.value = true;
@@ -313,14 +326,22 @@ class PurchaseService {
     // 結果
     await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('購入を復元'),
-        content: Text(ok ? '購入情報を復元しました' : '復元対象が見つかりませんでした'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
-        ],
-      ),
+      builder: (_) {
+        final finalEnabled = hasPro.value;
+        return AlertDialog(
+          title: const Text('購入を復元'),
+          content: Text(finalEnabled ? '購入情報を復元しました' : '復元対象が見つかりませんでした'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
     );
+
+
     PLog.ok('restore: ${ok ? "success" : "no purchases found"}');
   }
 
@@ -329,15 +350,17 @@ class PurchaseService {
     try {
       final completer = Completer<bool>();
       // purchaseStream を1回だけ待ち受ける
-      final sub = InAppPurchase.instance.purchaseStream.listen((events) {
+      final sub = InAppPurchase.instance.purchaseStream.listen((events) async {
         final restored = events.any((e) =>
         e.status == PurchaseStatus.restored ||
             e.status == PurchaseStatus.purchased);
+
         if (restored) {
-          hasPro.value = true;
+          await _setPro(true); // ★必ずprefsも更新
           if (!completer.isCompleted) completer.complete(true);
         }
       }, onError: (e, st) {
+
         debugPrint('restore stream error: $e');
         if (!completer.isCompleted) completer.complete(false);
       });
@@ -383,6 +406,28 @@ class PurchaseService {
       debugPrint('[iap][DEBUG] revoke error: $e\n$st');
     }
   }
+
+  // =========================
+  // DEV: local force pro flag
+  // =========================
+  Future<void> debugSetForceProLocal(bool v) async {
+    if (kReleaseMode) return; // 念のため
+    final sp = await SharedPreferences.getInstance();
+
+    await sp.setBool('dev_force_pro_local', v);
+
+    // 既存の実装が 'hasPro' を参照している可能性があるので同時に同期する
+    await sp.setBool('hasPro', v);
+
+    hasPro.value = v;
+    debugPrint('[Purchase][DEV] local force pro = $v');
+  }
+
+  Future<bool> debugGetForceProLocal() async {
+    final sp = await SharedPreferences.getInstance();
+    return sp.getBool('dev_force_pro_local') ?? false;
+  }
+
 
 
 }

@@ -20,6 +20,7 @@ import 'package:flutter/foundation.dart';
 import 'package:my_flutter_app_pro/screens/favorite_words_screen.dart';
 
 import '../gen_l10n/app_localizations.dart';
+import 'package:my_flutter_app_pro/config/purchase_config.dart';
 
 
 class NavigationScreen extends StatefulWidget {
@@ -292,19 +293,47 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   return;
                 }
 
-                // isPro() を正として扱う（ValueNotifierがズレてても判定が安定）
+                // // isPro() を正として扱う（ValueNotifierがズレてても判定が安定）
+                // final isProBefore = await PurchaseService.I.isPro();
+                // debugPrint('[nav] AI button: isPro(before)=$isProBefore hasProVN=${PurchaseService.I.hasPro.value}');
+                //
+                // // 未購入なら必ずPaywall（await必須）
+                // if (!isProBefore) {
+                //   await openPaywall(context, mode: PaywallMode.enable);
+                //
+                //   // 閉じた後に再判定。未購入なら先へ進ませない
+                //   final isProAfter = await PurchaseService.I.isPro();
+                //   debugPrint('[nav] AI button: isPro(after)=$isProAfter hasProVN=${PurchaseService.I.hasPro.value}');
+                //   if (!isProAfter) return;
+                // }
+
+                final devForcePro = PurchaseConfig.DEV_FORCE_PRO;
+
+// isPro() を正として扱う（ValueNotifierがズレてても判定が安定）
                 final isProBefore = await PurchaseService.I.isPro();
-                debugPrint('[nav] AI button: isPro(before)=$isProBefore hasProVN=${PurchaseService.I.hasPro.value}');
+                final allowAiBefore = isProBefore || devForcePro;
 
-                // 未購入なら必ずPaywall（await必須）
-                if (!isProBefore) {
-                  await openPaywall(context, mode: PaywallMode.enable);
+                debugPrint(
+                  '[nav] AI button: isPro(before)=$isProBefore devForcePro=$devForcePro hasProVN=${PurchaseService.I.hasPro.value}',
+                );
 
-                  // 閉じた後に再判定。未購入なら先へ進ませない
-                  final isProAfter = await PurchaseService.I.isPro();
-                  debugPrint('[nav] AI button: isPro(after)=$isProAfter hasProVN=${PurchaseService.I.hasPro.value}');
-                  if (!isProAfter) return;
+                if (!allowAiBefore) {
+                  // paywall を開く（ここは既存のまま）
+                await openPaywall(context, mode: PaywallMode.enable);
+                final isProAfter = await PurchaseService.I.isPro();
+                final allowAiAfter = isProAfter || devForcePro;
+
+                debugPrint(
+                '[nav] AI button: isPro(after)=$isProAfter devForcePro=$devForcePro hasProVN=${PurchaseService.I.hasPro.value}',
+                );
+
+                if (!allowAiAfter) return;
                 }
+
+
+
+
+
 
                 if (!context.mounted) return;
                 Navigator.push(
