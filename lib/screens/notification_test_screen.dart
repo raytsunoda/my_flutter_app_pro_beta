@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
 import 'package:my_flutter_app_pro/screens/navigation_screen.dart';
+import '../screens/ai_partner_screen.dart';
 
 class NotificationTestScreen extends StatelessWidget {
   const NotificationTestScreen({super.key});

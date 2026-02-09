@@ -302,19 +302,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   return;
                 }
 
-                // // isPro() を正として扱う（ValueNotifierがズレてても判定が安定）
-                // final isProBefore = await PurchaseService.I.isPro();
-                // debugPrint('[nav] AI button: isPro(before)=$isProBefore hasProVN=${PurchaseService.I.hasPro.value}');
-                //
-                // // 未購入なら必ずPaywall（await必須）
-                // if (!isProBefore) {
-                //   await openPaywall(context, mode: PaywallMode.enable);
-                //
-                //   // 閉じた後に再判定。未購入なら先へ進ませない
-                //   final isProAfter = await PurchaseService.I.isPro();
-                //   debugPrint('[nav] AI button: isPro(after)=$isProAfter hasProVN=${PurchaseService.I.hasPro.value}');
-                //   if (!isProAfter) return;
-                // }
 
                 final devForcePro = PurchaseConfig.DEV_FORCE_PRO;
 
@@ -338,24 +325,22 @@ class _NavigationScreenState extends State<NavigationScreen> {
 //
 //                 if (!allowAiAfter) return;
 //                 }
-                    // ✅ 判定は isProEffective に統一（await排除）
-                    final okBefore = PurchaseService.I.isProEffective;
-
+                    // ✅ isProEffective に統一（await排除）
+                    final allowAiBefore = PurchaseService.I.isProEffective || devForcePro;
                     debugPrint(
-                      '[nav] AI button: isProEffective(before)=$okBefore devForcePro=$devForcePro hasProVN=${PurchaseService.I.hasPro.value}',
+                      '[nav] AI button: allow(before)=$allowAiBefore devForcePro=$devForcePro '
+                      'hasProVN=${PurchaseService.I.hasPro.value} isProEffective=${PurchaseService.I.isProEffective}',
                     );
 
-                    if (!okBefore) {
-                      // paywall を開く（ここは既存のまま）
+                    if (!allowAiBefore) {
                       await openPaywall(context, mode: PaywallMode.enable);
-
-                      final okAfter = PurchaseService.I.isProEffective;
+                      final allowAiAfter = PurchaseService.I.isProEffective || devForcePro;
                       debugPrint(
-                        '[nav] AI button: isProEffective(after)=$okAfter devForcePro=$devForcePro hasProVN=${PurchaseService.I.hasPro.value}',
+                        '[nav] AI button: allow(after)=$allowAiAfter devForcePro=$devForcePro '
+                        'hasProVN=${PurchaseService.I.hasPro.value} isProEffective=${PurchaseService.I.isProEffective}',
                       );
-                      if (!okAfter) return;
+                      if (!allowAiAfter) return;
                     }
-
 
 
 
