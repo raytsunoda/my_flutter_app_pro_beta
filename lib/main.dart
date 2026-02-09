@@ -122,8 +122,13 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
+      //✅⬇️ 🔧 開発中のみ英語強制（本番前に必ずコメントアウト/削除）
+      locale: const Locale('en'),
+      //✅⬆️locale: const Locale('en'), // ← テストが終わったら固定は外す（端末/ユーザーに追従）
 
-      locale: kDebugMode ? const Locale('en') : null,
+      //✅⬇️ 🔧 開発中のみコメントアウト
+    //  locale: kDebugMode ? const Locale('en') : null,
+      //✅⬇️ 🔧 開発後コメントアウト外す
       // ↑ リリースでは null → 端末言語に従う
 
 
@@ -142,9 +147,7 @@ class MyApp extends StatelessWidget {
         Locale('en'),
       ],
 
-      //✅⬇️ 確認用：一度だけ英語強制（確認できたらコメントアウトでOK）
-       //locale: const Locale('en'),
-      //✅⬆️locale: const Locale('en'), // ← テストが終わったら固定は外す（端末/ユーザーに追従）
+
       routes: {
         '/': (_) => const HomeScreen(csvData: []),
         '/nav': (_) => const NavigationScreen(csvData: []),
