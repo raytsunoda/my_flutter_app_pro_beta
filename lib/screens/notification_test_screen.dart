@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
+import 'package:my_flutter_app_pro/screens/ai_partner_screen.dart';
 
 class NotificationTestScreen extends StatelessWidget {
   const NotificationTestScreen({super.key});
@@ -76,11 +77,40 @@ class NotificationTestScreen extends StatelessWidget {
 
             const SizedBox(height: 18),
 
+
             const Text(
               'Tip: Tap each notification to verify routing/payload.\n'
                   'This does NOT affect weekly/monthly schedules.',
               textAlign: TextAlign.center,
             ),
+
+            ElevatedButton(
+              child: const Text('DEV: Open AI screen (no gate)'),
+              onPressed: () async {
+                try {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AiPartnerScreen()),
+                  );
+                } catch (e, st) {
+                  debugPrint('DEV open AI failed: $e\n$st');
+                  if (!context.mounted) return;
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('AI open failed'),
+                      content: SingleChildScrollView(child: Text('$e\n\n$st')),
+                    ),
+                  );
+                }
+              },
+            )
+
+
+
+
+
+
           ],
         ),
       ),

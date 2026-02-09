@@ -47,6 +47,10 @@ class PurchaseIds {
 
 class PurchaseService {
 
+  bool get isProEffective {
+    // ここだけ見れば「Proとして扱うか」が決まる
+    return hasPro.value || PurchaseConfig.DEV_FORCE_PRO || !kReleaseMode;
+  }
 
 
 
