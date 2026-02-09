@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
-import 'package:my_flutter_app_pro/screens/ai_partner_screen.dart';
+import 'package:my_flutter_app_pro/screens/navigation_screen.dart';
 
 class NotificationTestScreen extends StatelessWidget {
   const NotificationTestScreen({super.key});
@@ -86,14 +86,27 @@ class NotificationTestScreen extends StatelessWidget {
 
             ElevatedButton(
               child: const Text('DEV: Open AI screen (no gate)'),
-              onPressed: () async {
+              // onPressed: () async {
+              //   try {
+              //     await Navigator.push(
+              //       context,
+              //       MaterialPageRoute(builder: (_) => const AiPartnerScreen()),
+              //     );
+              //   } catch (e, st) {
+                onPressed: () async {
                 try {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AiPartnerScreen()),
+                   await Navigator.push(
+                     context,
+                     MaterialPageRoute(
+                       builder: (_) => const NavigationScreen(
+                         csvData: [],
+                         initialIndex: 2, // ← AIタブに直行（あなたのタブ順に合わせて調整）
+                       ),
+                     ),
                   );
                 } catch (e, st) {
-                  debugPrint('DEV open AI failed: $e\n$st');
+
+    debugPrint('DEV open AI failed: $e\n$st');
                   if (!context.mounted) return;
                   showDialog(
                     context: context,

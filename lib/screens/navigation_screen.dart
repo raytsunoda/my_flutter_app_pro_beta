@@ -26,18 +26,27 @@ import 'package:my_flutter_app_pro/config/purchase_config.dart';
 class NavigationScreen extends StatefulWidget {
   final List<List<dynamic>> csvData;
 
-  const NavigationScreen({super.key, required this.csvData});
+ // const NavigationScreen({super.key, required this.csvData});
+    final int initialIndex;
+    const NavigationScreen({
+      Key? key,
+      required this.csvData,
+      this.initialIndex = 0,
+    }) : super(key: key);
 
   @override
   State<NavigationScreen> createState() => _NavigationScreenState();
 }
 class _NavigationScreenState extends State<NavigationScreen> {
   late List<List<dynamic>> csvData;
+  int _selectedIndex = 0;
+
 
   @override
   void initState() {
     super.initState();
     csvData = widget.csvData;
+    _selectedIndex = widget.initialIndex;
   }
 
   Widget _buildNavButton({
@@ -309,27 +318,43 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
                 final devForcePro = PurchaseConfig.DEV_FORCE_PRO;
 
-// isPro() を正として扱う（ValueNotifierがズレてても判定が安定）
-                final isProBefore = await PurchaseService.I.isPro();
-                final allowAiBefore = isProBefore || devForcePro;
+// // isPro() を正として扱う（ValueNotifierがズレてても判定が安定）
+//                 final isProBefore = await PurchaseService.I.isPro();
+//                 final allowAiBefore = isProBefore || devForcePro;
+//
+//                 debugPrint(
+//                   '[nav] AI button: isPro(before)=$isProBefore devForcePro=$devForcePro hasProVN=${PurchaseService.I.hasPro.value}',
+//                 );
+//
+//                 if (!allowAiBefore) {
+//                   // paywall を開く（ここは既存のまま）
+//                 await openPaywall(context, mode: PaywallMode.enable);
+//                 final isProAfter = await PurchaseService.I.isPro();
+//                 final allowAiAfter = isProAfter || devForcePro;
+//
+//                 debugPrint(
+//                 '[nav] AI button: isPro(after)=$isProAfter devForcePro=$devForcePro hasProVN=${PurchaseService.I.hasPro.value}',
+//                 );
+//
+//                 if (!allowAiAfter) return;
+//                 }
+                    // ✅ 判定は isProEffective に統一（await排除）
+                    final okBefore = PurchaseService.I.isProEffective;
 
-                debugPrint(
-                  '[nav] AI button: isPro(before)=$isProBefore devForcePro=$devForcePro hasProVN=${PurchaseService.I.hasPro.value}',
-                );
+                    debugPrint(
+                      '[nav] AI button: isProEffective(before)=$okBefore devForcePro=$devForcePro hasProVN=${PurchaseService.I.hasPro.value}',
+                    );
 
-                if (!allowAiBefore) {
-                  // paywall を開く（ここは既存のまま）
-                await openPaywall(context, mode: PaywallMode.enable);
-                final isProAfter = await PurchaseService.I.isPro();
-                final allowAiAfter = isProAfter || devForcePro;
+                    if (!okBefore) {
+                      // paywall を開く（ここは既存のまま）
+                      await openPaywall(context, mode: PaywallMode.enable);
 
-                debugPrint(
-                '[nav] AI button: isPro(after)=$isProAfter devForcePro=$devForcePro hasProVN=${PurchaseService.I.hasPro.value}',
-                );
-
-                if (!allowAiAfter) return;
-                }
-
+                      final okAfter = PurchaseService.I.isProEffective;
+                      debugPrint(
+                        '[nav] AI button: isProEffective(after)=$okAfter devForcePro=$devForcePro hasProVN=${PurchaseService.I.hasPro.value}',
+                      );
+                      if (!okAfter) return;
+                    }
 
 
 
