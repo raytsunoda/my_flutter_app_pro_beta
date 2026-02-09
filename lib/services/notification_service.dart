@@ -28,6 +28,9 @@ String _tx({required String ja, required String en}) => _txByCode(
 );
 
 
+
+
+
 class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
@@ -261,6 +264,92 @@ class NotificationService {
     });
   }
 
+  // ==============================
+// Debug one-shot notifications
+// ==============================
+
+  static Future<void> debugFireWeeklyNow({required String localeCode}) async {
+    await _debugFireNow(
+      id: 99901,
+      localeCode: localeCode,
+      titleJa: '【テスト】週次のAIコメントを確認しましょう',
+      titleEn: '[TEST] Your weekly AI comment is ready',
+      bodyJa: 'タップで履歴（週次）へ',
+      bodyEn: 'Tap to open history (Weekly)',
+      payload: {'route': '/history', 'tab': 'weekly'},
+    );
+  }
+
+  static Future<void> debugFireMonthlyNow({required String localeCode}) async {
+    await _debugFireNow(
+      id: 99902,
+      localeCode: localeCode,
+      titleJa: '【テスト】月次のAIコメントを見直しましょう',
+      titleEn: '[TEST] Your monthly AI comment is ready',
+      bodyJa: 'タップで履歴（月次）へ',
+      bodyEn: 'Tap to open history (Monthly)',
+      payload: {'route': '/history', 'tab': 'monthly'},
+    );
+  }
+
+  /// Morning reminder (daily input) - payloadはあなたの既存ルーティングに合わせて調整可
+  static Future<void> debugFireMorningNow({required String localeCode}) async {
+    await _debugFireNow(
+      id: 99903,
+      localeCode: localeCode,
+      titleJa: '【テスト】記録の時間です',
+      titleEn: '[TEST] Time to log your day',
+      bodyJa: 'タップして「毎日の入力」へ',
+      bodyEn: 'Tap to open Daily Input',
+      payload: {'route': '/daily_input'},
+    );
+  }
+
+  /// Evening reminder (tips/quotes etc.) - payloadはあなたの既存ルーティングに合わせて調整可
+  static Future<void> debugFireEveningNow({required String localeCode}) async {
+    await _debugFireNow(
+      id: 99904,
+      localeCode: localeCode,
+      titleJa: '【テスト】ヒント/名言をチェック',
+      titleEn: '[TEST] Check a tip/quote',
+      bodyJa: 'タップして開きます',
+      bodyEn: 'Tap to open',
+      payload: {'route': '/home'}, // 迷う場合は home に着地が安全
+    );
+  }
+
+  static Future<void> _debugFireNow({
+    required int id,
+    required String localeCode,
+    required String titleJa,
+    required String titleEn,
+    required String bodyJa,
+    required String bodyEn,
+    required Map<String, String> payload,
+  }) async {
+    // 権限が無ければ何もしない（テストなので requestIfDenied=false）
+    if (!await _ensureAllowed(requestIfDenied: false)) return;
+
+    await _safe(() => AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: id,
+        channelKey: _channelKey,
+        title: _txByCode(localeCode: localeCode, ja: titleJa, en: titleEn),
+        body: _txByCode(localeCode: localeCode, ja: bodyJa, en: bodyEn),
+        payload: payload,
+        category: NotificationCategory.Reminder,
+      ),
+      // 3秒後に1回だけ
+      schedule: NotificationInterval(
+        interval: const Duration(seconds: 3),
+        repeats: false,
+        preciseAlarm: true,
+      ),
+    ));
+  }
+
+
+
   // ====================== スケジュール ======================
 
   /// 週次（先週の振り返り）…毎週 **月曜 10:00**
@@ -336,4 +425,6 @@ class NotificationService {
     await _safe(() => AwesomeNotifications().cancel(_idWeekly));
     await _safe(() => AwesomeNotifications().cancel(_idMonthly));
   }
+
+
 }

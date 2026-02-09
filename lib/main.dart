@@ -21,6 +21,7 @@ import 'gen_l10n/app_localizations.dart';
 import 'utils/notification_scheduler.dart';
 //import 'package:my_flutter_app_pro/utils/notification_scheduler.dart';
 import 'screens/navigation_screen.dart'; // ← NavigationScreen を使っているなら必須
+import 'screens/notification_test_screen.dart';
 
 
 
@@ -158,7 +159,11 @@ class MyApp extends StatelessWidget {
         '/nav': (_) => const NavigationScreen(csvData: []),
         '/history': (_) => const AiCommentHistoryScreen(),
         '/data-migration': (_) => const DataMigrationScreen(),
-      },
+
+    // Debug screen
+    '/debug/notification_test': (_) => const NotificationTestScreen(),
+    },
+
       initialRoute: '/',
     );
   }
