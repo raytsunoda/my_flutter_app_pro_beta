@@ -1246,7 +1246,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ListTile(
                 leading: const Icon(Icons.description_outlined),
                 //title: const Text('利用規約'),
-                title: Text(t.settingsSupportTitle),
+                title: Text(t.settingsSupportTerms),
                 onTap: () => _launchUrl('https://www.happiness-h3.com/terms'),
               ),
               ListTile(

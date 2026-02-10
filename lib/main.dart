@@ -128,12 +128,16 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
+
+      // locale:
+
       //✅⬇️ 🔧 開発中のみ英語強制（本番前に必ずコメントアウト/削除）
       locale: const Locale('en'),
       //✅⬆️locale: const Locale('en'), // ← テストが終わったら固定は外す（端末/ユーザーに追従）
+      // locale: null, // ← 端末言語に追従（デフォルト挙動）
 
       //✅⬇️ 🔧 開発中のみコメントアウト
-    //  locale: kDebugMode ? const Locale('en') : null,
+      //locale: kDebugMode ? const Locale('en') : null,
       //✅⬇️ 🔧 開発後コメントアウト外す
       // ↑ リリースでは null → 端末言語に従う
 
