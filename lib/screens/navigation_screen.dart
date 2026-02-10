@@ -226,6 +226,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
       appBar: AppBar(title: Text(t.navTitle)),
 
       body: SingleChildScrollView(
+
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -296,20 +297,24 @@ class _NavigationScreenState extends State<NavigationScreen> {
             ElevatedButton.icon(
               onPressed: () async {
 
-                if (!kReleaseMode) {
-                  // Debug/TestFlightで「購入ボタン付きPaywall」を強制確認したいとき用
-                  await openPaywall(context, mode: PaywallMode.enable);
-                  return;
-                }
+                // if (!kReleaseMode) {
+                //   // Debug/TestFlightで「購入ボタン付きPaywall」を強制確認したいとき用
+                //   await openPaywall(context, mode: PaywallMode.enable);
+                //   return;
+                // }
+                //
+                //
+                // //final devForcePro = PurchaseConfig.DEV_FORCE_PRO;
+                // final allowAiBefore = PurchaseService.I.isProEffective;
 
-
-                //final devForcePro = PurchaseConfig.DEV_FORCE_PRO;
+                // ✅ isProEffective に統一（await排除）
                 final allowAiBefore = PurchaseService.I.isProEffective;
 
-                  debugPrint(
+                debugPrint(
                      '[nav] AI button: allow(before)=$allowAiBefore '
+                    //     'hasProVN=${PurchaseService.I.hasPro.value} isProEffective=${PurchaseService.I.isProEffective}',
                          'hasProVN=${PurchaseService.I.hasPro.value} isProEffective=${PurchaseService.I.isProEffective}',
-                  );
+                );
 
                     if (!allowAiBefore) {
                       await openPaywall(context, mode: PaywallMode.enable);
@@ -317,13 +322,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
                   debugPrint(
                      '[nav] AI button: allow(after)=$allowAiAfter '
+                     //    'hasProVN=${PurchaseService.I.hasPro.value} isProEffective=${PurchaseService.I.isProEffective}',
                          'hasProVN=${PurchaseService.I.hasPro.value} isProEffective=${PurchaseService.I.isProEffective}',
-                      );
+                  );
                       if (!allowAiAfter) return;
-                    }
-
-
-
+                }
 
                 if (!context.mounted) return;
                 Navigator.push(
@@ -345,9 +348,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
-
-
-
 
 
             _buildNavButton(

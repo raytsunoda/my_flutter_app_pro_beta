@@ -337,6 +337,11 @@ class _PaywallSheetState extends State<PaywallSheet> {
                         try {
                           setState(() => _restoring = true);
                           await PurchaseService.I.restoreWithUI(context);
+                        // ✅ 復元でProが有効になったら、このPaywallを閉じて呼び出し元へ戻す
+                          if (mounted && PurchaseService.I.isProEffective) {
+                            Navigator.of(context).pop(true); // bottom sheet close
+                          }
+
                         } catch (e, st) {
                           debugPrint('[restore] ui error: $e\n$st');
                           if (mounted) await showCommonErrorDialog(context);
