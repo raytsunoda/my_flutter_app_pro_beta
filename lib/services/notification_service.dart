@@ -327,23 +327,33 @@ class NotificationService {
     required String bodyEn,
     required Map<String, String> payload,
   }) async {
-    // 権限が無ければ何もしない（テストなので requestIfDenied=false）
-    if (!await _ensureAllowed(requestIfDenied: false)) return;
+    // ✅ Debugボタンは「許可が無ければその場で許可を取りに行く」
+    if (!await _ensureAllowed(requestIfDenied: true)) return;
+
+    // ✅ iOSで確実に出すため「3秒後の日時」を Calendar で予約する
+    final fireAt = DateTime.now().add(const Duration(seconds: 3));
+
+    // ✅ 既存予約（weekly/monthly等）と衝突しないように、毎回ユニークIDにする
+    final uniqueId = DateTime.now().millisecondsSinceEpoch.remainder(1000000000);
 
     await _safe(() => AwesomeNotifications().createNotification(
       content: NotificationContent(
-        id: id,
+        id: uniqueId, // ←固定id(id)は使わない（衝突回避）
         channelKey: _channelKey,
         title: _txByCode(localeCode: localeCode, ja: titleJa, en: titleEn),
         body: _txByCode(localeCode: localeCode, ja: bodyJa, en: bodyEn),
-        payload: payload,
+        payload: <String, String>{
+          ...payload,
+          'debug': '1',
+          'fireAt': fireAt.toIso8601String(),
+        },
         category: NotificationCategory.Reminder,
       ),
-      // 3秒後に1回だけ
-      schedule: NotificationInterval(
-        interval: const Duration(seconds: 3),
-        repeats: false,
+      // ✅ 3秒後に1回だけ（Calendar指定）
+      schedule: NotificationCalendar.fromDate(
+        date: fireAt,
         preciseAlarm: true,
+        repeats: false,
       ),
     ));
   }

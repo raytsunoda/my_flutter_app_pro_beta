@@ -25,7 +25,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../gen_l10n/app_localizations.dart';
 
 import 'package:my_flutter_app_pro/utils/notification_scheduler.dart';
+import 'notification_test_screen.dart';
 
+import 'package:my_flutter_app_pro/screens/notification_test_screen.dart';
 
 
 // ==== helpers (robust cell access) ====
@@ -1530,8 +1532,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('データ修復ユーティリティ（開発用）', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          'データ修復ユーティリティ（開発用）',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 8),
+
+        // 既存：AIコメントCSV修復
         ElevatedButton.icon(
           icon: const Icon(Icons.build),
           label: const Text('AIコメントCSVを後処理（追伸テンプレ除去）'),
@@ -1541,12 +1548,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('修復完了：$n 件を処理しました')),
             );
-            // 必要なら履歴の再読込を促す
+          },
+        ),
+
+        const SizedBox(height: 12),
+
+        // ✅ 追加：通知テスト画面
+        ElevatedButton.icon(
+          icon: const Icon(Icons.notifications_active),
+          label: const Text('通知テスト画面（Weekly / Monthly / Morning / Evening）'),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const NotificationTestScreen(),
+              ),
+            );
           },
         ),
       ],
     );
   }
+
 
   Future<void> _launchUrl(String url) async {
     final t = AppLocalizations.of(context)!;
