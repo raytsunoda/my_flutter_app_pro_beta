@@ -55,6 +55,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     required Color color,
     required String contextText,
   }) {
+    final t = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: InkWell(
@@ -64,12 +65,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
           showDialog(
             context: context,
             builder: (_) => AlertDialog(
-              title: const Text('このボタンの説明'),
+              //title: const Text('このボタンの説明'),
+              title: Text(t.navDetailDialogTitle),
               content: Text(contextText),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('閉じる'),
+                  //child: const Text('閉じる'),
+                  child: Text(t.commonClose),
                 ),
               ],
             ),
@@ -250,7 +253,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
                 onPressed: () => _goToManualInputView(context),
                 color: Colors.blue,
-                contextText: "ストレッチ/ウォーキング/睡眠/３つの感謝を記録📝"
+                //contextText: "ストレッチ/ウォーキング/睡眠/３つの感謝を記録📝"
+                contextText: t.navDailyInputDesc,
             ),
             _buildNavButton(
                 //label: "1日グラフで見る 🍩",
@@ -258,7 +262,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
                 onPressed: () => _goToOneDayView(context),
                 color: Colors.blue,
-                contextText: "幸せ感/睡眠/運動/感謝を1日単位でグラフ化📊"
+                //contextText: "幸せ感/睡眠/運動/感謝を1日単位でグラフ化📊"
+                contextText: t.navOneDayGraphDesc,
             ),
             _buildNavButton(
                // label: "1週・4週・1年グラフで見る 📊",
@@ -266,7 +271,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
                 onPressed: () => _goToPeriodSelectionView(context),
                 color: Colors.blue,
-                contextText: "1週・4週・1年の傾向を確認できる📊"
+                //contextText: "1週・4週・1年の傾向を確認できる📊"
+                contextText: t.navPeriodGraphsDesc,
             ),
             // _buildNavButton(
             //     //label: "気持ちが少し楽になるヒント 🔍✨",
@@ -281,7 +287,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             // ),
 
             _buildNavButton(
-              label: isEn ? '${t.navHints} (Japanese)' : t.navHints,
+              label: isEn ? '${t.navHints} (Japanese) ' : t.navHints,
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const TipsScreen()),
@@ -377,7 +383,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               //  "※ 長押しで説明を表示します",
                 t.navLongPressHint,
 
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
             ),
             const SizedBox(height: 10),
@@ -422,17 +428,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
           //title: const Text('AIパートナーのひとこと'),
           title: Text(t.navAiPartnerTitle),
 
-          content: const Text(
-              'あなたの「3つの感謝」や「今日のひとことメモ」、直近のグラフ推移をもとに、'
-                  '毎日・週・月の短いコメントを表示します。'
-                  '\n\n・Proで利用できます\n・提案は参考情報です\n・医療/法律など重要事項は専門家に確認してください'
-          ),
+          content: Text(t.navAiPartnerInfoBody),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('閉じる'),
+              child: Text(t.commonClose),
             ),
           ],
+         
         );
       },
     );
