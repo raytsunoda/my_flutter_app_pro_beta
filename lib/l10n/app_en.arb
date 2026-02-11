@@ -3,6 +3,11 @@
   "aiErrorRetry": "⚠️ An error occurred while fetching the comment.\nPlease try again later.",
   "aiTimeoutRetry": "⚠️ It took too long to fetch the comment, or it couldn't be created.\nPlease try again later.",
   "appTitle": "Happiness Navi Pro",
+
+  "bottomHome": "Home",
+  "bottomExit": "Exit",
+  "bottomNav": "Navigation",
+
   "btnRetry": "Try Again",
   "cancel": "Cancel",
   "chartHappinessLevel": "Happiness Level",
@@ -113,7 +118,9 @@
   "navFavoriteWordsDesc": "Look back at the words you saved anytime you want.",
   "navFavoriteWordsLabel": "⭐ Your Favorite Words",
   "navHints": "Tips to Feel a Bit Better 🔍✨",
-  "navHintsDesc": "Tips are currently available in Japanese only.",
+
+ "navHintsDesc": "※ When you're feeling down, try looking at things from a different perspective 🔍✨.",
+
   "navLongPressHint": "* Long-press to show details",
   "navOneDayGraph": "1-Day Graph 🍩",
  "navOneDayGraphDesc": "View your 1-day graph and today’s memo.",

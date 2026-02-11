@@ -399,6 +399,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
 
       bottomNavigationBar: BottomNavigationBar(
+
         currentIndex: 1,
         onTap: (index) {
           if (index == 0) {
@@ -409,10 +410,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
             Navigator.of(context).pop(); // 終了
           }
         },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "ホーム"),
-          BottomNavigationBarItem(icon: Icon(Icons.close, color: Colors.red), label: "終了"),
-          BottomNavigationBarItem(icon: Icon(Icons.menu), label: "ナビ"),
+        //items: const [
+          items: [
+          //BottomNavigationBarItem(icon: Icon(Icons.home), label: "ホーム"),
+          //BottomNavigationBarItem(icon: Icon(Icons.close, color: Colors.red), label: "終了"),
+          //BottomNavigationBarItem(icon: Icon(Icons.menu), label: "ナビ"),
+          BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.bottomHome),
+          BottomNavigationBarItem(icon: const Icon(Icons.close, color: Colors.red), label: t.bottomExit),
+          BottomNavigationBarItem(icon: const Icon(Icons.menu), label: t.bottomNav),
+
+
+
         ],
       ),
 

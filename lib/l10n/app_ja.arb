@@ -3,6 +3,11 @@
   "aiErrorRetry": "⚠️ コメントの取得中にエラーが発生しました。\n時間をおいてもう一度お試しください。",
   "aiTimeoutRetry": "⚠️ コメントの取得に時間がかかったか、うまく作れなかったようです。\n時間をおいてもう一度お試しください。",
   "appTitle": "幸せ感ナビPro",
+
+  "bottomHome": "ホーム",
+  "bottomExit": "終了",
+  "bottomNav": "ナビ",
+
   "btnRetry": "もう一度試す",
   "cancel": "キャンセル",
    "chartHappinessLevel": "幸せ感レベル",
@@ -114,7 +119,7 @@
   "navFavoriteWordsDesc": "あなたが残した言葉を、見たいときに眺められます",
   "navFavoriteWordsLabel": "⭐ お気に入りのあなたの言葉",
   "navHints": "気持ちが少し楽になるヒント 🔍✨",
-  "navHintsDesc": "※ヒントは現在、日本語のみです。",
+  "navHintsDesc": "※ネガティブな気持ちの時、視点を変えてみると🔍✨。",
   "navLongPressHint": "※ 長押しで説明を表示します",
   "navOneDayGraph": "1日グラフで見る 🍩",
  "navOneDayGraphDesc": "1日グラフと今日のメモを表示します。",
