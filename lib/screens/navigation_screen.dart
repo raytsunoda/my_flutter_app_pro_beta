@@ -311,6 +311,25 @@ class _NavigationScreenState extends State<NavigationScreen> {
             ),
 
 
+            // ✅ 追加：Favorite Words
+            _buildNavButton(
+              // 既存の日本語ボタン「あなたのお気に入りの言葉」の復活
+              // ※ラベル/説明は l10n に寄せる（下でキーを追加）
+              label: t.navFavoriteWords,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FavoriteWordsScreen()),
+              ),
+              color: Colors.green,
+              contextText: t.navFavoriteWordsDesc,
+            ),
+
+
+
+
+
+
+
             ElevatedButton.icon(
               onPressed: () async {
 

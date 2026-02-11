@@ -115,7 +115,9 @@
   "navDailyInput": "Daily Input 📝",
   "navDailyInputDesc": "Record today’s score, gratitude, and note.",
   "navDetailDialogTitle": "Details",
-  "navFavoriteWordsDesc": "Look back at the words you saved anytime you want.",
+
+  "navFavoriteWords": "Your Favorite Words 💬✨",
+  "navFavoriteWordsDesc": "* Save words that encourage you and revisit them anytime.",
   "navFavoriteWordsLabel": "⭐ Your Favorite Words",
   "navHints": "Tips to Feel a Bit Better 🔍✨",
 

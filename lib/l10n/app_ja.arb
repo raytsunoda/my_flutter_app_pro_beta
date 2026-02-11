@@ -115,8 +115,9 @@
  "navDailyInputDesc": "今日のスコア・感謝・メモを記録します。",
   "navDetailDialogTitle": "説明",
 
+"navFavoriteWords": "あなたのお気に入りの言葉 💬✨",
+"navFavoriteWordsDesc": "※あなた自身が残した、気持ちを支えてくれる言葉を、いつでも眺められます。",
 
-  "navFavoriteWordsDesc": "あなたが残した言葉を、見たいときに眺められます",
   "navFavoriteWordsLabel": "⭐ お気に入りのあなたの言葉",
   "navHints": "気持ちが少し楽になるヒント 🔍✨",
   "navHintsDesc": "※ネガティブな気持ちの時、視点を変えてみると🔍✨。",
