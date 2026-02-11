@@ -221,7 +221,20 @@ class _NavigationScreenState extends State<NavigationScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
+    final lang = Localizations.localeOf(context).languageCode;
+    final isEn = lang == 'en';
+
+    // Tips/Quotes は当面「日本語のみ」なので、英語UIのときだけ注記を出す（B案：丁寧）
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final tipsJaOnlyNote = (localeCode == 'ja')
+        ? ''
+        : '\n\nNote: Tips are currently available only in Japanese. An English version is in preparation.';
+    final quotesJaOnlyNote = (localeCode == 'ja')
+        ? ''
+        : '\n\nNote: Quotes are currently available only in Japanese. An English version is in preparation.';
+
     return Scaffold(
+
       //appBar: AppBar(title: const Text("ナビゲーション画面")),
       appBar: AppBar(title: Text(t.navTitle)),
 
@@ -255,44 +268,42 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 color: Colors.blue,
                 contextText: "1週・4週・1年の傾向を確認できる📊"
             ),
+            // _buildNavButton(
+            //     //label: "気持ちが少し楽になるヒント 🔍✨",
+            //     label: t.navHints,
+            //
+            //     onPressed: () => Navigator.push(
+            //       context,
+            //       MaterialPageRoute(builder: (_) => const TipsScreen()),
+            //     ),
+            //     color: Colors.green,
+            //     contextText: "ネガティブな気持ちの時、視点を変えてみると🔍✨"
+            // ),
+
             _buildNavButton(
-                //label: "気持ちが少し楽になるヒント 🔍✨",
-                label: t.navHints,
-
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const TipsScreen()),
-                ),
-                color: Colors.green,
-                contextText: "ネガティブな気持ちの時、視点を変えてみると🔍✨"
+              label: isEn ? '${t.navHints} (Japanese)' : t.navHints,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TipsScreen()),
+              ),
+              color: Colors.green,
+              contextText: isEn
+                  ? 'Currently available in Japanese.\n${t.navHintsDesc}'
+                  : t.navHintsDesc,
             ),
+
             _buildNavButton(
-                //label: "名言をチェック 📜✨",
-                label: t.navQuotes,
-
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const QuotesScreen()),
-                ),
-                color: Colors.green,
-                //contextText: "やる気向上、ストレス・不安軽減のヒントに🔍✨"
-                contextText: t.navQuotesDesc
-
+              label: isEn ? '${t.navQuotes} (Japanese)' : t.navQuotes,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const QuotesScreen()),
+              ),
+              color: Colors.green,
+              contextText: isEn
+                  ? 'Currently available in Japanese.\n${t.navQuotesDesc}'
+                  : t.navQuotesDesc,
             ),
 
-// ✅ 緑と紫の間：お気に入り（あなたの言葉）
-            _buildNavButton(
-            //    label: "⭐ お気に入りのあなたの言葉",
-                label: t.navFavoriteWordsLabel,
-
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const FavoriteWordsScreen()),
-                ),
-                color: Colors.green,
-               // contextText: "あなたが残した言葉を、見たいときに眺められます"
-                contextText: t.navFavoriteWordsDesc,
-            ),
 
             ElevatedButton.icon(
               onPressed: () async {
