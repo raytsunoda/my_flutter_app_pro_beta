@@ -930,14 +930,51 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
 
     final deviceLang = PlatformDispatcher.instance.locale.languageCode; // 'ja' or 'en'
 
-    bool looksEnglish(String s) {
+    // bool looksEnglish(String s) {
+    //   final t = s.trim();
+    //   if (t.isEmpty) return false;
+    //   final letters = RegExp(r'[A-Za-z]').allMatches(t).length;
+    //   return letters >= 15;
+    // }
+    //
+    // final effectiveLang = looksEnglish(memoStr) ? 'en' : deviceLang;
+
+// 日本語に英単語が混じる程度では英語に切り替えない。
+// 「ほぼ英語」と言える場合だけ英語にする。
+    bool isMostlyEnglish(String s) {
       final t = s.trim();
       if (t.isEmpty) return false;
+
+      // 英字数（A-Z, a-z）
       final letters = RegExp(r'[A-Za-z]').allMatches(t).length;
-      return letters >= 15;
+
+      // 日本語っぽい文字数（ひらがな/カタカナ/漢字）
+      final japanese = RegExp(r'[ぁ-んァ-ン一-龯]').allMatches(t).length;
+
+      // 全体文字数（ざっくりでOK）
+      final total = t.runes.length;
+
+
+      // 英字比率
+      final letterRatio = letters / (total == 0 ? 1 : total);
+      // 「英語として成立している」閾値：
+      // - 英字が十分ある
+      // - 英字比率がそこそこ高い
+      // - 日本語文字がほぼ無い
+      return letters >= 25 && letterRatio >= 0.35 && japanese <= 3;
     }
 
-    final effectiveLang = looksEnglish(memoStr) ? 'en' : deviceLang;
+// ★言語決定：英語端末は常に英語、日本語端末は「ほぼ英語メモ」のときだけ英語
+    final effectiveLang =
+    (deviceLang == 'en') ? 'en' : (isMostlyEnglish(memoStr) ? 'en' : 'ja');
+
+    if (LOG_AI) {
+      debugPrint('[AI LANG] memoMostlyEnglish=${isMostlyEnglish(memoStr)}');
+    }
+
+
+
+
     final rawName = (await _resolveDisplayName()).trim();
 
 // 日本語用：さん付け
@@ -1365,14 +1402,47 @@ final prompt = (effectiveLang == 'en') ? promptEn : promptJa;
     //
     // final effectiveLang =
     // looksEnglishBulk(pickedMemos) ? 'en' : deviceLang;
-    final deviceLang = PlatformDispatcher.instance.locale.languageCode;
+    // final deviceLang = PlatformDispatcher.instance.locale.languageCode;
+    //
+    // bool looksEnglishBulk(List<String> ms) {
+    //   final joined = ms.join(' ');
+    //   final letters = RegExp(r'[A-Za-z]').allMatches(joined).length;
+    //   return letters >= 30;
+    // }
+    // final effectiveLang = looksEnglishBulk(pickedMemos) ? 'en' : deviceLang;
 
-    bool looksEnglishBulk(List<String> ms) {
-      final joined = ms.join(' ');
-      final letters = RegExp(r'[A-Za-z]').allMatches(joined).length;
-      return letters >= 30;
+
+
+    final deviceLang = PlatformDispatcher.instance.locale.languageCode; // 'ja' or 'en'
+
+// 週次/月次：日本語メモに英単語が混じる程度では英語に切り替えない。
+// 「ほぼ英語」と言える場合だけ英語にする。
+    bool isMostlyEnglishBulk(List<String> ms) {
+      final joined = ms.join(' ').trim();
+      if (joined.isEmpty) return false;
+
+      final letters = RegExp(r'[A-Za-z]').allMatches(joined).length;          // 英字
+      final japanese = RegExp(r'[ぁ-んァ-ン一-龯]').allMatches(joined).length; // 日本語
+      final total = joined.runes.length;
+      final letterRatio = letters / (total == 0 ? 1 : total);
+
+      // 複数メモなので閾値は少し高め。
+      // - 英字が十分ある
+      // - 英字比率が高い
+      // - 日本語がほぼ無い
+      return letters >= 40 && letterRatio >= 0.35 && japanese <= 5;
     }
-    final effectiveLang = looksEnglishBulk(pickedMemos) ? 'en' : deviceLang;
+
+// ★言語決定：英語端末は常に英語、日本語端末は「ほぼ英語」のときだけ英語
+    final effectiveLang =
+    (deviceLang == 'en') ? 'en' : (isMostlyEnglishBulk(pickedMemos) ? 'en' : 'ja');
+
+    if (LOG_AI) {
+      debugPrint('[AI LANG] (period) device=$deviceLang effective=$effectiveLang mostlyEnglish=${isMostlyEnglishBulk(pickedMemos)}');
+    }
+
+
+
 
 // ★ callName を言語に合わせて作る（週次/月次の「Rayさん」根絶）
     final callName = await _callName(lang: effectiveLang);
