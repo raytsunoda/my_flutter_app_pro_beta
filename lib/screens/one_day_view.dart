@@ -5,7 +5,7 @@ import 'package:my_flutter_app_pro/widgets/radar_chart_widget.dart';
 //import 'package:my_flutter_app_pro/l10n/strings_ja.dart';
 import '../utils/history_data.dart';
 import '../gen_l10n/app_localizations.dart';
-
+import '../services/ai_comment_service.dart';
 
 /// ---- レーダー用スコア算出：CSV優先（空のときだけ簡易計算にフォールバック）----
 List<double> _calcRadarScoresFromRow(Map<String, String>? row) {
@@ -82,6 +82,12 @@ class _OneDayViewState extends State<OneDayView> {
   // === ひとことメモ ===
   String _memoText = '';
 
+    // === daily AI（保存済みを表示するだけ）===
+    bool _aiLoading = false;
+    String _aiDailyText = '';
+
+
+
   @override
   void initState() {
     super.initState();
@@ -95,9 +101,16 @@ class _OneDayViewState extends State<OneDayView> {
     // 選択日の行を厳密一致で取得してセット
     _updateSelectedRow(_selectedDate);
 
+
+
+
     // 先にメモを確定（←「今日のひとことメモが表示されない」症状の原因箇所）
     _loadMemoFor(_selectedDate);
+
+        // 保存済み daily AI をロード（生成はしない）
+        Future.microtask(() => _loadDailyAiFor(_selectedDate));
   }
+
 
   DateTime? _latestDateInCsv() {
     final dates = widget.csvData
@@ -125,17 +138,49 @@ class _OneDayViewState extends State<OneDayView> {
     });
     // 追加：行が確定した後にメモも確定
     _loadMemoFor(date);
+    _loadDailyAiFor(date);
   }
 
-  // void _loadMemoFor(DateTime date) {
-  //   final memo = _hist.memoAt(date);
-  //   setState(() {
-  //     _memoText = memo.isEmpty ? J.memoNone : memo;
-  //   });
-  // }
+  Future<void> _loadDailyAiFor(DateTime date) async {
+    setState(() {
+      _aiLoading = true;
+      _aiDailyText = '';
+    });
 
-  //
-  //
+    try {
+      // まず保存済みを読む（軽い・速い）
+      final ymd = _normYmd(date); // あなたの既存関数（yyyy/MM/dd）
+      final saved = await AiCommentService.getSavedComment(date: ymd, type: 'daily');
+      final savedText = (saved ?? '').trim();
+
+      if (savedText.isNotEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _aiDailyText = savedText;
+          _aiLoading = false;
+        });
+        return;
+      }
+
+      // 無ければ「生成→保存→返す」責務を Service に任せる（ここがポイント）
+      final rec = await AiCommentService.ensureDailySavedForDate(date);
+      final text = (rec?['comment'] ?? '').toString().trim();
+
+      if (!mounted) return;
+      setState(() {
+        _aiDailyText = text; // 空ならUI側で「まだありません」表示になる
+        _aiLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _aiDailyText = '';
+        _aiLoading = false;
+      });
+    }
+  }
+
+
   void _loadMemoFor(DateTime date) {
     // まずは「いま表示している行」から取る（最優先）
     final row = _selectedRow;
@@ -322,6 +367,25 @@ class _OneDayViewState extends State<OneDayView> {
                 ],
               ),
             ),
+
+
+            const SizedBox(height: 16),
+            const Text('🧡 AIパートナーのひとこと',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.greenAccent.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: _aiLoading
+                  ? const Text('考え中です…')
+                  : Text(_aiDailyText.isNotEmpty ? _aiDailyText : 'コメントがまだありません'),
+            ),
+
+
+
           ],
         ),
       ),

@@ -7,6 +7,7 @@ import '../screens/one_day_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../gen_l10n/app_localizations.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../services/ai_comment_service.dart';
 
 class ManualInputView extends StatefulWidget {
   final VoidCallback? onSaved;
@@ -231,6 +232,22 @@ class _ManualInputViewState extends State<ManualInputView> {
     final csvContent = const ListToCsvConverter(eol: '\n').convert(csvData);
     await file.writeAsString(csvContent);
     debugPrint('[DEBUG] CSVファイル保存完了: ${file.path}');
+
+
+        // ✅ 安定化：保存直後に 1日グラフへ遷移する前に
+        //    daily AI コメントを「保存済み優先で確保（無ければ生成→保存）」しておく。
+        //    ※これにより、保存直後に表示される 1日グラフでもAI欄が埋まる。
+        try {
+          await AiCommentService.ensureDailySavedForDate(selectedDate);
+          // 稀に I/O タイミングで取りこぼす端末があるので、短い待ちを入れる（任意だが安定）
+          await Future.delayed(const Duration(milliseconds: 50));
+        } catch (e, st) {
+          debugPrint('[saveEntry] ensureDailySavedForDate failed: $e\n$st');
+          // 失敗しても保存・画面遷移自体は止めない（静かな拡散/安定優先）
+        }
+
+
+
 
     final updatedCsv = csvData;
 

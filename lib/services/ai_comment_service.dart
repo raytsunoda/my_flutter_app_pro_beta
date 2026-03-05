@@ -663,7 +663,15 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       return null;
     }
 
-    final comment = await _buildDailyCommentFromMainRow(mainRow);
+    //final comment = await _buildDailyCommentFromMainRow(mainRow);
+
+    final memo = mainRow['memo'] ?? '';
+    final comment = await AiCommentService.getTodayComment(
+      memo: memo,
+      displayDate: date,
+    );
+
+
     final newRow = <String, String>{'date': target, 'type': 'daily', 'comment': comment};
     log.add(newRow);
     log.sort((a,b) => (b['date'] ?? '').compareTo(a['date'] ?? ''));
