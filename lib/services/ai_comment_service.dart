@@ -2632,7 +2632,45 @@ return added;
     }
   }
 
+  static Future<Map<String, String>?> ensureDailySavedFromRow({
+    required DateTime date,
+    required Map<String, String> row,
+  }) async {
+    String _fmt(DateTime d) =>
+        '${d.year.toString().padLeft(4, '0')}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
 
+    final target = _fmt(date);
+
+    // すでに保存済みならそれを返す
+    final log = await CsvLoader.loadAiCommentLog();
+    final already = log.firstWhere(
+          (r) => (r['type'] ?? '').toLowerCase() == 'daily' && (r['date'] ?? '') == target,
+      orElse: () => {},
+    );
+    if (already.isNotEmpty) {
+      return Map<String, String>.from(already);
+    }
+
+    // 入力が空なら生成しない
+    if (!_rowHasAnyInput(row)) {
+      return null;
+    }
+
+    // ✅ 生成入口は既存の高品質ルートに統一する
+    //    （AIパートナー画面と同じルート）
+    final rec = await ensureDailySaved(date);
+
+    final comment = (rec['comment'] ?? '').trim();
+    if (comment.isEmpty) {
+      return null;
+    }
+
+    return <String, String>{
+      'date': rec['date'] ?? target,
+      'type': (rec['type'] ?? 'daily').toString(),
+      'comment': comment,
+    };
+  }
 
 
 }

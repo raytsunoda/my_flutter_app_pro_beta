@@ -62,12 +62,14 @@ class OneDayView extends StatefulWidget {
   final List<Map<String, String>> csvData;     // 設定＞保存データの管理 と同じ配列
   final Map<String, String>? selectedRow;      // 呼び出し元から渡るなら使用（無ければ内部で当日/最新日を選ぶ）
   final DateTime? selectedDate;                // 同上
+  final String? initialAiDailyText;            // 保存直後に即表示したいAIコメント
 
   const OneDayView({
     super.key,
     required this.csvData,
     this.selectedRow,
     this.selectedDate,
+    this.initialAiDailyText,
   });
 
   @override
@@ -98,17 +100,23 @@ class _OneDayViewState extends State<OneDayView> {
     final hasToday = widget.csvData.any((r) => _normYmdStr(r['日付'] ?? '') == _normYmd(today));
     _selectedDate = widget.selectedDate ?? (hasToday ? today : (_latestDateInCsv() ?? today));
 
-    // 選択日の行を厳密一致で取得してセット
-    _updateSelectedRow(_selectedDate);
+    final seeded = (widget.initialAiDailyText ?? '').trim();
+    // ★追加（AI生成待ち表示）
+    _aiDailyText = "考え中です…";
+    _aiLoading = true;
+
+// 選択日の行を厳密一致で取得してセット
+// 保存直後コメントがある場合は、ここでAIロードしない
+    _updateSelectedRow(_selectedDate, loadAi: seeded.isEmpty);
+
+// 保存直後に渡されたAIコメントがあれば最優先で表示
+    if (seeded.isNotEmpty) {
+      _aiDailyText = seeded;
+      _aiLoading = false;
+    }
 
 
 
-
-    // 先にメモを確定（←「今日のひとことメモが表示されない」症状の原因箇所）
-    _loadMemoFor(_selectedDate);
-
-        // 保存済み daily AI をロード（生成はしない）
-        Future.microtask(() => _loadDailyAiFor(_selectedDate));
   }
 
 
@@ -126,7 +134,7 @@ class _OneDayViewState extends State<OneDayView> {
     return dates.isEmpty ? null : dates.first;
   }
 
-  void _updateSelectedRow(DateTime date) {
+  void _updateSelectedRow(DateTime date, {bool loadAi = true}) {
     final wanted = _normYmd(date);
     final row = widget.csvData.firstWhere(
           (r) => _normYmdStr(r['日付'] ?? '') == wanted,
@@ -136,9 +144,12 @@ class _OneDayViewState extends State<OneDayView> {
       _selectedDate = date;
       _selectedRow = row.isEmpty ? null : Map<String, String>.from(row);
     });
-    // 追加：行が確定した後にメモも確定
+
     _loadMemoFor(date);
-    _loadDailyAiFor(date);
+
+    if (loadAi) {
+      _loadDailyAiFor(date);
+    }
   }
 
   Future<void> _loadDailyAiFor(DateTime date) async {
@@ -148,27 +159,17 @@ class _OneDayViewState extends State<OneDayView> {
     });
 
     try {
-      // まず保存済みを読む（軽い・速い）
-      final ymd = _normYmd(date); // あなたの既存関数（yyyy/MM/dd）
-      final saved = await AiCommentService.getSavedComment(date: ymd, type: 'daily');
-      final savedText = (saved ?? '').trim();
-
-      if (savedText.isNotEmpty) {
-        if (!mounted) return;
-        setState(() {
-          _aiDailyText = savedText;
-          _aiLoading = false;
-        });
-        return;
-      }
-
-      // 無ければ「生成→保存→返す」責務を Service に任せる（ここがポイント）
-      final rec = await AiCommentService.ensureDailySavedForDate(date);
-      final text = (rec?['comment'] ?? '').toString().trim();
+      // 保存済みを読むだけ（ここでは絶対に生成しない）
+      final ymd = _normYmd(date);
+      final saved = await AiCommentService.getSavedComment(
+        date: ymd,
+        type: 'daily',
+      );
+      final text = (saved ?? '').trim();
 
       if (!mounted) return;
       setState(() {
-        _aiDailyText = text; // 空ならUI側で「まだありません」表示になる
+        _aiDailyText = text;
         _aiLoading = false;
       });
     } catch (e) {
@@ -221,8 +222,7 @@ class _OneDayViewState extends State<OneDayView> {
       lastDate: DateTime.now(),
     );
     if (picked != null) {
-      _updateSelectedRow(picked);
-      _loadMemoFor(picked);
+      _updateSelectedRow(picked, loadAi: true);
     }
   }
 
