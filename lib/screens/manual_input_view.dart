@@ -47,7 +47,7 @@ class _ManualInputViewState extends State<ManualInputView> {
 
   bool _isSaving = false;
 
-  String _loadingMessage = 'AIパートナーが考えています…';
+  String _loadingMessage = '';
   Timer? _loadingTimer;
 
   Future<File> get _localFile async {
@@ -58,20 +58,21 @@ class _ManualInputViewState extends State<ManualInputView> {
   Future<void> saveEntry() async {
     if (_isSaving) return;
 
+    final t = AppLocalizations.of(context)!;
+
     setState(() {
       _isSaving = true;
     });
-    _loadingMessage = 'AIパートナーが考えています…';
+    _loadingMessage = t.aiThinking;
 
     _loadingTimer?.cancel();
     _loadingTimer = Timer(const Duration(seconds: 3), () {
       if (mounted && _isSaving) {
         setState(() {
-          _loadingMessage = 'AIがあなたへのメッセージを整えています…';
+          _loadingMessage = t.aiGeneratingMessage;
         });
       }
     });
-
 
     try {
 
@@ -666,8 +667,8 @@ class _ManualInputViewState extends State<ManualInputView> {
               ),
               SizedBox(height: 6),
               Text(
-                'あなたの最近の記録を分析中です',
-                style: TextStyle(fontSize: 13, color: Colors.black54),
+                t.aiAnalyzing,
+                style: const TextStyle(fontSize: 13, color: Colors.black54),
               ),
 
             ],

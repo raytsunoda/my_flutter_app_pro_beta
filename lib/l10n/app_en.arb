@@ -2,6 +2,15 @@
   "@@locale": "en",
   "aiErrorRetry": "⚠️ An error occurred while fetching the comment.\nPlease try again later.",
   "aiTimeoutRetry": "⚠️ It took too long to fetch the comment, or it couldn't be created.\nPlease try again later.",
+
+    "aiThinking": "Your AI partner is thinking…",
+    "aiAnalyzing": "Analyzing your recent records",
+    "aiGeneratingMessage": "Preparing a message for you…",
+    "aiCommentMissing": "No comment has been generated yet",
+    "aiRegenerateComments": "Regenerate AI comments",
+    "aiRegenerateDescription": "Recreate AI comments from past records",
+
+
   "appTitle": "Happiness Navi Pro",
 
   "bottomHome": "Home",

@@ -2,6 +2,16 @@
   "@@locale": "ja",
   "aiErrorRetry": "⚠️ コメントの取得中にエラーが発生しました。\n時間をおいてもう一度お試しください。",
   "aiTimeoutRetry": "⚠️ コメントの取得に時間がかかったか、うまく作れなかったようです。\n時間をおいてもう一度お試しください。",
+
+  "aiThinking": "AIパートナーが考えています…",
+  "aiAnalyzing": "あなたの最近の記録を分析中です",
+  "aiGeneratingMessage": "AIがあなたへのメッセージを整えています…",
+  "aiCommentMissing": "コメントがまだありません",
+  "aiRegenerateComments": "AIコメント履歴を補完",
+  "aiRegenerateDescription": "過去の記録からAIコメントを再生成します",
+
+
+
   "appTitle": "幸せ感ナビPro",
 
   "bottomHome": "ホーム",
