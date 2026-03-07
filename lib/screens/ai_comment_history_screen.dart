@@ -201,25 +201,30 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
   }) {
     final subtitle = (date ?? '').toString().trim();
     final text = (body ?? '').toString().trim();
+    final icon = kind == '日次' ? '🧡' : kind == '週次' ? '🗓' : '📅';
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: const [BoxShadow(blurRadius: 6, spreadRadius: 2, color: Color(0x11000000))],
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(
+            blurRadius: 10,
+            spreadRadius: 0,
+            offset: Offset(0, 2),
+            color: Color(0x14000000),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text(
-                kind == '日次' ? '🧡' : kind == '週次' ? '🗓' : '📅',
-                style: const TextStyle(fontSize: 16),
-              ),
+              Text(icon, style: const TextStyle(fontSize: 16)),
               const SizedBox(width: 6),
               Text(
                 kind,
@@ -230,10 +235,7 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           Container(
@@ -244,10 +246,7 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
             ),
             child: Text(
               text.isNotEmpty ? text : emptyMessage,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.5,
-              ),
+              style: const TextStyle(fontSize: 14, height: 1.5),
             ),
           ),
         ],

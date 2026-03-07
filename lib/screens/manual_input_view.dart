@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../gen_l10n/app_localizations.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../services/ai_comment_service.dart';
+import 'dart:async';
 
 class ManualInputView extends StatefulWidget {
   final VoidCallback? onSaved;
@@ -44,12 +45,36 @@ class _ManualInputViewState extends State<ManualInputView> {
 
   bool isConfirmed = false;
 
+  bool _isSaving = false;
+
+  String _loadingMessage = 'AIパートナーが考えています…';
+  Timer? _loadingTimer;
+
   Future<File> get _localFile async {
     final dir = await getApplicationDocumentsDirectory();
     return File('${dir.path}/HappinessLevelDB1_v2.csv');
   }
 
   Future<void> saveEntry() async {
+    if (_isSaving) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+    _loadingMessage = 'AIパートナーが考えています…';
+
+    _loadingTimer?.cancel();
+    _loadingTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted && _isSaving) {
+        setState(() {
+          _loadingMessage = 'AIがあなたへのメッセージを整えています…';
+        });
+      }
+    });
+
+
+    try {
+
     final t = AppLocalizations.of(context)!; // ✅ 追加：saveEntry内でも使えるように
     final file = await _localFile;
     List<List<dynamic>> csvData = [];
@@ -340,7 +365,17 @@ class _ManualInputViewState extends State<ManualInputView> {
       ),
     );
     // ▲▲▲ ここまで差し替え ▲▲▲
-  }
+    } finally {
+      _loadingTimer?.cancel();
+
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+ // }
+    }
 
   // ❶ State追加
   final memoController = TextEditingController();
@@ -404,8 +439,13 @@ class _ManualInputViewState extends State<ManualInputView> {
     return Scaffold(
       //appBar: AppBar(title: const Text('📝 毎日の入力画面')),
       appBar: AppBar(title: Text(t.dailyInputTitle)),
+      body: Stack(
+        children: [
 
-      body: SingleChildScrollView(
+
+//      body:
+
+      SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
@@ -574,13 +614,25 @@ class _ManualInputViewState extends State<ManualInputView> {
                       Text(t.confirmTitle),
                 ),
                 ElevatedButton(
-                  onPressed: isConfirmed ? saveEntry : null,
+                  onPressed: (isConfirmed && !_isSaving) ? saveEntry : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isConfirmed ? Colors.green : Colors.grey,
+                    backgroundColor: (isConfirmed && !_isSaving)
+                        ? Colors.green
+                        : Colors.grey,
                   ),
-                  child: //const Text('保存'),
-                      Text(t.save),
+                  child: _isSaving
+                      ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                      : Text(t.save),
                 ),
+
+
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -592,6 +644,43 @@ class _ManualInputViewState extends State<ManualInputView> {
           ],
         ),
       ),
+
+    if (_isSaving)
+    Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.18),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                _loadingMessage,
+
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'あなたの最近の記録を分析中です',
+                style: TextStyle(fontSize: 13, color: Colors.black54),
+              ),
+
+            ],
+          ),
+        ),
+      ),
+    ),
+    ],
+    ),
+
+
+
+
     );
   }
 }

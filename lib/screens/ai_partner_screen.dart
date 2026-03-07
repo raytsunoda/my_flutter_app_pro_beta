@@ -490,7 +490,10 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
 
           // ✅ AI パートナーのひとこと（表示時サニタイズを最終適用）
           //_buildCommentBox('💛 AIパートナーからのひとこと\n\n${_sanitizeForDisplay(aiResponse)}'),
-          _buildCommentBox('${s.aiPartnerCommentTitle}\n\n${_sanitizeForDisplay(aiResponse)}'),
+          aiCard(
+            s.aiPartnerCommentTitle,
+            _sanitizeForDisplay(aiResponse),
+          ),
           // ✅ タイムアウト時は、その場で再試行できるようにする（Releaseでも表示）
                   if (aiResponse.trim().startsWith('⚠️'))
                 Padding(
@@ -659,12 +662,18 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
           if (_showWeekly && _hasFetchedWeekly && _weeklyMessage != null) ...[
            // _sectionDivider('AIコメント（週次のふりかえり）'),
             _sectionDivider(s.weeklySection),
-            _buildCommentBox(_weeklyMessage!),
+            aiCard(
+              s.weeklySection,
+              _weeklyMessage!,
+            ),
           ],
           if (_showMonthly && _hasFetchedMonthly && _monthlyMessage != null) ...[
           //  _sectionDivider('AIコメント（月次のふりかえり）'),
             _sectionDivider(s.monthlySection),
-            _buildCommentBox(_monthlyMessage!),
+            aiCard(
+              s.monthlySection,
+              _monthlyMessage!,
+            ),
           ],
 
         ],
@@ -820,4 +829,37 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
       SnackBar(content: Text(s.favoriteSaved)),
     );
   }
+}
+
+Widget aiCard(String title, String text) {
+  return Container(
+    width: double.infinity,
+    margin: const EdgeInsets.symmetric(vertical: 8),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF5F7FB),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: Colors.black12),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 15,
+            height: 1.5,
+          ),
+        ),
+      ],
+    ),
+  );
 }
