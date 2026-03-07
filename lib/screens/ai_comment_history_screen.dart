@@ -205,16 +205,16 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: const [
           BoxShadow(
-            blurRadius: 10,
+            blurRadius: 12,
             spreadRadius: 0,
-            offset: Offset(0, 2),
+            offset: Offset(0, 4),
             color: Color(0x14000000),
           ),
         ],
@@ -224,11 +224,11 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
         children: [
           Row(
             children: [
-              Text(icon, style: const TextStyle(fontSize: 16)),
+              Text(icon, style: const TextStyle(fontSize: 18)),
               const SizedBox(width: 6),
               Text(
                 kind,
-                style: const TextStyle(fontSize: 13, color: Colors.black54),
+                style: const TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.w500,),
               ),
             ],
           ),
@@ -246,7 +246,7 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
             ),
             child: Text(
               text.isNotEmpty ? text : emptyMessage,
-              style: const TextStyle(fontSize: 14, height: 1.5),
+              style: const TextStyle(fontSize: 15, height: 1.6),
             ),
           ),
         ],
