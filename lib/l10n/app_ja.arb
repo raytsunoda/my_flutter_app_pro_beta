@@ -10,7 +10,7 @@
   "aiRegenerateComments": "AIコメント履歴を補完",
   "aiRegenerateDescription": "過去の記録からAIコメントを再生成します",
 
-
+  "aiDailyTitle": "AIパートナーのひとこと",
 
   "appTitle": "幸せ感ナビPro",
 
@@ -35,6 +35,8 @@
   "dlgContinue": "続行しますか？",
   "errSumNotOne": "合計が1.0ではありません",
 
+    "emptyWeeklyCard": "この週のコメントは保存されていません",
+    "emptyMonthlyCard": "この月のコメントは保存されていません",
 
         "favoriteWordsTitle": "⭐ お気に入りのあなたの言葉",
         "favoriteWordsEmptyIntro": "ここには、あなたが残した言葉が並びます。\n無理に増やさなくて大丈夫です。",

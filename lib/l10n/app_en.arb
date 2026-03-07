@@ -10,6 +10,7 @@
     "aiRegenerateComments": "Regenerate AI comments",
     "aiRegenerateDescription": "Recreate AI comments from past records",
 
+   "aiDailyTitle": "AI partner's Note",
 
   "appTitle": "Happiness Navi Pro",
 
@@ -34,6 +35,9 @@
   "dateDuplicateTitle": "Duplicate date",
   "dlgContinue": "Do you want to continue?",
   "errSumNotOne": "The total is not 1.0.",
+
+"emptyWeeklyCard": "No comment has been saved for this week",
+"emptyMonthlyCard": "No comment has been saved for this month",
 
       "favoriteWordsTitle": "⭐ Your Favorite Words",
       "favoriteWordsEmptyIntro": "Your saved words will appear here.\nNo need to add more if you don't feel like it.",

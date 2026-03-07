@@ -201,20 +201,25 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
   }) {
     final subtitle = (date ?? '').toString().trim();
     final text = (body ?? '').toString().trim();
-    final icon = kind == '日次' ? '🧡' : kind == '週次' ? '🗓' : '📅';
+    final icon =
+    kind == S.of(context).tabDaily
+        ? '🧡'
+        : kind == S.of(context).tabWeekly
+        ? '🗓'
+        : '📅';
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: const [
           BoxShadow(
-            blurRadius: 12,
+            blurRadius: 10,
             spreadRadius: 0,
-            offset: Offset(0, 4),
+            offset: Offset(0, 2),
             color: Color(0x14000000),
           ),
         ],
@@ -224,18 +229,25 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
         children: [
           Row(
             children: [
-              Text(icon, style: const TextStyle(fontSize: 18)),
+              Text(icon, style: const TextStyle(fontSize: 16)),
               const SizedBox(width: 6),
               Text(
                 kind,
-                style: const TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.w500,),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.black54,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 10),
           Container(
@@ -246,7 +258,10 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
             ),
             child: Text(
               text.isNotEmpty ? text : emptyMessage,
-              style: const TextStyle(fontSize: 15, height: 1.6),
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.5,
+              ),
             ),
           ),
         ],
@@ -286,7 +301,12 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
           itemCount: _daily.length,
           itemBuilder: (_, i) {
             final r = _daily[i];
-            return _card(kind: '日次', date: r['date'], body: r['comment']);
+          //  return _card(kind: '日次', date: r['date'], body: r['comment']);
+            return _card(
+              kind: S.of(context).tabDaily,
+              date: r['date'],
+              body: r['comment'],
+            );
           },
         ),
       ),
@@ -304,8 +324,14 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
           itemCount: _weekly.length,
           itemBuilder: (_, i) {
             final r = _weekly[i];
-            return _card(kind: '週次', date: r['date'], body: r['comment'],
-                emptyMessage: 'この週のコメントは保存されていません');
+            // return _card(kind: '週次', date: r['date'], body: r['comment'],
+            //     emptyMessage: 'この週のコメントは保存されていません');
+            return _card(
+              kind: S.of(context).tabWeekly,
+              date: r['date'],
+              body: r['comment'],
+              emptyMessage: S.of(context).emptyWeekly,
+            );
           },
         ),
       ),
@@ -323,9 +349,16 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
           itemCount: _monthly.length,
           itemBuilder: (_, i) {
             final r = _monthly[i];
-            return _card(kind: '月次', date: r['date'], body: r['comment'],
-                emptyMessage: 'この月のコメントは保存されていません');
-          },
+          //   return _card(kind: '月次', date: r['date'], body: r['comment'],
+          //       emptyMessage: 'この月のコメントは保存されていません');
+            return _card(
+              kind: S.of(context).tabMonthly,
+              date: r['date'],
+              body: r['comment'],
+              emptyMessage: S.of(context).emptyMonthly,
+            );
+
+           },
         ),
       ),
     ],

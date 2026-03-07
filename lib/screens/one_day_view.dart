@@ -7,6 +7,7 @@ import '../utils/history_data.dart';
 import '../gen_l10n/app_localizations.dart';
 import '../services/ai_comment_service.dart';
 
+
 /// ---- レーダー用スコア算出：CSV優先（空のときだけ簡易計算にフォールバック）----
 List<double> _calcRadarScoresFromRow(Map<String, String>? row) {
   if (row == null || row.isEmpty) return const [0, 0, 0, 0];
@@ -100,9 +101,11 @@ class _OneDayViewState extends State<OneDayView> {
     final hasToday = widget.csvData.any((r) => _normYmdStr(r['日付'] ?? '') == _normYmd(today));
     _selectedDate = widget.selectedDate ?? (hasToday ? today : (_latestDateInCsv() ?? today));
 
+    final s = AppLocalizations.of(context)!;
     final seeded = (widget.initialAiDailyText ?? '').trim();
     // ★追加（AI生成待ち表示）
-    _aiDailyText = "考え中です…";
+   // _aiDailyText = "考え中です…";
+    _aiDailyText = s.aiThinking;
     _aiLoading = true;
 
 // 選択日の行を厳密一致で取得してセット
@@ -370,18 +373,45 @@ class _OneDayViewState extends State<OneDayView> {
 
 
             const SizedBox(height: 16),
-            const Text('🧡 AIパートナーのひとこと',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+           // const Text('🧡 AIパートナーのひとこと',
+            Text(
+              '🧡 ${AppLocalizations.of(context)!.aiDailyTitle}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.all(12),
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.greenAccent.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: _aiLoading
-                  ? const Text('考え中です…')
-                  : Text(_aiDailyText.isNotEmpty ? _aiDailyText : 'コメントがまだありません'),
+                  ? Row(
+                children: [
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(AppLocalizations.of(context)!.aiThinking),
+                  ),
+                ],
+              )
+                  : Text(
+                _aiDailyText.isNotEmpty
+                    ? _aiDailyText
+                    : AppLocalizations.of(context)!.aiCommentMissing,
+                style: const TextStyle(
+                  fontSize: 15,
+                  height: 1.6,
+                ),
+              ),
             ),
 
 
