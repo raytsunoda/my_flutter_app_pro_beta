@@ -214,11 +214,42 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(kind, style: const TextStyle(fontSize: 13, color: Colors.black54)),
-          const SizedBox(height: 6),
-          Text(subtitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Row(
+            children: [
+              Text(
+                kind == '日次' ? '🧡' : kind == '週次' ? '🗓' : '📅',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                kind,
+                style: const TextStyle(fontSize: 13, color: Colors.black54),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
-          Text(text.isNotEmpty ? text : emptyMessage, style: const TextStyle(fontSize: 14)),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.greenAccent.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              text.isNotEmpty ? text : emptyMessage,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+          ),
         ],
       ),
     );
