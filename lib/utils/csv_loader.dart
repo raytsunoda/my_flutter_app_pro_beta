@@ -543,33 +543,183 @@ class CsvLoader {
     }
   }
 
+  // ===============================
+  // AIコメント履歴バックアップ関連
+  // ===============================
 
-  // AIコメントログファイル取得
-  // ファイルの最下部などに追加
-  // static Future<File> getAiCommentLogFile() async {
-  //   final dir = await getApplicationDocumentsDirectory();
-  //   final file = File('${dir.path}/ai_comment_log.csv');
-  //   if (!(await file.exists())) {
-  //     await file.create(recursive: true);
-  //     // ヘッダー行を初期化
-  //     await file.writeAsString('date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo\n');
-  //   }
-  //   return file;
-  // }
-  static Future<File> getAiCommentLogFile() async {
-   // final dir = await getApplicationDocumentsDirectory();
-   // final f = File('${dir.path}/ai_comment_log.csv');
-    final dir = await getApplicationDocumentsDirectory();
-        final file = File('${dir.path}/ai_comment_log.csv');
-        if (!(await file.exists())) {
-          await file.create(recursive: true);
-          // ヘッダーを書いておくことで再起動後の読み込みに失敗しない
-          await file.writeAsString(
-            'date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo\n',
-          );
-        }
-        return file;
+  static const List<String> _aiCommentLogHeader = <String>[
+    'date',
+    'type',
+    'comment',
+    'score',
+    'sleep',
+    'walk',
+    'gratitude1',
+    'gratitude2',
+    'gratitude3',
+    'memo',
+  ];
+
+  static String _aiCommentHeaderLine() {
+    return _aiCommentLogHeader.join(',');
   }
+
+  static Future<File> getAiCommentBackupFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/ai_comment_log_backup.csv');
+
+    if (!(await file.exists())) {
+      await file.create(recursive: true);
+      await file.writeAsString('${_aiCommentHeaderLine()}\n', flush: true);
+    } else {
+      final raw = await file.readAsString();
+      if (raw.trim().isEmpty) {
+        await file.writeAsString('${_aiCommentHeaderLine()}\n', flush: true);
+      }
+    }
+
+    return file;
+  }
+
+  static bool _looksBrokenAiLogText(String raw) {
+    final text = raw.trim();
+    if (text.isEmpty) return true;
+
+    try {
+      final rows = const CsvToListConverter().convert(raw, eol: '\n');
+      if (rows.isEmpty) return true;
+
+      final headers = rows.first
+          .map((e) => e.toString().replaceAll('\uFEFF', '').trim().toLowerCase())
+          .toList();
+
+      final hasDate = headers.contains('date');
+      final hasType = headers.contains('type');
+      final hasComment = headers.contains('comment');
+
+      if (!hasDate || !hasType || !hasComment) {
+        return true;
+      }
+
+      return false;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  static Future<void> backupAiCommentLogBeforeWrite() async {
+    try {
+      final src = await getAiCommentLogFile();
+      final dst = await getAiCommentBackupFile();
+
+      if (!await src.exists()) return;
+
+      final raw = await src.readAsString();
+      if (_looksBrokenAiLogText(raw)) {
+        debugPrint('⚠️ backupAiCommentLogBeforeWrite skipped: source looks broken');
+        return;
+      }
+
+      await dst.writeAsString(raw, flush: true);
+      debugPrint('✅ AI comment log pre-write backup saved: ${dst.path}');
+    } catch (e, st) {
+      debugPrint('❌ backupAiCommentLogBeforeWrite failed: $e');
+      debugPrint('$st');
+    }
+  }
+
+  static Future<void> backupAiCommentLogAfterWrite() async {
+    try {
+      final src = await getAiCommentLogFile();
+      final dst = await getAiCommentBackupFile();
+
+      if (!await src.exists()) return;
+
+      final raw = await src.readAsString();
+      if (_looksBrokenAiLogText(raw)) {
+        debugPrint('⚠️ backupAiCommentLogAfterWrite skipped: source looks broken');
+        return;
+      }
+
+      await dst.writeAsString(raw, flush: true);
+      debugPrint('✅ AI comment log backup updated: ${dst.path}');
+    } catch (e, st) {
+      debugPrint('❌ backupAiCommentLogAfterWrite failed: $e');
+      debugPrint('$st');
+    }
+  }
+
+  static Future<bool> restoreAiCommentLogFromBackup() async {
+    try {
+      final logFile = await getAiCommentLogFile();
+      final backupFile = await getAiCommentBackupFile();
+
+      if (!await backupFile.exists()) return false;
+
+      final raw = await backupFile.readAsString();
+      if (_looksBrokenAiLogText(raw)) {
+        debugPrint('⚠️ restoreAiCommentLogFromBackup: backup also looks broken');
+        return false;
+      }
+
+      await logFile.writeAsString(raw, flush: true);
+      debugPrint('✅ AI comment log restored from backup');
+      return true;
+    } catch (e, st) {
+      debugPrint('❌ restoreAiCommentLogFromBackup failed: $e');
+      debugPrint('$st');
+      return false;
+    }
+  }
+
+  static Future<String> _readAiCommentLogRawWithFallback() async {
+    final logFile = await getAiCommentLogFile();
+
+    if (await logFile.exists()) {
+      final raw = await logFile.readAsString();
+      if (!_looksBrokenAiLogText(raw)) {
+        return raw;
+      }
+      debugPrint('⚠️ ai_comment_log.csv looks broken. Trying backup...');
+    }
+
+    final backupFile = await getAiCommentBackupFile();
+    if (await backupFile.exists()) {
+      final backupRaw = await backupFile.readAsString();
+      if (!_looksBrokenAiLogText(backupRaw)) {
+        debugPrint('✅ backup ai_comment_log loaded successfully');
+        return backupRaw;
+      }
+    }
+
+    return '${_aiCommentHeaderLine()}\n';
+  }
+
+
+
+
+
+
+  static Future<File> getAiCommentLogFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/ai_comment_log.csv');
+
+    if (!(await file.exists())) {
+      await file.create(recursive: true);
+      await file.writeAsString('${_aiCommentHeaderLine()}\n', flush: true);
+    } else {
+      final raw = await file.readAsString();
+      if (raw.trim().isEmpty) {
+        await file.writeAsString('${_aiCommentHeaderLine()}\n', flush: true);
+      }
+    }
+
+    return file;
+  }
+
+
+
+
 
   // ✅ 追加: 指定日付・種別のAIコメントを読み込む
   static Future<Map<String, String>?> loadSavedComment(DateTime date, String type) async {
@@ -616,28 +766,37 @@ class CsvLoader {
 
 
 // CSV → List<Map> 変換（オプション）
-  static Future<List<Map<String, String>>> loadAiCommentLogAsMapList() async {
-    final file = await getAiCommentLogFile();
-    if (!await file.exists()) return [];
+  static Future<List<Map<String, String>>> loadAiCommentLog() async {
+    final raw = await _readAiCommentLogRawWithFallback();
 
-    final lines = await file.readAsLines();
-    if (lines.isEmpty) return [];
+    final rows = const CsvToListConverter().convert(raw, eol: '\n');
+    if (rows.length <= 1) {
+      return <Map<String, String>>[];
+    }
 
-    // ヘッダーを小文字に正規化（列名ゆれ対策）
-    final headers = lines.first.split(',').map((h) => h.trim().toLowerCase()).toList();
+    final headers = rows.first
+        .map((e) => e.toString().replaceAll('\uFEFF', '').trim().toLowerCase())
+        .toList();
 
-    return lines.skip(1).map((line) {
-      final values = const CsvToListConverter().convert(line).first.map((e) => e.toString()).toList();
-      final padded = values.length < headers.length
-          ? [...values, ...List.filled(headers.length - values.length, '')]
-          : values.sublist(0, headers.length);
+    return rows.skip(1).map((row) {
+      final values = row.map((e) => e.toString()).toList();
+
+      final List<String> padded;
+      if (values.length < headers.length) {
+        padded = <String>[
+          ...values,
+          ...List<String>.filled(headers.length - values.length, ''),
+        ];
+      } else {
+        padded = values.sublist(0, headers.length);
+      }
 
       final m = Map<String, String>.fromIterables(headers, padded);
 
-      // ▼ 追加：comment をサニタイズ
       if (m.containsKey('comment')) {
         m['comment'] = CsvLoader.sanitizeCommentForDisplay(m['comment'] ?? '');
       }
+
       return m;
     }).toList();
   }
@@ -657,16 +816,23 @@ class CsvLoader {
     required String gratitude3,
     required String memo,
   }) async {
-    final file = await getAiCommentLogFile();
-    final exists = await file.exists();
-    final sink = file.openWrite(mode: FileMode.append);
-    if (!exists) {
-      sink.writeln('date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo');
-    }
-    sink.writeln('$date,$type,"$comment",$score,$sleep,$walk,"$gratitude1","$gratitude2","$gratitude3","$memo"');
-    await sink.close();
-  }
+    final rows = await loadAiCommentLog();
 
+    rows.add(<String, String>{
+      'date': date,
+      'type': type.toLowerCase().trim(),
+      'comment': comment,
+      'score': score,
+      'sleep': sleep,
+      'walk': walk,
+      'gratitude1': gratitude1,
+      'gratitude2': gratitude2,
+      'gratitude3': gratitude3,
+      'memo': memo,
+    });
+
+    await writeAiCommentLog(rows);
+  }
 
 
   // ===============================
@@ -1022,37 +1188,7 @@ class CsvLoader {
 
 
 
-  // CsvLoader.loadAiCommentLog（置き換え）
-  static Future<List<Map<String, String>>> loadAiCommentLog() async {
-    final file = await getAiCommentLogFile();
-    if (!await file.exists()) return [];
 
-    final raw = await file.readAsString();
-    final rows = const CsvToListConverter().convert(raw, eol: '\n');
-    if (rows.length <= 1) return [];
-
-    // ヘッダーを正規化（BOM/空白除去＋小文字化）
-    final headers = rows.first
-        .map((e) => e.toString().replaceAll('\uFEFF', '').trim().toLowerCase())
-        .toList();
-
-    // データ行 → Map<String,String>（キーは正規化済みヘッダー）
-    return rows.skip(1).map((row) {
-      final values = row.map((e) => e.toString()).toList();
-      // 列数ずれを吸収
-      final padded = values.length < headers.length
-          ? [...values, ...List.filled(headers.length - values.length, '')]
-          : values.sublist(0, headers.length);
-// ▼▼ ここを追加：comment を読み出し時にサニタイズ ▼▼
-      final m = Map<String, String>.fromIterables(headers, padded);
-      final ci = headers.indexOf('comment');
-      if (ci >= 0) {
-        m['comment'] = CsvLoader.sanitizeCommentForDisplay(m['comment'] ?? '');
-      }
-      return m;
-      // ▲▲ ここまで ▲▲
-    }).toList();
-  }
 
   static Future<String?> getSavedCommentLatest({
     required String date,
@@ -1163,66 +1299,52 @@ class CsvLoader {
 
   /// {date, type, comment, ...} をキー(date+type)でUPSERTする
   static Future<void> upsertAiCommentLog(Map<String, String> row) async {
-    final file = await getAiCommentLogFile();
-    final all = await loadAiCommentLog(); // 小文字キーで返ってくる前提
+    final all = await loadAiCommentLog();
 
-    final keyDate = (row['date'] ?? '').trim();
-    final keyType = (row['type'] ?? '').trim().toLowerCase();
-    if (keyDate.isEmpty || keyType.isEmpty) return;
+    final String keyDate = (row['date'] ?? '').trim();
+    final String keyType = (row['type'] ?? '').trim().toLowerCase();
 
-    // 既存を除去してから末尾に追加（後勝ち）
-    final filtered = all.where((r) =>
-    (r['date'] ?? '') != keyDate || (r['type'] ?? '') != keyType).toList();
-    filtered.add({
-      ...row.map((k,v)=> MapEntry(k.toLowerCase(), v)), // 念のため小文字化
+    if (keyDate.isEmpty || keyType.isEmpty) {
+      return;
+    }
+
+    final List<Map<String, String>> filtered = all.where((r) {
+      final existingDate = (r['date'] ?? '').trim();
+      final existingType = (r['type'] ?? '').trim().toLowerCase();
+      return existingDate != keyDate || existingType != keyType;
+    }).toList();
+
+    final Map<String, String> normalizedRow = <String, String>{};
+    row.forEach((k, v) {
+      normalizedRow[k.toLowerCase()] = v;
     });
 
-    // CSV へ書き戻し
-    final headers = [
-      'date','type','comment','score','sleep','walk',
-      'gratitude1','gratitude2','gratitude3','memo'
-    ];
-    final buffer = StringBuffer()..writeln(headers.join(','));
-    for (final r in filtered) {
-      buffer.writeln([
-        r['date'] ?? '',
-        r['type'] ?? '',
-        r['comment']?.replaceAll('\n', r'\n') ?? '',
-        r['score'] ?? '',
-        r['sleep'] ?? '',
-        r['walk'] ?? '',
-        r['gratitude1'] ?? '',
-        r['gratitude2'] ?? '',
-        r['gratitude3'] ?? '',
-        r['memo']?.replaceAll('\n', r'\n') ?? '',
-      ].join(','));
-    }
-    await file.writeAsString(buffer.toString());
+    filtered.add(normalizedRow);
+
+    await writeAiCommentLog(filtered);
   }
 
   // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
   static Future<void> saveAiCommentLog(List<Map<String, String>> rows) async {
     final file = await getAiCommentLogFile();
-    // 念のためファイルの親ディレクトリを作成
     await file.parent.create(recursive: true);
 
-    // 必ずこの順で書き出す
-    const headers = <String>[
-      'date', 'type', 'comment', 'score', 'sleep', 'walk',
-      'gratitude1', 'gratitude2', 'gratitude3', 'memo',
+    await backupAiCommentLogBeforeWrite();
+
+    final List<List<dynamic>> data = <List<dynamic>>[
+      _aiCommentLogHeader,
+      ...rows.map((r) {
+        return _aiCommentLogHeader.map((h) {
+          return (r[h] ?? '').toString();
+        }).toList();
+      }),
     ];
 
-    // Map→2次元配列に正規化（不足キーは空文字で埋める）
-    final data = <List<dynamic>>[
-      headers, // ヘッダー行
-      ...rows.map((r) => headers.map((h) => (r[h] ?? '').toString()).toList()),
-    ];
-
-    // CSV化して保存
-    final csvText = const ListToCsvConverter().convert(data);
+    final String csvText = const ListToCsvConverter().convert(data);
     await file.writeAsString(csvText, flush: true);
-  }
 
+    await backupAiCommentLogAfterWrite();
+  }
 
 // 完全一致でその日を返す。無ければ null
   static Map<String, String>? findRowByDateExact(
@@ -1265,21 +1387,25 @@ class CsvLoader {
 // 受け取り: rows = List<Map<String,String>>  （キーは 'date','type','comment',...）
   static Future<void> writeAiCommentLog(List<Map<String, String>> rows) async {
     final file = await getAiCommentLogFile();
+    await file.parent.create(recursive: true);
 
-    const header = [
-      'date','type','comment','score','sleep','walk',
-      'gratitude1','gratitude2','gratitude3','memo'
+    await backupAiCommentLogBeforeWrite();
+
+    final List<List<dynamic>> data = <List<dynamic>>[
+      _aiCommentLogHeader,
+      ...rows.map((r) {
+        return _aiCommentLogHeader.map((h) {
+          return (r[h] ?? '').toString();
+        }).toList();
+      }),
     ];
 
-    // List<Map> -> List<List> に整形してから CSV 化
-    final csvRows = <List<dynamic>>[
-      header,
-      ...rows.map((r) => header.map((h) => r[h] ?? '').toList()),
-    ];
-
-    final csvText = const ListToCsvConverter().convert(csvRows);
+    final String csvText = const ListToCsvConverter().convert(data);
     await file.writeAsString(csvText, flush: true);
+
+    await backupAiCommentLogAfterWrite();
   }
+
   Future<List<Map<String, dynamic>>> loadDailyRecordsInRange(
       DateTime start, DateTime end,
       ) async {
