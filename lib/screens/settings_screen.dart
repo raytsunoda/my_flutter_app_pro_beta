@@ -1304,6 +1304,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
          ),
+
+        _buildAiCommentRestoreTile(),
+
+
+
             // ここは本番では非表示。開発時のみ使います。
           if (kDebugMode)
             ListTile(
@@ -1569,6 +1574,94 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ],
     );
   }
+
+  Future<void> _restoreAiCommentLog(BuildContext context) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('AIコメント履歴を復元'),
+        content: const Text(
+          'バックアップファイル（ai_comment_log_backup.csv）から、'
+              '現在のAIコメント履歴を復元します。\n\n'
+              '現在の ai_comment_log.csv は上書きされます。実行しますか？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('復元する'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: Text('AIコメント履歴を復元しています...'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    bool restored = false;
+
+    try {
+      restored = await CsvLoader.restoreAiCommentLogFromBackup();
+    } catch (e) {
+      debugPrint('❌ restoreAiCommentLog error: $e');
+      restored = false;
+    }
+
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          restored
+              ? 'AIコメント履歴をバックアップから復元しました'
+              : '復元できませんでした。バックアップファイルを確認してください',
+        ),
+      ),
+    );
+
+    if (restored && mounted) {
+      setState(() {});
+    }
+  }
+
+  Widget _buildAiCommentRestoreTile() {
+    return ListTile(
+      leading: const Icon(Icons.restore),
+      title: const Text(
+        'AIコメント履歴を復元',
+        style: TextStyle(fontWeight: FontWeight.w600),
+      ),
+      subtitle: const Text('ai_comment_log_backup.csv から履歴を復元します'),
+      onTap: () async {
+        await _restoreAiCommentLog(context);
+      },
+    );
+  }
+
 
 
   Future<void> _launchUrl(String url) async {
