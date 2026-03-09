@@ -1558,6 +1558,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         const SizedBox(height: 12),
 
+        ElevatedButton.icon(
+          icon: const Icon(Icons.healing),
+          label: const Text('AIコメント履歴CSVを修復（並び替え・整形）'),
+          onPressed: () async {
+            final n = await CsvLoader.repairAiCommentLog();
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('修復完了：$n 件を整形しました')),
+            );
+          },
+        ),
+
         // ✅ 追加：通知テスト画面
         ElevatedButton.icon(
           icon: const Icon(Icons.notifications_active),

@@ -697,6 +697,71 @@ class CsvLoader {
 
 
 
+  static String _normalizeAiLogDate(String s) {
+    final t = s.replaceAll('\uFEFF', '').trim();
+    final m = RegExp(r'^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$').firstMatch(t);
+    if (m == null) return '';
+    final y = m.group(1)!;
+    final mo = m.group(2)!.padLeft(2, '0');
+    final d = m.group(3)!.padLeft(2, '0');
+    return '$y/$mo/$d';
+  }
+
+  static bool _isValidAiLogType(String s) {
+    final t = s.trim().toLowerCase();
+    return t == 'daily' || t == 'weekly' || t == 'monthly';
+  }
+
+  static List<Map<String, String>> _normalizeAiCommentRows(
+      List<Map<String, String>> rows,
+      ) {
+    final out = <Map<String, String>>[];
+
+    for (final r in rows) {
+      final date = _normalizeAiLogDate(r['date'] ?? '');
+      final type = (r['type'] ?? '').trim().toLowerCase();
+
+      if (date.isEmpty) continue;
+      if (!_isValidAiLogType(type)) continue;
+
+      out.add(<String, String>{
+        'date': date,
+        'type': type,
+        'comment': (r['comment'] ?? '').toString(),
+        'score': (r['score'] ?? '').toString(),
+        'sleep': (r['sleep'] ?? '').toString(),
+        'walk': (r['walk'] ?? '').toString(),
+        'gratitude1': (r['gratitude1'] ?? '').toString(),
+        'gratitude2': (r['gratitude2'] ?? '').toString(),
+        'gratitude3': (r['gratitude3'] ?? '').toString(),
+        'memo': (r['memo'] ?? '').toString(),
+      });
+    }
+
+    out.sort((a, b) {
+      final da = a['date']!;
+      final db = b['date']!;
+      final c = da.compareTo(db);
+      if (c != 0) return c;
+
+      const order = <String, int>{
+        'daily': 0,
+        'weekly': 1,
+        'monthly': 2,
+      };
+      return (order[a['type']] ?? 99).compareTo(order[b['type']] ?? 99);
+    });
+
+    return out;
+  }
+
+  static Future<int> repairAiCommentLog() async {
+    final rows = await loadAiCommentLog();
+    final normalized = _normalizeAiCommentRows(rows);
+    await writeAiCommentLog(normalized);
+    return normalized.length;
+  }
+
 
 
 
@@ -778,17 +843,15 @@ class CsvLoader {
         .map((e) => e.toString().replaceAll('\uFEFF', '').trim().toLowerCase())
         .toList();
 
-    return rows.skip(1).map((row) {
+    final parsed = rows.skip(1).map((row) {
       final values = row.map((e) => e.toString()).toList();
 
-      final List<String> padded;
+      final List<String> padded = <String>[];
       if (values.length < headers.length) {
-        padded = <String>[
-          ...values,
-          ...List<String>.filled(headers.length - values.length, ''),
-        ];
+        padded.addAll(values);
+        padded.addAll(List<String>.filled(headers.length - values.length, ''));
       } else {
-        padded = values.sublist(0, headers.length);
+        padded.addAll(values.sublist(0, headers.length));
       }
 
       final m = Map<String, String>.fromIterables(headers, padded);
@@ -799,6 +862,8 @@ class CsvLoader {
 
       return m;
     }).toList();
+
+    return _normalizeAiCommentRows(parsed);
   }
 
 
@@ -1314,16 +1379,26 @@ class CsvLoader {
       return existingDate != keyDate || existingType != keyType;
     }).toList();
 
-    final Map<String, String> normalizedRow = <String, String>{};
-    row.forEach((k, v) {
-      normalizedRow[k.toLowerCase()] = v;
-    });
+    final Map<String, String> normalizedRow = <String, String>{
+      'date': keyDate,
+      'type': keyType,
+      'comment': (row['comment'] ?? '').toString(),
+      'score': (row['score'] ?? '').toString(),
+      'sleep': (row['sleep'] ?? '').toString(),
+      'walk': (row['walk'] ?? '').toString(),
+      'gratitude1': (row['gratitude1'] ?? '').toString(),
+      'gratitude2': (row['gratitude2'] ?? '').toString(),
+      'gratitude3': (row['gratitude3'] ?? '').toString(),
+      'memo': (row['memo'] ?? '').toString(),
+    };
 
     filtered.add(normalizedRow);
 
+    // 安全なCSVライターに委譲する
     await writeAiCommentLog(filtered);
   }
 
+  
   // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
   static Future<void> saveAiCommentLog(List<Map<String, String>> rows) async {
     final file = await getAiCommentLogFile();
