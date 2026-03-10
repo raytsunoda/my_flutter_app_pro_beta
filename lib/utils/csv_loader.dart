@@ -8,7 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:my_flutter_app_pro/utils/date_utils.dart';
 import 'package:path/path.dart' as p;
-import 'package:my_flutter_app_pro/utils/csv_loader.dart';
+
 
 //import '../models/record_entry.dart';
 // デバッグ出力の全体トグル
@@ -869,6 +869,7 @@ class CsvLoader {
 
 
   /// AIコメントをCSVに1行ずつ追記する
+  /// AIコメントをCSVに1行ずつ追記する
   static Future<void> appendAiCommentLog({
     required String date,
     required String type,
@@ -881,11 +882,23 @@ class CsvLoader {
     required String gratitude3,
     required String memo,
   }) async {
+    final normalizedDate = _normalizeAiLogDate(date);
+    final normalizedType = type.trim().toLowerCase();
+
+    if (normalizedDate.isEmpty) {
+      debugPrint('⚠️ appendAiCommentLog skipped: invalid date="$date"');
+      return;
+    }
+    if (!_isValidAiLogType(normalizedType)) {
+      debugPrint('⚠️ appendAiCommentLog skipped: invalid type="$type"');
+      return;
+    }
+
     final rows = await loadAiCommentLog();
 
     rows.add(<String, String>{
-      'date': date,
-      'type': type.toLowerCase().trim(),
+      'date': normalizedDate,
+      'type': normalizedType,
       'comment': comment,
       'score': score,
       'sleep': sleep,
@@ -896,9 +909,8 @@ class CsvLoader {
       'memo': memo,
     });
 
-    await writeAiCommentLog(rows);
+    await writeAiCommentLog(_normalizeAiCommentRows(rows));
   }
-
 
   // ===============================
   // ⭐ Favorite Words（お気に入りのあなたの言葉）
@@ -1363,18 +1375,24 @@ class CsvLoader {
   }
 
   /// {date, type, comment, ...} をキー(date+type)でUPSERTする
+  /// {date, type, comment, ...} をキー(date+type)でUPSERTする
   static Future<void> upsertAiCommentLog(Map<String, String> row) async {
     final all = await loadAiCommentLog();
 
-    final String keyDate = (row['date'] ?? '').trim();
+    final String keyDate = _normalizeAiLogDate(row['date'] ?? '');
     final String keyType = (row['type'] ?? '').trim().toLowerCase();
 
-    if (keyDate.isEmpty || keyType.isEmpty) {
+    if (keyDate.isEmpty) {
+      debugPrint('⚠️ upsertAiCommentLog skipped: invalid date="${row['date']}"');
+      return;
+    }
+    if (!_isValidAiLogType(keyType)) {
+      debugPrint('⚠️ upsertAiCommentLog skipped: invalid type="${row['type']}"');
       return;
     }
 
     final List<Map<String, String>> filtered = all.where((r) {
-      final existingDate = (r['date'] ?? '').trim();
+      final existingDate = _normalizeAiLogDate(r['date'] ?? '');
       final existingType = (r['type'] ?? '').trim().toLowerCase();
       return existingDate != keyDate || existingType != keyType;
     }).toList();
@@ -1394,8 +1412,7 @@ class CsvLoader {
 
     filtered.add(normalizedRow);
 
-    // 安全なCSVライターに委譲する
-    await writeAiCommentLog(filtered);
+    await writeAiCommentLog(_normalizeAiCommentRows(filtered));
   }
 
   
