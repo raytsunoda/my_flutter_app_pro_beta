@@ -555,10 +555,10 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
             ),
           ],
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           _buildDailyActionRowForToday(),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
           // --- 下部アクションエリア（週次／月次／履歴） ---
           Container(
