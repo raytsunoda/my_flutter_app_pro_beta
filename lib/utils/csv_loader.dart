@@ -829,12 +829,36 @@ class CsvLoader {
 
 
 
-
-// CSV → List<Map> 変換（オプション）
+  // CSV → List<Map> 変換（オプション）
   static Future<List<Map<String, String>>> loadAiCommentLog() async {
-    final raw = await _readAiCommentLogRawWithFallback();
+    String raw = await _readAiCommentLogRawWithFallback();
 
-    final rows = const CsvToListConverter().convert(raw, eol: '\n');
+    List<List<dynamic>> rows =
+    const CsvToListConverter().convert(raw, eol: '\n');
+
+    // CSV破損チェック → backupから自動復旧
+    if (rows.length <= 1) {
+      final file = await getAiCommentLogFile();
+      final backup = await getAiCommentBackupFile();
+
+      if (await backup.exists()) {
+        final backupText = await backup.readAsString();
+
+        if (backupText.trim().isNotEmpty) {
+          final backupRows =
+          const CsvToListConverter().convert(backupText, eol: '\n');
+
+          if (backupRows.length > 1) {
+            await file.writeAsString(backupText, flush: true);
+            debugPrint('⚠️ AI comment log restored from backup');
+
+            raw = backupText;
+            rows = backupRows;
+          }
+        }
+      }
+    }
+
     if (rows.length <= 1) {
       return <Map<String, String>>[];
     }
@@ -865,7 +889,6 @@ class CsvLoader {
 
     return _normalizeAiCommentRows(parsed);
   }
-
 
 
   /// AIコメントをCSVに1行ずつ追記する
