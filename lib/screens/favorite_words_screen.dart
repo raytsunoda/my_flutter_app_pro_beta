@@ -185,12 +185,12 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
               }
             },
             child: Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 0,
               color: const Color(0xFFF7F4FB),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -201,7 +201,10 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
                     const SizedBox(height: 8),
                     Text(
                       '"$text"',
-                      style: const TextStyle(fontSize: 20),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        height: 1.5,
+                      ),
                     ),
                   ],
                 ),

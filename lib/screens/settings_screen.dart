@@ -1305,7 +1305,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
          ),
 
-        _buildAiCommentRestoreTile(),
+        if (!kReleaseMode) _buildAiCommentRestoreTile(),
 
 
 
