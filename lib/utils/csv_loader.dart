@@ -40,7 +40,7 @@ class CsvLoader {
     return File('${dir.path}/HappinessLevelDB1_v2.csv');
   }
 
-
+  static bool _isWritingAiCommentLog = false;
 
 
   static Future<List<List<String>>> loadCsvDataBetween(DateTime start, DateTime end) async {
@@ -1504,26 +1504,37 @@ class CsvLoader {
 // 小文字ヘッダのAIコメントログを上書き保存するユーティリティ
 // 受け取り: rows = List<Map<String,String>>  （キーは 'date','type','comment',...）
   static Future<void> writeAiCommentLog(List<Map<String, String>> rows) async {
-    final file = await getAiCommentLogFile();
-    await file.parent.create(recursive: true);
+    if (_isWritingAiCommentLog) {
+      debugPrint('⚠️ writeAiCommentLog skipped: already writing');
+      return;
+    }
 
-    await backupAiCommentLogBeforeWrite();
+    _isWritingAiCommentLog = true;
 
-    final normalizedRows = _normalizeAiCommentRows(rows);
+    try {
+      final file = await getAiCommentLogFile();
+      await file.parent.create(recursive: true);
 
-    final List<List<dynamic>> data = <List<dynamic>>[
-      _aiCommentLogHeader,
-      ...normalizedRows.map((r) {
-        return _aiCommentLogHeader.map((h) {
-          return (r[h] ?? '').toString();
-        }).toList();
-      }),
-    ];
+      await backupAiCommentLogBeforeWrite();
 
-    final String csvText = const ListToCsvConverter().convert(data);
-    await file.writeAsString(csvText, flush: true);
+      final normalizedRows = _normalizeAiCommentRows(rows);
 
-    await backupAiCommentLogAfterWrite();
+      final List<List<dynamic>> data = <List<dynamic>>[
+        _aiCommentLogHeader,
+        ...normalizedRows.map((r) {
+          return _aiCommentLogHeader.map((h) {
+            return (r[h] ?? '').toString();
+          }).toList();
+        }),
+      ];
+
+      final String csvText = const ListToCsvConverter().convert(data);
+      await file.writeAsString(csvText, flush: true);
+
+      await backupAiCommentLogAfterWrite();
+    } finally {
+      _isWritingAiCommentLog = false;
+    }
   }
 
   Future<List<Map<String, dynamic>>> loadDailyRecordsInRange(
