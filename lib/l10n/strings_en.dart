@@ -6,7 +6,7 @@ class E {
   static const String aiNone = 'No entry found for today, so no AI comment yet.';
 
   // AIPartnerScreen
-  static const String aiPartnerTitle = '💛 AI Partner';
+  static const String aiPartnerTitle = ' AI Partner';
   static const String todayMemoTitle = '📝 Today\'s quick memo:';
   static const String saveFavoriteWord = '⭐ Save your favorite phrase';
   static const String aiPartnerCommentTitle = '💛 A note from your AI Partner';

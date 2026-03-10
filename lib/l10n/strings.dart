@@ -17,7 +17,7 @@ class S {
   String get thinking => isJa ? J.thinking : E.thinking;
   String get aiNone => isJa ? J.aiNone : E.aiNone;
 
-  String get aiPartnerTitle => isJa ? '💛AIパートナー' : E.aiPartnerTitle;
+  String get aiPartnerTitle => isJa ? 'AIパートナー' : E.aiPartnerTitle;
   String get todayMemoTitle => isJa ? '📝 今日のひとことメモ:' : E.todayMemoTitle;
   String get saveFavoriteWord => isJa ? '⭐ あなたの言葉をお気に入りに追加' : E.saveFavoriteWord;
   String get aiPartnerCommentTitle => isJa ? '💛 AIパートナーからのひとこと' : E.aiPartnerCommentTitle;

@@ -501,6 +501,10 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF4F0FA),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF6A5AE0),
+                    width: 2,
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -515,7 +519,6 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                         ),
                       ),
                     ),
-                    const Icon(Icons.chevron_right),
                   ],
                 ),
               ),
@@ -528,34 +531,34 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
             _sanitizeForDisplay(aiResponse),
           ),
           // ✅ タイムアウト時は、その場で再試行できるようにする（Releaseでも表示）
-                  if (aiResponse.trim().startsWith('⚠️'))
-                    _sectionDivider("⭐ あなたの言葉"),
-                    SizedBox(
-                      width: double.infinity,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: OutlinedButton.icon(
-                          onPressed: () => _showFavoriteWordDialog(context),
-                          icon: const Icon(Icons.star_outline),
-                          label: Text(
-                            s.saveFavoriteWord,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                            alignment: Alignment.centerLeft,
-                            backgroundColor: const Color(0xFFF6F4FF),
-                            side: const BorderSide(
-                              color: Color(0xFF7B6EF6),
-                              width: 2,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+          //         if (aiResponse.trim().startsWith('⚠️'))
+          //           _sectionDivider("⭐ あなたの言葉"),
+          //           SizedBox(
+          //             width: double.infinity,
+          //             child: Padding(
+          //               padding: const EdgeInsets.symmetric(vertical: 6),
+          //               child: OutlinedButton.icon(
+          //                 onPressed: () => _showFavoriteWordDialog(context),
+          //                 icon: const Icon(Icons.star_outline),
+          //                 label: Text(
+          //                   s.saveFavoriteWord,
+          //                   style: const TextStyle(fontWeight: FontWeight.w600),
+          //                 ),
+          //                 style: OutlinedButton.styleFrom(
+          //                   padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+          //                   alignment: Alignment.centerLeft,
+          //                   backgroundColor: const Color(0xFFF6F4FF),
+          //                   side: const BorderSide(
+          //                     color: Color(0xFF7B6EF6),
+          //                     width: 2,
+          //                   ),
+          //                   shape: RoundedRectangleBorder(
+          //                     borderRadius: BorderRadius.circular(12),
+          //                   ),
+          //                 ),
+          //               ),
+          //             ),
+          //           ),
 
 
           // --- 週次プレビュー（公開済みの最新日曜のみ） ---
