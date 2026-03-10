@@ -1441,27 +1441,39 @@ class CsvLoader {
   
   // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
   // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
+  // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
   static Future<void> saveAiCommentLog(List<Map<String, String>> rows) async {
-    final file = await getAiCommentLogFile();
-    await file.parent.create(recursive: true);
+    if (_isWritingAiCommentLog) {
+      debugPrint('⚠️ saveAiCommentLog skipped: already writing');
+      return;
+    }
 
-    await backupAiCommentLogBeforeWrite();
+    _isWritingAiCommentLog = true;
 
-    final normalizedRows = _normalizeAiCommentRows(rows);
+    try {
+      final file = await getAiCommentLogFile();
+      await file.parent.create(recursive: true);
 
-    final List<List<dynamic>> data = <List<dynamic>>[
-      _aiCommentLogHeader,
-      ...normalizedRows.map((r) {
-        return _aiCommentLogHeader.map((h) {
-          return (r[h] ?? '').toString();
-        }).toList();
-      }),
-    ];
+      await backupAiCommentLogBeforeWrite();
 
-    final String csvText = const ListToCsvConverter().convert(data);
-    await file.writeAsString(csvText, flush: true);
+      final normalizedRows = _normalizeAiCommentRows(rows);
 
-    await backupAiCommentLogAfterWrite();
+      final List<List<dynamic>> data = <List<dynamic>>[
+        _aiCommentLogHeader,
+        ...normalizedRows.map((r) {
+          return _aiCommentLogHeader.map((h) {
+            return (r[h] ?? '').toString();
+          }).toList();
+        }),
+      ];
+
+      final String csvText = const ListToCsvConverter().convert(data);
+      await file.writeAsString(csvText, flush: true);
+
+      await backupAiCommentLogAfterWrite();
+    } finally {
+      _isWritingAiCommentLog = false;
+    }
   }
 
 // 完全一致でその日を返す。無ければ null
