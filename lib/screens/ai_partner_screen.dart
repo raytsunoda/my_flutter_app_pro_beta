@@ -514,32 +514,31 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
           ),
           // ✅ タイムアウト時は、その場で再試行できるようにする（Releaseでも表示）
                   if (aiResponse.trim().startsWith('⚠️'))
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                 child: TextButton.icon(
-                   onPressed: () async {
-                     debugPrint('[AI daily] retry tapped (force delete & retry)');
-
-                     // ① 画面表示を「考え中」に戻す
-                     if (!mounted) return;
-                     setState(() {
-                       aiResponse = s.thinking;
-                     });
-
-                     // ② 「その日付のdailyコメント」を強制削除（⚠️が保存済み扱いになってる事故を解除）
-                     final now = DateTime.now();
-                     await AiCommentService.forceDeleteDaily(now);
-
-                     // ③ 取り直し
-                     await _fetchAiComment();
-                   },
-                   icon: const Icon(Icons.refresh),
-                //   label: const Text('もう一度試す'),
-                   label: Text(s.retry),
-                 ),
-                ),
-
-
+                    SizedBox(
+                      width: double.infinity,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: OutlinedButton.icon(
+                          onPressed: () => _showFavoriteWordDialog(context),
+                          icon: const Icon(Icons.star_outline),
+                          label: Text(
+                            s.saveFavoriteWord,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                            alignment: Alignment.centerLeft,
+                            side: const BorderSide(
+                              color: Color(0xFFD0C4F7),
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
 
 
           // --- 週次プレビュー（公開済みの最新日曜のみ） ---
@@ -635,14 +634,26 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                     setState(() {});
                   },
                   icon: const Icon(Icons.calendar_month),
-                  //label: const Text('月次のふりかえり'),
-                  label: Text(s.monthlyButton),
+                  label: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        s.monthlyButton,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        s.isJa ? '月ごとの変化をまとめて確認' : 'See your monthly progress',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                    alignment: Alignment.centerLeft,
                   ),
                 ),
-
                 if (!canGenerateMonthly)
                   Padding(
                     padding: const EdgeInsets.only(top: 6, left: 4),
