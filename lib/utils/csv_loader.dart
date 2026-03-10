@@ -1417,15 +1417,18 @@ class CsvLoader {
 
   
   // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
+  // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
   static Future<void> saveAiCommentLog(List<Map<String, String>> rows) async {
     final file = await getAiCommentLogFile();
     await file.parent.create(recursive: true);
 
     await backupAiCommentLogBeforeWrite();
 
+    final normalizedRows = _normalizeAiCommentRows(rows);
+
     final List<List<dynamic>> data = <List<dynamic>>[
       _aiCommentLogHeader,
-      ...rows.map((r) {
+      ...normalizedRows.map((r) {
         return _aiCommentLogHeader.map((h) {
           return (r[h] ?? '').toString();
         }).toList();
@@ -1483,9 +1486,11 @@ class CsvLoader {
 
     await backupAiCommentLogBeforeWrite();
 
+    final normalizedRows = _normalizeAiCommentRows(rows);
+
     final List<List<dynamic>> data = <List<dynamic>>[
       _aiCommentLogHeader,
-      ...rows.map((r) {
+      ...normalizedRows.map((r) {
         return _aiCommentLogHeader.map((h) {
           return (r[h] ?? '').toString();
         }).toList();
