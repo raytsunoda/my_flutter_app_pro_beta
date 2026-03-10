@@ -492,7 +492,7 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
           _buildCommentBox('${s.todayMemoTitle}\n$displayMemo'),
           const SizedBox(height: 8),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.only(top: 6, bottom: 12),
             child: InkWell(
               onTap: () => _showFavoriteWordDialog(context),
               borderRadius: BorderRadius.circular(12),
