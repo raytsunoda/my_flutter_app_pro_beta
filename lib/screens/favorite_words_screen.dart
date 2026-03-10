@@ -194,20 +194,45 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      date,
-                      style: const TextStyle(fontSize: 14, color: Colors.black54),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '"$text"',
-                      style: const TextStyle(
-                        fontSize: 17,
-                        height: 1.5,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+
+                        const Padding(
+                          padding: EdgeInsets.only(right: 8, top: 2),
+                          child: Icon(
+                            Icons.star_rounded,
+                            size: 18,
+                            color: Color(0xFFF2C94C),
+                          ),
+                        ),
+
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                date,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '"$text"',
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
+                )
               ),
             ),
           );
