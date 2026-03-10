@@ -476,18 +476,36 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
         //  _buildCommentBox('📝 今日のひとことメモ:\n$displayMemo'),
           _buildCommentBox('${s.todayMemoTitle}\n$displayMemo'),
           const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () => _showFavoriteWordDialog(context),
-              icon: const Icon(Icons.star_outline),
-          //    label: const Text('⭐ お気に入りに"あなたの言葉"を残す'),
-              label: Text(s.saveFavoriteWord),
-
-
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: InkWell(
+              onTap: () => _showFavoriteWordDialog(context),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F0FA),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.star_border, color: Colors.deepPurple),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        s.saveFavoriteWord,
+                        style: const TextStyle(
+                          color: Colors.deepPurple,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right),
+                  ],
+                ),
+              ),
             ),
           ),
-
           // ✅ AI パートナーのひとこと（表示時サニタイズを最終適用）
           //_buildCommentBox('💛 AIパートナーからのひとこと\n\n${_sanitizeForDisplay(aiResponse)}'),
           aiCard(

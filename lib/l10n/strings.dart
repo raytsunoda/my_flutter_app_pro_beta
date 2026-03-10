@@ -19,7 +19,7 @@ class S {
 
   String get aiPartnerTitle => isJa ? '💛AIパートナー' : E.aiPartnerTitle;
   String get todayMemoTitle => isJa ? '📝 今日のひとことメモ:' : E.todayMemoTitle;
-  String get saveFavoriteWord => isJa ? '⭐ お気に入りに"あなたの言葉"を残す' : E.saveFavoriteWord;
+  String get saveFavoriteWord => isJa ? '⭐ あなたの言葉をお気に入りに追加' : E.saveFavoriteWord;
   String get aiPartnerCommentTitle => isJa ? '💛 AIパートナーからのひとこと' : E.aiPartnerCommentTitle;
   String get retry => isJa ? 'もう一度試す' : E.retry;
 
@@ -56,7 +56,7 @@ class S {
   String favoriteSaveFailed(String error) =>
       isJa ? '⚠️ 保存に失敗しました: $error' : E.favoriteSaveFailed.replaceAll('{error}', error);
 
-    String get favoriteSaved => isJa ? '⭐ お気に入りに保存しました' : E.favoriteSaved;
+    String get favoriteSaved => isJa ? '⭐ お気に入りに追加しました' : E.favoriteSaved;
 
     // Favorite dialog (AIPartner)
     String get favoriteDialogTitle => isJa ? 'お気に入りのあなたの言葉' : E.favoriteDialogTitle;
