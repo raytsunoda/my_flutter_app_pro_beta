@@ -857,7 +857,14 @@ Widget aiCard(String title, String text) {
     decoration: BoxDecoration(
       color: const Color(0xFFF5F7FB),
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: Colors.black12),
+      border: Border.all(color: const Color(0xFFE0E0E0)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -867,6 +874,7 @@ Widget aiCard(String title, String text) {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
+            color: Color(0xFF333333),
           ),
         ),
         const SizedBox(height: 8),
