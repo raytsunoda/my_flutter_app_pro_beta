@@ -1442,9 +1442,11 @@ class CsvLoader {
   // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
   // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
   // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
+  // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
   static Future<void> saveAiCommentLog(List<Map<String, String>> rows) async {
-    if (_isWritingAiCommentLog) {
-      debugPrint('⚠️ saveAiCommentLog skipped: already writing');
+    final canWrite = await _waitUntilAiCommentLogWritable();
+    if (!canWrite) {
+      debugPrint('⚠️ saveAiCommentLog skipped: still writing after retry');
       return;
     }
 
@@ -1513,11 +1515,29 @@ class CsvLoader {
     }
     return null;
   }
+
+  static Future<bool> _waitUntilAiCommentLogWritable() async {
+    const int maxRetry = 10;
+    const Duration delay = Duration(milliseconds: 200);
+
+    for (int i = 0; i < maxRetry; i++) {
+      if (!_isWritingAiCommentLog) {
+        return true;
+      }
+      await Future<void>.delayed(delay);
+    }
+
+    return !_isWritingAiCommentLog;
+  }
+
+
+
 // 小文字ヘッダのAIコメントログを上書き保存するユーティリティ
 // 受け取り: rows = List<Map<String,String>>  （キーは 'date','type','comment',...）
   static Future<void> writeAiCommentLog(List<Map<String, String>> rows) async {
-    if (_isWritingAiCommentLog) {
-      debugPrint('⚠️ writeAiCommentLog skipped: already writing');
+    final canWrite = await _waitUntilAiCommentLogWritable();
+    if (!canWrite) {
+      debugPrint('⚠️ writeAiCommentLog skipped: still writing after retry');
       return;
     }
 
