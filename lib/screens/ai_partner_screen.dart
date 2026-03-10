@@ -465,7 +465,22 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
 
     return Scaffold(
   //    appBar: AppBar(title: const Text('💛AIパートナー')),
-      appBar: AppBar(title: Text(s.aiPartnerTitle)),
+      //appBar: AppBar(title: Text(s.aiPartnerTitle)),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            const Text('💛'),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                s.aiPartnerTitle,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      ),
 
       body: ListView(
         padding: const EdgeInsets.all(12),
@@ -514,6 +529,7 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
           ),
           // ✅ タイムアウト時は、その場で再試行できるようにする（Releaseでも表示）
                   if (aiResponse.trim().startsWith('⚠️'))
+                    _sectionDivider("⭐ あなたの言葉"),
                     SizedBox(
                       width: double.infinity,
                       child: Padding(
@@ -528,9 +544,10 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                             alignment: Alignment.centerLeft,
+                            backgroundColor: const Color(0xFFF6F4FF),
                             side: const BorderSide(
-                              color: Color(0xFFD0C4F7),
-                              width: 1.5,
+                              color: Color(0xFF7B6EF6),
+                              width: 2,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
