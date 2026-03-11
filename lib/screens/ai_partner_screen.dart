@@ -347,8 +347,7 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
         aiResponse = dailyText.isNotEmpty
             ? dailyText
          //   : '⚠️ コメントの取得に時間がかかったか、うまく作れなかったようです。\n時間をおいてもう一度お試しください。';
-      : '⚠️ ${s.isJa ? "コメントの取得に時間がかかったか、うまく作れなかったようです。\\n時間をおいてもう一度お試しください。" : "It took too long or couldn’t generate a comment. Please try again later."}';
-
+      : '⚠️ s.aiCommentTimeout';
 
         _weeklyPreview = weekly;
         _hasTodayDaily = dailyText.isNotEmpty;
@@ -360,8 +359,7 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
       setState(() {
         aiResponse =
      //   '⚠️ コメントの取得中にエラーが発生しました。\n時間をおいてもう一度お試しください。';
-      '⚠️ ${s.isJa ? "コメントの取得中にエラーが発生しました。\\n時間をおいてもう一度お試しください。" : "An error occurred while fetching the comment. Please try again later."}';
-
+      '⚠️ s.aiCommentError';
 
         _weeklyPreview = null;
       });
@@ -389,8 +387,9 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
           // ? '（対象週末日: $dateLabel）\n※この週のコメントは保存されていません。\n'
           // '週次コメントは必要なデータが保存されていれば「毎週日曜」に生成されます。'
           // : '（対象週末日: $dateLabel）\n$comment';
-          ? '${s.weeklyTarget(dateLabel)}\n${s.isJa ? '※この週のコメントは保存されていません。\n週次コメントは必要なデータが保存されていれば「毎週日曜」に生成されます。' : 'No saved comment for this week.'}'
-          : '${s.weeklyTarget(dateLabel)}\n$comment';
+          //? '${s.weeklyTarget(dateLabel)}\n${s.isJa ? '※この週のコメントは保存されていません。\n週次コメントは必要なデータが保存されていれば「毎週日曜」に生成されます。' : 'No saved comment for this week.'}'
+          ? '${s.weeklyTarget(dateLabel)}\n${s.weeklyCommentMissing}'
+      : '${s.weeklyTarget(dateLabel)}\n$comment';
 
       _hasFetchedWeekly = true;
     });
@@ -411,12 +410,17 @@ class _AIPartnerScreenState extends State<AIPartnerScreen> {
       final ymd = (rec['date'] ?? '').toString();
       final body = (rec['comment'] ?? '').toString();
       setState(() {
-        _monthlyMessage = '（対象月末日: $ymd）\n$body';
+       // _monthlyMessage = '（対象月末日: $ymd）\n$body';
+        _monthlyMessage = '${s.monthlyTarget(ymd)}\n$body';
+
         _hasFetchedMonthly = true;
       });
     } else {
       setState(() {
-        _monthlyMessage = '（対象月末日: 先月末）\n※まだ保存済みの月次コメントがありません。';
+        //_monthlyMessage = '（対象月末日: 先月末）\n※まだ保存済みの月次コメントがありません。';
+        _monthlyMessage =
+        '${s.monthlyTarget(s.isJa ? "先月末" : "last month end")}\n'
+            '${s.monthlyCommentMissing}';
         _hasFetchedMonthly = true;
       });
     }

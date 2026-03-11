@@ -138,11 +138,12 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-      const Padding(
-      padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+      Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Text(
-        "長押しでコピーできます",
-        style: TextStyle(
+       // "長押しでコピーできます",
+        t.favoriteCopyHint,
+        style: const TextStyle(
           fontSize: 12,
           color: Colors.black54,
         ),
@@ -245,9 +246,10 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
                                   if (!mounted) return;
 
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text("お気に入りの言葉をコピーしました"),
-                                      duration: Duration(seconds: 2),
+                                    SnackBar(
+                                      //content: Text("お気に入りの言葉をコピーしました"),
+                                        content : Text (t.favoriteCopied),
+                                      duration: const Duration(seconds: 2),
                                     ),
                                   );
                                 },

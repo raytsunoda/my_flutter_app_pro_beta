@@ -18,6 +18,16 @@ class S {
   String get aiNone => isJa ? J.aiNone : E.aiNone;
 
   String get aiPartnerTitle => isJa ? 'AIパートナー' : E.aiPartnerTitle;
+
+  String get aiCommentTimeout => isJa
+      ? 'コメントの取得に時間がかかったか、うまく作れなかったようです。\n時間をおいてもう一度お試しください。'
+      : 'It took too long or couldn’t generate a comment. Please try again later.';
+
+  String get aiCommentError => isJa
+      ? 'コメントの取得中にエラーが発生しました。\n時間をおいてもう一度お試しください。'
+      : 'An error occurred while fetching the comment. Please try again later.';
+
+
   String get todayMemoTitle => isJa ? '📝 今日のひとことメモ:' : E.todayMemoTitle;
   String get saveFavoriteWord => isJa ? '⭐ あなたの言葉をお気に入りに追加' : E.saveFavoriteWord;
   String get aiPartnerCommentTitle => isJa ? '💛 AIパートナーからのひとこと' : E.aiPartnerCommentTitle;
@@ -26,6 +36,10 @@ class S {
   // Sections
   String get weeklyPreviewSection => isJa ? 'AIコメント（週次プレビュー）' : E.weeklyPreviewSection;
   String get weeklySection => isJa ? 'AIコメント（週次のふりかえり）' : E.weeklySection;
+
+  String get monthlyCommentMissing => isJa
+      ? '※まだ保存済みの月次コメントがありません。'
+      : 'No monthly comment saved yet.';
   String get monthlySection => isJa ? 'AIコメント（月次のふりかえり）' : E.monthlySection;
 
 
@@ -90,4 +104,10 @@ class S {
   String get backfill => isJa ? '欠け分を補完' : E.backfill;
   String get cancel => isJa ? 'キャンセル' : E.cancel;
   String get run => isJa ? '実行する' : E.run;
+
+  String get weeklyCommentMissing => isJa
+      ? '※この週のコメントは保存されていません。\n週次コメントは必要なデータが保存されていれば「毎週日曜」に生成されます。'
+      : 'No saved comment for this week. Weekly comments are generated every Sunday when enough data exists.';
+
+
 }

@@ -1,5 +1,8 @@
 {
   "@@locale": "ja",
+
+"aiCommentError": "コメントの取得中にエラーが発生しました。\n時間をおいてもう一度お試しください。",
+  "aiCommentTimeout": "コメントの取得に時間がかかったか、うまく作れなかったようです。\n時間をおいてもう一度お試しください。",
   "aiErrorRetry": "⚠️ コメントの取得中にエラーが発生しました。\n時間をおいてもう一度お試しください。",
   "aiTimeoutRetry": "⚠️ コメントの取得に時間がかかったか、うまく作れなかったようです。\n時間をおいてもう一度お試しください。",
 
@@ -37,6 +40,11 @@
 
     "emptyWeeklyCard": "この週のコメントは保存されていません",
     "emptyMonthlyCard": "この月のコメントは保存されていません",
+
+
+        "favoriteCopied": "お気に入りの言葉をコピーしました",
+
+        "favoriteCopyHint": "長押しでコピーできます",
 
         "favoriteWordsTitle": "⭐ お気に入りのあなたの言葉",
         "favoriteWordsEmptyIntro": "ここには、あなたが残した言葉が並びます。\n無理に増やさなくて大丈夫です。",
@@ -109,7 +117,7 @@
       "migrationGuideDebugClearButton": "抑止フラグをクリア",
       "migrationGuideDebugCleared": "抑止フラグを削除しました",
 
-
+"monthlyCommentMissing": "※まだ保存済みの月次コメントがありません。",
 
   "motivationLabel": " モチベーション",
   "msgCsvImportDone": "CSVの取り込みが完了しました（一覧を更新）",
@@ -368,6 +376,9 @@
   "tipsBackToQuote": "🔵 タップして名言に戻る",
 
   "walkingYesterdayMinutes": "🚶 昨日のウォーキング（分）",
+
+  "weeklyCommentMissing": "※この週のコメントは保存されていません。\n週次コメントは必要なデータが保存されていれば「毎週日曜」に生成されます。",
+
   "@memoCharCount": {
     "placeholders": {
       "count": {

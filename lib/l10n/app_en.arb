@@ -1,5 +1,8 @@
 {
   "@@locale": "en",
+
+  "aiCommentError": "An error occurred while fetching the comment. Please try again later.",
+  "aiCommentTimeout": "It took too long or couldn't generate a comment. Please try again later.",
   "aiErrorRetry": "⚠️ An error occurred while fetching the comment.\nPlease try again later.",
   "aiTimeoutRetry": "⚠️ It took too long to fetch the comment, or it couldn't be created.\nPlease try again later.",
 
@@ -38,6 +41,10 @@
 
 "emptyWeeklyCard": "No comment has been saved for this week",
 "emptyMonthlyCard": "No comment has been saved for this month",
+
+        "favoriteCopied": "Favorite quote copied",
+
+        "favoriteCopyHint": "Long press to copy",
 
       "favoriteWordsTitle": "⭐ Your Favorite Words",
       "favoriteWordsEmptyIntro": "Your saved words will appear here.\nNo need to add more if you don't feel like it.",
@@ -112,6 +119,7 @@
     "migrationGuideDebugClearButton": "Clear suppress flag",
     "migrationGuideDebugCleared": "Suppress flag cleared",
 
+"monthlyCommentMissing": "No monthly comment saved yet.",
 
   "motivationLabel": " Motivation",
   "msgCsvImportDone": "CSV import completed (list updated).",
@@ -378,6 +386,7 @@
 
 
   "walkingYesterdayMinutes": "🚶 Walking yesterday (minutes)",
+  "weeklyCommentMissing": "No saved comment for this week. Weekly comments are generated every Sunday when enough data exists.",
   "@memoCharCount": {
     "placeholders": {
       "count": {
@@ -385,4 +394,5 @@
       }
     }
   }
+
 }
