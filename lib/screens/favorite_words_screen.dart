@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 //import '../utils/csv_loader.dart';
 import 'package:my_flutter_app_pro/utils/csv_loader.dart';
 import '../gen_l10n/app_localizations.dart';
+import 'package:flutter/services.dart';
 
 class FavoriteWordsScreen extends StatefulWidget {
   const FavoriteWordsScreen({super.key});
@@ -131,7 +132,25 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
           ],
         ),
       )
-          : ListView.separated(
+
+
+          : Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+      const Padding(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Text(
+        "長押しでコピーできます",
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.black54,
+        ),
+      ),
+    ),
+
+    Expanded(
+    child: ListView.separated(
 
       padding: const EdgeInsets.all(12),
         itemCount: _items.length,
@@ -219,11 +238,25 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              Text(
-                                '"$text"',
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  height: 1.5,
+                              GestureDetector(
+                                onLongPress: () async {
+                                  await Clipboard.setData(ClipboardData(text: text));
+
+                                  if (!mounted) return;
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("言葉をコピーしました"),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  '"$text"',
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    height: 1.5,
+                                  ),
                                 ),
                               ),
                             ],
@@ -237,10 +270,10 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
             ),
           );
 
-
-
-
         },
+      ),
+      ),
+      ],
       ),
     );
   }
