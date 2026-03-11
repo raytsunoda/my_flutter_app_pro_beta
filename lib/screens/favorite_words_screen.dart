@@ -246,7 +246,7 @@ class _FavoriteWordsScreenState extends State<FavoriteWordsScreen> {
 
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text("言葉をコピーしました"),
+                                      content: Text("お気に入りの言葉をコピーしました"),
                                       duration: Duration(seconds: 2),
                                     ),
                                   );
