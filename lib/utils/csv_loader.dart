@@ -958,7 +958,29 @@ class CsvLoader {
       return m;
     }).toList();
 
-    return _normalizeAiCommentRows(parsed);
+//一時的に置き換え
+    //return _normalizeAiCommentRows(parsed);
+    final normalized = _normalizeAiCommentRows(parsed);
+
+    final dailyCount =
+        normalized.where((r) => (r['type'] ?? '').trim().toLowerCase() == 'daily').length;
+    final weeklyCount =
+        normalized.where((r) => (r['type'] ?? '').trim().toLowerCase() == 'weekly').length;
+    final monthlyCount =
+        normalized.where((r) => (r['type'] ?? '').trim().toLowerCase() == 'monthly').length;
+
+    debugPrint('[loadAiCommentLog] parsed=${parsed.length} normalized=${normalized.length}');
+    debugPrint('[loadAiCommentLog] daily=$dailyCount weekly=$weeklyCount monthly=$monthlyCount');
+
+    for (final r in normalized.take(5)) {
+      debugPrint('[loadAiCommentLog:first5] date=${r['date']} type=${r['type']}');
+    }
+
+    for (final r in normalized.reversed.take(5)) {
+      debugPrint('[loadAiCommentLog:last5] date=${r['date']} type=${r['type']}');
+    }
+
+    return normalized;
   }
 
 
