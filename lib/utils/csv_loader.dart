@@ -651,7 +651,7 @@ class CsvLoader {
 
   static Future<bool> restoreAiCommentLogFromBackup() async {
     try {
-      final logFile = await getAiCommentLogFile();
+      final logFile = await getAiCommentLogFilePathOnly();
       final backupFile = await getAiCommentBackupFile();
 
       if (!await backupFile.exists()) return false;
@@ -662,6 +662,7 @@ class CsvLoader {
         return false;
       }
 
+      await logFile.parent.create(recursive: true);
       await logFile.writeAsString(raw, flush: true);
       debugPrint('✅ AI comment log restored from backup');
       return true;
@@ -673,7 +674,7 @@ class CsvLoader {
   }
 
   static Future<String> _readAiCommentLogRawWithFallback() async {
-    final logFile = await getAiCommentLogFile();
+    final logFile = await getAiCommentLogFilePathOnly();
 
     if (await logFile.exists()) {
       final raw = await logFile.readAsString();
@@ -772,17 +773,39 @@ class CsvLoader {
     if (!(await file.exists())) {
       await file.create(recursive: true);
       await file.writeAsString('${_aiCommentHeaderLine()}\n', flush: true);
-    } else {
-      final raw = await file.readAsString();
-      if (raw.trim().isEmpty) {
-        await file.writeAsString('${_aiCommentHeaderLine()}\n', flush: true);
+      return file;
+    }
+
+    final raw = await file.readAsString();
+
+    // 空ファイルならヘッダーだけ入れて復旧
+    if (raw.trim().isEmpty) {
+      await file.writeAsString('${_aiCommentHeaderLine()}\n', flush: true);
+      return file;
+    }
+
+    // 壊れていたら backup から復旧を試みる
+    if (_looksBrokenAiLogText(raw)) {
+      debugPrint('⚠️ ai_comment_log.csv looks broken on open. Trying backup...');
+      final restored = await restoreAiCommentLogFromBackup();
+      if (restored) {
+        final restoredRaw = await file.readAsString();
+        if (!_looksBrokenAiLogText(restoredRaw)) {
+          return file;
+        }
       }
+
+      // backup でも直らない場合はヘッダーだけ残す
+      await file.writeAsString('${_aiCommentHeaderLine()}\n', flush: true);
     }
 
     return file;
   }
 
-
+  static Future<File> getAiCommentLogFilePathOnly() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return File('${dir.path}/ai_comment_log.csv');
+  }
 
 
 
@@ -831,34 +854,9 @@ class CsvLoader {
 
   // CSV → List<Map> 変換（オプション）
   static Future<List<Map<String, String>>> loadAiCommentLog() async {
-    String raw = await _readAiCommentLogRawWithFallback();
+    final raw = await _readAiCommentLogRawWithFallback();
 
-    List<List<dynamic>> rows =
-    const CsvToListConverter().convert(raw, eol: '\n');
-
-    // CSV破損チェック → backupから自動復旧
-    if (rows.length <= 1) {
-      final file = await getAiCommentLogFile();
-      final backup = await getAiCommentBackupFile();
-
-      if (await backup.exists()) {
-        final backupText = await backup.readAsString();
-
-        if (backupText.trim().isNotEmpty) {
-          final backupRows =
-          const CsvToListConverter().convert(backupText, eol: '\n');
-
-          if (backupRows.length > 1) {
-            await file.writeAsString(backupText, flush: true);
-            debugPrint('⚠️ AI comment log restored from backup');
-
-            raw = backupText;
-            rows = backupRows;
-          }
-        }
-      }
-    }
-
+    final rows = const CsvToListConverter().convert(raw, eol: '\n');
     if (rows.length <= 1) {
       return <Map<String, String>>[];
     }
@@ -1443,39 +1441,28 @@ class CsvLoader {
   // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
   // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
   // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
+  // 小文字ヘッダのAIコメントログ（date,type,comment,score,sleep,walk,gratitude1,gratitude2,gratitude3,memo）
   static Future<void> saveAiCommentLog(List<Map<String, String>> rows) async {
-    final canWrite = await _waitUntilAiCommentLogWritable();
-    if (!canWrite) {
-      debugPrint('⚠️ saveAiCommentLog skipped: still writing after retry');
-      return;
-    }
+    final file = await getAiCommentLogFilePathOnly();
+    await file.parent.create(recursive: true);
 
-    _isWritingAiCommentLog = true;
+    await backupAiCommentLogBeforeWrite();
 
-    try {
-      final file = await getAiCommentLogFile();
-      await file.parent.create(recursive: true);
+    final normalizedRows = _normalizeAiCommentRows(rows);
 
-      await backupAiCommentLogBeforeWrite();
+    final List<List<dynamic>> data = <List<dynamic>>[
+      _aiCommentLogHeader,
+      ...normalizedRows.map((r) {
+        return _aiCommentLogHeader.map((h) {
+          return (r[h] ?? '').toString();
+        }).toList();
+      }),
+    ];
 
-      final normalizedRows = _normalizeAiCommentRows(rows);
+    final String csvText = const ListToCsvConverter().convert(data);
+    await file.writeAsString(csvText, flush: true);
 
-      final List<List<dynamic>> data = <List<dynamic>>[
-        _aiCommentLogHeader,
-        ...normalizedRows.map((r) {
-          return _aiCommentLogHeader.map((h) {
-            return (r[h] ?? '').toString();
-          }).toList();
-        }),
-      ];
-
-      final String csvText = const ListToCsvConverter().convert(data);
-      await file.writeAsString(csvText, flush: true);
-
-      await backupAiCommentLogAfterWrite();
-    } finally {
-      _isWritingAiCommentLog = false;
-    }
+    await backupAiCommentLogAfterWrite();
   }
 
 // 完全一致でその日を返す。無ければ null
@@ -1535,38 +1522,26 @@ class CsvLoader {
 // 小文字ヘッダのAIコメントログを上書き保存するユーティリティ
 // 受け取り: rows = List<Map<String,String>>  （キーは 'date','type','comment',...）
   static Future<void> writeAiCommentLog(List<Map<String, String>> rows) async {
-    final canWrite = await _waitUntilAiCommentLogWritable();
-    if (!canWrite) {
-      debugPrint('⚠️ writeAiCommentLog skipped: still writing after retry');
-      return;
-    }
+    final file = await getAiCommentLogFilePathOnly();
+    await file.parent.create(recursive: true);
 
-    _isWritingAiCommentLog = true;
+    await backupAiCommentLogBeforeWrite();
 
-    try {
-      final file = await getAiCommentLogFile();
-      await file.parent.create(recursive: true);
+    final normalizedRows = _normalizeAiCommentRows(rows);
 
-      await backupAiCommentLogBeforeWrite();
+    final List<List<dynamic>> data = <List<dynamic>>[
+      _aiCommentLogHeader,
+      ...normalizedRows.map((r) {
+        return _aiCommentLogHeader.map((h) {
+          return (r[h] ?? '').toString();
+        }).toList();
+      }),
+    ];
 
-      final normalizedRows = _normalizeAiCommentRows(rows);
+    final String csvText = const ListToCsvConverter().convert(data);
+    await file.writeAsString(csvText, flush: true);
 
-      final List<List<dynamic>> data = <List<dynamic>>[
-        _aiCommentLogHeader,
-        ...normalizedRows.map((r) {
-          return _aiCommentLogHeader.map((h) {
-            return (r[h] ?? '').toString();
-          }).toList();
-        }),
-      ];
-
-      final String csvText = const ListToCsvConverter().convert(data);
-      await file.writeAsString(csvText, flush: true);
-
-      await backupAiCommentLogAfterWrite();
-    } finally {
-      _isWritingAiCommentLog = false;
-    }
+    await backupAiCommentLogAfterWrite();
   }
 
   Future<List<Map<String, dynamic>>> loadDailyRecordsInRange(
@@ -1872,51 +1847,15 @@ class CsvLoader {
 
     debugPrint('[IMPORT] importCsvSafely: done; rows=${rows.length - 1}');
   }
-  /// 既存 ai_comment_log.csv を読み込み、comment をサニタイズして書き戻す（破壊的）
-  /// 戻り値：実際に修正した件数
+
+  /// 既存 ai_comment_log.csv の後処理（安全停止版）
+  /// 現在は multiline CSV を壊すリスクがあるため無効化
   static Future<int> fixAiLogTailPhrases() async {
-    final file = await getAiCommentLogFile();
-    if (!await file.exists()) return 0;
-
-    final lines = await file.readAsLines();
-    if (lines.isEmpty) return 0;
-
-    final headers = lines.first.split(',');
-    final idxComment = headers.indexOf('comment');
-
-    if (idxComment < 0) {
-      // comment列がない場合は何もしない
-      return 0;
-    }
-
-    int fixed = 0;
-    final out = <String>[];
-    out.add(lines.first); // header
-
-    for (final line in lines.skip(1)) {
-      // 1行だけをCSVとして解析して安全に列を得る
-      final values =
-      const CsvToListConverter().convert(line).first.map((e) => e.toString()).toList();
-      // 列数ずれを吸収
-      while (values.length <= idxComment) {
-        values.add('');
-      }
-
-      final raw = values[idxComment];
-      final sanitized = CsvLoader.sanitizeCommentForDisplay(raw);
-      if (sanitized != raw) fixed++;
-
-      // 改行を \n にエスケープして書き戻し
-      values[idxComment] = sanitized.replaceAll('\n', r'\n');
-
-      // 1行をCSVに戻す
-      final rowCsv = const ListToCsvConverter().convert([values], eol: '');
-      out.add(rowCsv);
-    }
-
-    await file.writeAsString(out.join('\n') + '\n');
-    return fixed;
+    debugPrint('⚠️ fixAiLogTailPhrases is disabled to avoid breaking multiline CSV.');
+    return 0;
   }
+
+
 // --- isolate で CSV を読む（UIブロック回避） ---
   List<List<String>> _readCsvIsolate(String path) {
     final f = File(path);
@@ -1925,6 +1864,17 @@ class CsvLoader {
     if (lines.isEmpty) return const [];
     return lines.map((l) => l.split(',')).toList();
   }
+
+  Future<void> backupAiCommentLog() async {
+    final file = await getAiCommentLogFile();
+    final backup = await getAiCommentBackupFile();
+
+    if (await file.exists()) {
+      await file.copy(backup.path);
+      debugPrint("AI comment log backup created");
+    }
+  }
+
 
 
 }

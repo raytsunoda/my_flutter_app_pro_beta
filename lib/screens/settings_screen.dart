@@ -1543,18 +1543,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 8),
 
-        // 既存：AIコメントCSV修復
-        ElevatedButton.icon(
-          icon: const Icon(Icons.build),
-          label: const Text('AIコメントCSVを後処理（追伸テンプレ除去）'),
-          onPressed: () async {
-            final n = await CsvLoader.fixAiLogTailPhrases();
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('修復完了：$n 件を処理しました')),
-            );
-          },
-        ),
+        // // 既存：AIコメントCSV修復
+        // ElevatedButton.icon(
+        //   icon: const Icon(Icons.build),
+        //   label: const Text('AIコメントCSVを後処理（追伸テンプレ除去）'),
+        //   onPressed: () async {
+        //     final n = await CsvLoader.fixAiLogTailPhrases();
+        //     if (!mounted) return;
+        //     ScaffoldMessenger.of(context).showSnackBar(
+        //       SnackBar(content: Text('修復完了：$n 件を処理しました')),
+        //     );
+        //   },
+        // ),
 
         const SizedBox(height: 12),
 
