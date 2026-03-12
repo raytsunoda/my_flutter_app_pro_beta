@@ -704,7 +704,8 @@ class CsvLoader {
       return false;
     }
   }
-  
+
+  /*//一時的に置き換え
   static Future<String> _readAiCommentLogRawWithFallback() async {
     final logFile = await getAiCommentLogFilePathOnly();
 
@@ -727,7 +728,28 @@ class CsvLoader {
 
     return '${_aiCommentHeaderLine()}\n';
   }
+*///一時的に下記に置き換え
 
+  static Future<String> _readAiCommentLogRawWithFallback() async {
+    final logFile = await getAiCommentLogFilePathOnly();
+
+    if (await logFile.exists()) {
+      final raw = await logFile.readAsString();
+      if (raw.trim().isNotEmpty) {
+        return raw;
+      }
+    }
+
+    final backupFile = await getAiCommentBackupFile();
+    if (await backupFile.exists()) {
+      final backupRaw = await backupFile.readAsString();
+      if (backupRaw.trim().isNotEmpty) {
+        return backupRaw;
+      }
+    }
+
+    return '${_aiCommentHeaderLine()}\n';
+  }
 
 
   static String _normalizeAiLogDate(String s) {
@@ -797,7 +819,7 @@ class CsvLoader {
 
 
 
-
+/*//一時的に置き換える
   static Future<File> getAiCommentLogFile() async {
     final dir = await getApplicationDocumentsDirectory();
     final file = File('${dir.path}/ai_comment_log.csv');
@@ -838,8 +860,27 @@ class CsvLoader {
     final dir = await getApplicationDocumentsDirectory();
     return File('${dir.path}/ai_comment_log.csv');
   }
+*/////一時的に下記コードに置き換える
+  static Future<File> getAiCommentLogFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/ai_comment_log.csv');
 
+    if (!(await file.exists())) {
+      await file.create(recursive: true);
+      await file.writeAsString('${_aiCommentHeaderLine()}\n', flush: true);
+      return file;
+    }
 
+    final raw = await file.readAsString();
+
+    if (raw.trim().isEmpty) {
+      await file.writeAsString('${_aiCommentHeaderLine()}\n', flush: true);
+      return file;
+    }
+
+    // 一時的に自動復旧を止める
+    return file;
+  }
 
   // ✅ 追加: 指定日付・種別のAIコメントを読み込む
   static Future<Map<String, String>?> loadSavedComment(DateTime date, String type) async {
@@ -948,6 +989,11 @@ class CsvLoader {
     }
 
     final rows = await loadAiCommentLog();
+
+    if (rows.length < 5) {
+      debugPrint('⚠️ appendAiCommentLog aborted: suspicious log size=${rows.length}');
+      return;
+    }
 
     rows.add(<String, String>{
       'date': normalizedDate,
@@ -1911,7 +1957,10 @@ class CsvLoader {
       debugPrint("AI comment log backup created");
     }
   }
-
+  static Future<File> getAiCommentLogFilePathOnly() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return File('${dir.path}/ai_comment_log.csv');
+  }
 
 
 }
