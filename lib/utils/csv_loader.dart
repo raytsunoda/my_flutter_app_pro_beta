@@ -581,6 +581,13 @@ class CsvLoader {
     return file;
   }
 
+  static Future<File> getAiCommentBackupPrevFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return File('${dir.path}/ai_comment_log_backup_prev.csv');
+  }
+
+
+
   static bool _looksBrokenAiLogText(String raw) {
     final text = raw.trim();
     if (text.isEmpty) return true;
@@ -609,25 +616,36 @@ class CsvLoader {
 
   static Future<void> backupAiCommentLogBeforeWrite() async {
     try {
-      final src = await getAiCommentLogFile();
-      final dst = await getAiCommentBackupFile();
+      final logFile = await getAiCommentLogFilePathOnly();
+      final backupFile = await getAiCommentBackupFile();
+      final prevBackupFile = await getAiCommentBackupPrevFile();
 
-      if (!await src.exists()) return;
+      if (!await logFile.exists()) return;
 
-      final raw = await src.readAsString();
+      // 既存 backup がある場合は 1世代前に退避
+      if (await backupFile.exists()) {
+        final backupRaw = await backupFile.readAsString();
+        if (!_looksBrokenAiLogText(backupRaw)) {
+          await prevBackupFile.parent.create(recursive: true);
+          await prevBackupFile.writeAsString(backupRaw, flush: true);
+          debugPrint('✅ AI comment log previous backup saved: ${prevBackupFile.path}');
+        }
+      }
+
+      final raw = await logFile.readAsString();
       if (_looksBrokenAiLogText(raw)) {
-        debugPrint('⚠️ backupAiCommentLogBeforeWrite skipped: source looks broken');
+        debugPrint('⚠️ backupAiCommentLogBeforeWrite skipped: source log looks broken');
         return;
       }
 
-      await dst.writeAsString(raw, flush: true);
-      debugPrint('✅ AI comment log pre-write backup saved: ${dst.path}');
+      await backupFile.parent.create(recursive: true);
+      await backupFile.writeAsString(raw, flush: true);
+      debugPrint('✅ AI comment log pre-write backup saved: ${backupFile.path}');
     } catch (e, st) {
       debugPrint('❌ backupAiCommentLogBeforeWrite failed: $e');
       debugPrint('$st');
     }
   }
-
   static Future<void> backupAiCommentLogAfterWrite() async {
     try {
       final src = await getAiCommentLogFile();
@@ -653,26 +671,40 @@ class CsvLoader {
     try {
       final logFile = await getAiCommentLogFilePathOnly();
       final backupFile = await getAiCommentBackupFile();
+      final prevBackupFile = await getAiCommentBackupPrevFile();
 
-      if (!await backupFile.exists()) return false;
+      Future<bool> tryRestore(File source) async {
+        if (!await source.exists()) return false;
 
-      final raw = await backupFile.readAsString();
-      if (_looksBrokenAiLogText(raw)) {
-        debugPrint('⚠️ restoreAiCommentLogFromBackup: backup also looks broken');
-        return false;
+        final raw = await source.readAsString();
+        if (_looksBrokenAiLogText(raw)) {
+          return false;
+        }
+
+        await logFile.parent.create(recursive: true);
+        await logFile.writeAsString(raw, flush: true);
+        return true;
       }
 
-      await logFile.parent.create(recursive: true);
-      await logFile.writeAsString(raw, flush: true);
-      debugPrint('✅ AI comment log restored from backup');
-      return true;
+      if (await tryRestore(backupFile)) {
+        debugPrint('✅ AI comment log restored from backup');
+        return true;
+      }
+
+      if (await tryRestore(prevBackupFile)) {
+        debugPrint('✅ AI comment log restored from previous backup');
+        return true;
+      }
+
+      debugPrint('⚠️ restoreAiCommentLogFromBackup: no healthy backup found');
+      return false;
     } catch (e, st) {
       debugPrint('❌ restoreAiCommentLogFromBackup failed: $e');
       debugPrint('$st');
       return false;
     }
   }
-
+  
   static Future<String> _readAiCommentLogRawWithFallback() async {
     final logFile = await getAiCommentLogFilePathOnly();
 
@@ -1460,7 +1492,9 @@ class CsvLoader {
     ];
 
     final String csvText = const ListToCsvConverter().convert(data);
-    await file.writeAsString(csvText, flush: true);
+    final tmpFile = File('${file.path}.tmp');
+    await tmpFile.writeAsString(csvText, flush: true);
+    await tmpFile.rename(file.path);
 
     await backupAiCommentLogAfterWrite();
   }
@@ -1539,7 +1573,9 @@ class CsvLoader {
     ];
 
     final String csvText = const ListToCsvConverter().convert(data);
-    await file.writeAsString(csvText, flush: true);
+    final tmpFile = File('${file.path}.tmp');
+    await tmpFile.writeAsString(csvText, flush: true);
+    await tmpFile.rename(file.path);
 
     await backupAiCommentLogAfterWrite();
   }
@@ -1843,8 +1879,9 @@ class CsvLoader {
 
     final file = await getCsvFile();
     final csvText = const ListToCsvConverter().convert(rows);
-    await file.writeAsString(csvText, flush: true);
-
+    await file.writeAsString(csvText, flush: true);final tmpFile = File('${file.path}.tmp');
+    await tmpFile.writeAsString(csvText, flush: true);
+    await tmpFile.rename(file.path);
     debugPrint('[IMPORT] importCsvSafely: done; rows=${rows.length - 1}');
   }
 
