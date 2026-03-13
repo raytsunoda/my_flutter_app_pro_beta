@@ -378,6 +378,11 @@
   "walkingYesterdayMinutes": "🚶 昨日のウォーキング（分）",
 
   "weeklyCommentMissing": "※この週のコメントは保存されていません。\n週次コメントは必要なデータが保存されていれば「毎週日曜」に生成されます。",
+  "emptyDaily": "コメントが保存されていません",
+  "emptyWeekly": "この週のコメントは保存されていません",
+  "emptyMonthly": "この月のコメントは保存されていません",
+  "emptyGeneric": "コメントが保存されていません",
+
 
   "@memoCharCount": {
     "placeholders": {

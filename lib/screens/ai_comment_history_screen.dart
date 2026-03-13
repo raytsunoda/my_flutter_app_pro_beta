@@ -143,7 +143,17 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
       _isLoading = false;
     });
 
-    debugPrint('[history] daily=${_daily.length}, weekly=${_weekly.length}, monthly=${_monthly.length}');
+    final weeklySavedCount = _weekly.where((r) {
+      final c = (r['comment'] ?? '').toString().trim();
+      return c.isNotEmpty;
+    }).length;
+    final weeklyVisibleCount = _weekly.length;
+
+    debugPrint(
+      '[history] daily=${_daily.length}, '
+          'weeklySaved=$weeklySavedCount, weeklyVisible=$weeklyVisibleCount, '
+          'monthly=${_monthly.length}',
+    );
   }
 // ===== 置換終了 =====
 
@@ -188,8 +198,14 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
 
     await _reloadAllFromLog();
     if (!mounted) return;
+    final doneMessage = idx == 0
+        ? '${s.tabDaily}${s.backfillDoneSuffix(added)}'
+        : idx == 1
+        ? '${s.tabWeekly}${s.backfillDoneSuffix(added)}'
+        : '${s.tabMonthly}${s.backfillDoneSuffix(added)}';
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${labels[idx]}コメントを $added 件補完しました')),
+      SnackBar(content: Text(doneMessage)),
     );
   }
 

@@ -89,7 +89,8 @@ class S {
     String get backfillTitleWeekly => isJa ? '週次の欠け分を補完' : E.backfillTitleWeekly;
     String get backfillTitleMonthly => isJa ? '月次の欠け分を補完' : E.backfillTitleMonthly;
 
-
+    String backfillDoneSuffix(int count) =>
+      isJa ? 'コメントを $count 件補完しました' : ' comments were backfilled: $count';
 
 
 
@@ -106,8 +107,7 @@ class S {
   String get run => isJa ? '実行する' : E.run;
 
   String get weeklyCommentMissing => isJa
-      ? '※この週のコメントは保存されていません。\n週次コメントは必要なデータが保存されていれば「毎週日曜」に生成されます。'
-      : 'No saved comment for this week. Weekly comments are generated every Sunday when enough data exists.';
-
+      ? 'この週のコメントは保存されていません。\n必要なデータがそろっていれば、週次コメントは毎週日曜に生成されます。'
+      : 'No comment has been saved for this week.\nIf enough data exists, a weekly comment is generated every Sunday.';
 
 }

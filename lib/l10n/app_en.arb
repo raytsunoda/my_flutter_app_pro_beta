@@ -387,6 +387,13 @@
 
   "walkingYesterdayMinutes": "🚶 Walking yesterday (minutes)",
   "weeklyCommentMissing": "No saved comment for this week. Weekly comments are generated every Sunday when enough data exists.",
+
+    "emptyDaily": "No comment has been saved.",
+    "emptyWeekly": "No comment has been saved for this week.",
+    "emptyMonthly": "No comment has been saved for this month.",
+    "emptyGeneric": "No comment has been saved.",
+
+
   "@memoCharCount": {
     "placeholders": {
       "count": {

@@ -527,9 +527,18 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
 
     // 日付の新しい順（降順）にソート
     out.sort((a, b) => (b['date'] ?? '').compareTo(a['date'] ?? ''));
+
+    final savedCount = byDate.values.where((v) => v.trim().isNotEmpty).length;
+    final visibleCount = out.length;
+    final emptyCount =
+        out.where((r) => ((r['comment'] ?? '').toString().trim().isEmpty)).length;
+
+    debugPrint(
+      '[weekly history] saved=$savedCount visible=$visibleCount empty=$emptyCount',
+    );
+
     return out;
   }
-
 
 
 
