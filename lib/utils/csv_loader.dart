@@ -252,36 +252,52 @@ class CsvLoader {
   }
 
   static List<List<String>> _robustCsvParse(String raw) {
-    List<List<dynamic>> tmp = const CsvToListConverter(eol: '\n').convert(raw);
-
     List<List<String>> sanitize(List<List<dynamic>> rows) =>
         rows
             .where((r) =>
-        r.isNotEmpty && r.any((c) =>
-        c
-            .toString()
-            .trim()
-            .isNotEmpty))
+        r.isNotEmpty &&
+            r.any((c) => c.toString().trim().isNotEmpty))
             .map((r) =>
-            r
-                .map((e) =>
-                e
-                    .toString()
-                    .replaceAll('"', '') // ← ★ 追加
-                    .trim())
-                .toList())
+            r.map((e) => e.toString().replaceAll('"', '').trim()).toList())
             .toList();
 
-    if (tmp.length > 1) return sanitize(tmp);
+    // ① まず通常のCSVパース
+    try {
+      final tmp = const CsvToListConverter(eol: '\n').convert(raw);
+      if (tmp.length > 1) return sanitize(tmp);
+    } catch (_) {
+      debugPrint('⚠️ _robustCsvParse: CsvToListConverter failed');
+    }
 
-    // フォールバック
-    return sanitize(LineSplitter.split(raw)
-        .where((l) =>
-    l
-        .trim()
-        .isNotEmpty)
-        .map((l) => l.split(','))
-        .toList());
+    // ② フォールバック：危険な split(",") は使わず、
+    //    行単位で「ヘッダ行と同じ列数にだけ限定」して拾う
+    final lines = LineSplitter.split(raw)
+        .where((l) => l.trim().isNotEmpty)
+        .toList();
+
+    if (lines.isEmpty) return <List<String>>[];
+
+    final header = lines.first.split(',').map((e) => e.trim()).toList();
+    final expectedLen = header.length;
+
+    final out = <List<String>>[header];
+
+    for (final line in lines.skip(1)) {
+      final cols = line.split(',').map((e) => e.trim()).toList();
+
+      // 列数が大きくズレた行は壊れた可能性が高いので採用しない
+      if (cols.length < expectedLen) {
+        out.add([...cols, ...List.filled(expectedLen - cols.length, '')]);
+      } else if (cols.length == expectedLen) {
+        out.add(cols);
+      } else {
+        debugPrint('⚠️ _robustCsvParse: skipped malformed row with too many columns');
+      }
+    }
+
+    return out
+        .where((r) => r.isNotEmpty && r.any((c) => c.trim().isNotEmpty))
+        .toList();
   }
 
   /// アプリ内で共通で使う正しいヘッダー
@@ -922,68 +938,119 @@ class CsvLoader {
   }
 
 
+  // ===== AIコメントCSV保存用の最低限サニタイズ =====
+  static String _sanitizeAiLogCell(String value) {
+    return value
+        .replaceAll('\r\n', ' ')
+        .replaceAll('\n', ' ')
+        .replaceAll('\r', ' ')
+        .replaceAll('"', "'")
+        .replaceAll(',', '、')
+        .trim();
+  }
+
+
 
 
 
   // CSV → List<Map> 変換（オプション）
+// CSV → List<Map> 変換（オプション）
   static Future<List<Map<String, String>>> loadAiCommentLog() async {
+    Future<List<Map<String, String>>> parseRaw(String raw, {required String sourceLabel}) async {
+      final rows = _robustCsvParse(raw);
+      if (rows.length <= 1) {
+        debugPrint('[loadAiCommentLog:$sourceLabel] rows<=1');
+        return <Map<String, String>>[];
+      }
+
+      final headers = rows.first
+          .map((e) => e.toString().replaceAll('\uFEFF', '').trim().toLowerCase())
+          .toList();
+
+      final parsed = rows.skip(1).map((row) {
+        final values = row.map((e) => e.toString()).toList();
+
+        final List<String> padded = <String>[];
+        if (values.length < headers.length) {
+          padded.addAll(values);
+          padded.addAll(List<String>.filled(headers.length - values.length, ''));
+        } else {
+          padded.addAll(values.sublist(0, headers.length));
+        }
+
+        final m = Map<String, String>.fromIterables(headers, padded);
+
+        if (m.containsKey('comment')) {
+          m['comment'] = CsvLoader.sanitizeCommentForDisplay(m['comment'] ?? '');
+        }
+        if (m.containsKey('memo')) {
+          m['memo'] = (m['memo'] ?? '').toString();
+        }
+
+        return m;
+      }).toList();
+
+      final normalized = _normalizeAiCommentRows(parsed);
+
+      final dailyCount =
+          normalized.where((r) => (r['type'] ?? '').trim().toLowerCase() == 'daily').length;
+      final weeklyCount =
+          normalized.where((r) => (r['type'] ?? '').trim().toLowerCase() == 'weekly').length;
+      final monthlyCount =
+          normalized.where((r) => (r['type'] ?? '').trim().toLowerCase() == 'monthly').length;
+
+      debugPrint('[loadAiCommentLog:$sourceLabel] parsed=${parsed.length} normalized=${normalized.length}');
+      debugPrint('[loadAiCommentLog:$sourceLabel] daily=$dailyCount weekly=$weeklyCount monthly=$monthlyCount');
+
+      for (final r in normalized.take(5)) {
+        debugPrint('[loadAiCommentLog:$sourceLabel:first5] date=${r['date']} type=${r['type']}');
+      }
+      for (final r in normalized.reversed.take(5)) {
+        debugPrint('[loadAiCommentLog:$sourceLabel:last5] date=${r['date']} type=${r['type']}');
+      }
+
+      return normalized;
+    }
+
+    // ① まず本体を読む
     final raw = await _readAiCommentLogRawWithFallback();
+    final mainRows = await parseRaw(raw, sourceLabel: 'main');
 
-    final rows = const CsvToListConverter().convert(raw, eol: '\n');
-    if (rows.length <= 1) {
-      return <Map<String, String>>[];
+    // ② 本体が十分読めていれば採用
+    if (mainRows.length >= 10) {
+      return mainRows;
     }
 
-    final headers = rows.first
-        .map((e) => e.toString().replaceAll('\uFEFF', '').trim().toLowerCase())
-        .toList();
+    debugPrint('⚠️ loadAiCommentLog: main log looks suspicious (${mainRows.length} rows). Trying backups...');
 
-    final parsed = rows.skip(1).map((row) {
-      final values = row.map((e) => e.toString()).toList();
-
-      final List<String> padded = <String>[];
-      if (values.length < headers.length) {
-        padded.addAll(values);
-        padded.addAll(List<String>.filled(headers.length - values.length, ''));
-      } else {
-        padded.addAll(values.sublist(0, headers.length));
+    // ③ backup を試す
+    final backupFile = await getAiCommentBackupFile();
+    if (await backupFile.exists()) {
+      final backupRaw = await backupFile.readAsString();
+      final backupRows = await parseRaw(backupRaw, sourceLabel: 'backup');
+      if (backupRows.length > mainRows.length) {
+        debugPrint('✅ loadAiCommentLog: using backup (${backupRows.length} rows)');
+        return backupRows;
       }
+    }
 
-      final m = Map<String, String>.fromIterables(headers, padded);
-
-      if (m.containsKey('comment')) {
-        m['comment'] = CsvLoader.sanitizeCommentForDisplay(m['comment'] ?? '');
+    // ④ backup_prev を試す
+    final prevBackupFile = await getAiCommentBackupPrevFile();
+    if (await prevBackupFile.exists()) {
+      final prevRaw = await prevBackupFile.readAsString();
+      final prevRows = await parseRaw(prevRaw, sourceLabel: 'backup_prev');
+      if (prevRows.length > mainRows.length) {
+        debugPrint('✅ loadAiCommentLog: using backup_prev (${prevRows.length} rows)');
+        return prevRows;
       }
-
-      return m;
-    }).toList();
-
-//一時的に置き換え
-    //return _normalizeAiCommentRows(parsed);
-    final normalized = _normalizeAiCommentRows(parsed);
-
-    final dailyCount =
-        normalized.where((r) => (r['type'] ?? '').trim().toLowerCase() == 'daily').length;
-    final weeklyCount =
-        normalized.where((r) => (r['type'] ?? '').trim().toLowerCase() == 'weekly').length;
-    final monthlyCount =
-        normalized.where((r) => (r['type'] ?? '').trim().toLowerCase() == 'monthly').length;
-
-    debugPrint('[loadAiCommentLog] parsed=${parsed.length} normalized=${normalized.length}');
-    debugPrint('[loadAiCommentLog] daily=$dailyCount weekly=$weeklyCount monthly=$monthlyCount');
-
-    for (final r in normalized.take(5)) {
-      debugPrint('[loadAiCommentLog:first5] date=${r['date']} type=${r['type']}');
     }
 
-    for (final r in normalized.reversed.take(5)) {
-      debugPrint('[loadAiCommentLog:last5] date=${r['date']} type=${r['type']}');
-    }
-
-    return normalized;
+    // ⑤ どれもダメなら本体を返す
+    return mainRows;
   }
 
 
+  /// AIコメントをCSVに1行ずつ追記する
   /// AIコメントをCSVに1行ずつ追記する
   /// AIコメントをCSVに1行ずつ追記する
   static Future<void> appendAiCommentLog({
@@ -1012,7 +1079,8 @@ class CsvLoader {
 
     final rows = await loadAiCommentLog();
 
-    if (rows.length < 5) {
+    // ★ 既存ログが少なすぎる場合は危険なので追記しない
+    if (rows.length < 10) {
       debugPrint('⚠️ appendAiCommentLog aborted: suspicious log size=${rows.length}');
       return;
     }
@@ -1020,17 +1088,28 @@ class CsvLoader {
     rows.add(<String, String>{
       'date': normalizedDate,
       'type': normalizedType,
-      'comment': comment,
-      'score': score,
-      'sleep': sleep,
-      'walk': walk,
-      'gratitude1': gratitude1,
-      'gratitude2': gratitude2,
-      'gratitude3': gratitude3,
-      'memo': memo,
+      'comment': _sanitizeAiLogCell(comment),
+      'score': _sanitizeAiLogCell(score),
+      'sleep': _sanitizeAiLogCell(sleep),
+      'walk': _sanitizeAiLogCell(walk),
+      'gratitude1': _sanitizeAiLogCell(gratitude1),
+      'gratitude2': _sanitizeAiLogCell(gratitude2),
+      'gratitude3': _sanitizeAiLogCell(gratitude3),
+      'memo': _sanitizeAiLogCell(memo),
     });
 
-    await writeAiCommentLog(_normalizeAiCommentRows(rows));
+    final normalizedRows = _normalizeAiCommentRows(rows);
+
+    // ★ 念のため、追加後に件数が不自然なら止める
+    if (rows.length >= 10 && normalizedRows.length < rows.length - 3) {
+      debugPrint(
+        '⚠️ appendAiCommentLog aborted after normalize: '
+            'before=${rows.length} after=${normalizedRows.length}',
+      );
+      return;
+    }
+
+    await writeAiCommentLog(normalizedRows);
   }
 
   // ===============================
@@ -1623,6 +1702,8 @@ class CsvLoader {
 
 // 小文字ヘッダのAIコメントログを上書き保存するユーティリティ
 // 受け取り: rows = List<Map<String,String>>  （キーは 'date','type','comment',...）
+// 小文字ヘッダのAIコメントログを上書き保存するユーティリティ
+// 受け取り: rows = List<Map<String,String>>  （キーは 'date','type','comment',...）
   static Future<void> writeAiCommentLog(List<Map<String, String>> rows) async {
     final file = await getAiCommentLogFilePathOnly();
     await file.parent.create(recursive: true);
@@ -1631,11 +1712,33 @@ class CsvLoader {
 
     final normalizedRows = _normalizeAiCommentRows(rows);
 
+    // ★ 既存ログ件数を取得
+    final existingRows = await loadAiCommentLog();
+
+    // ★ 既存が十分あるのに、新規書き込みが少なすぎる場合は中止
+    if (existingRows.length >= 50 && normalizedRows.length < 10) {
+      debugPrint(
+        '⚠️ writeAiCommentLog aborted: suspicious shrink '
+            'existing=${existingRows.length} new=${normalizedRows.length}',
+      );
+      return;
+    }
+
+    // ★ 半分以下に激減する場合も中止
+    if (existingRows.length >= 20 &&
+        normalizedRows.length < (existingRows.length / 2).floor()) {
+      debugPrint(
+        '⚠️ writeAiCommentLog aborted: massive shrink '
+            'existing=${existingRows.length} new=${normalizedRows.length}',
+      );
+      return;
+    }
+
     final List<List<dynamic>> data = <List<dynamic>>[
       _aiCommentLogHeader,
       ...normalizedRows.map((r) {
         return _aiCommentLogHeader.map((h) {
-          return (r[h] ?? '').toString();
+          return _sanitizeAiLogCell((r[h] ?? '').toString());
         }).toList();
       }),
     ];
@@ -1646,7 +1749,11 @@ class CsvLoader {
     await tmpFile.rename(file.path);
 
     await backupAiCommentLogAfterWrite();
+
+    debugPrint('✅ writeAiCommentLog success: wrote ${normalizedRows.length} rows');
   }
+
+
 
   Future<List<Map<String, dynamic>>> loadDailyRecordsInRange(
       DateTime start, DateTime end,

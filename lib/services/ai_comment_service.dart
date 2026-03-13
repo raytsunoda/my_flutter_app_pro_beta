@@ -2603,7 +2603,7 @@ return added;
     await CsvLoader.appendAiCommentLog(
       date: key,
       type: t,
-      comment: text.trim(),
+      comment: text.replaceAll('\r\n', ' ').replaceAll('\n', ' ').replaceAll('\r', ' ').trim(),
       // 追加カラムは空でOK（将来の分析列に合わせやすい）
       score: '',
       sleep: '',
