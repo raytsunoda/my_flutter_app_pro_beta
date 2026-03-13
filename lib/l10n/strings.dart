@@ -89,10 +89,8 @@ class S {
     String get backfillTitleWeekly => isJa ? '週次の欠け分を補完' : E.backfillTitleWeekly;
     String get backfillTitleMonthly => isJa ? '月次の欠け分を補完' : E.backfillTitleMonthly;
 
-    String backfillDoneSuffix(int count) =>
-      isJa ? 'コメントを $count 件補完しました' : ' comments were backfilled: $count';
-
-
+  String backfillDoneSuffix(int count) =>
+      isJa ? 'コメントを $count 件補完しました' : '$count comments were backfilled';
 
 
 
