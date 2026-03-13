@@ -386,8 +386,7 @@
 
 
   "walkingYesterdayMinutes": "🚶 Walking yesterday (minutes)",
-  "weeklyCommentMissing": "No saved comment for this week. Weekly comments are generated every Sunday when enough data exists.",
-
+  "weeklyCommentMissing": "No comment has been saved for this week.\nIf enough data exists, a weekly comment is generated every Sunday.",
     "emptyDaily": "No comment has been saved.",
     "emptyWeekly": "No comment has been saved for this week.",
     "emptyMonthly": "No comment has been saved for this month.",
