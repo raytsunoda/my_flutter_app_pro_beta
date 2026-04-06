@@ -35,6 +35,8 @@ class _TipsScreenState extends State<TipsScreen> {
     final isLowSleep = _isLowSleep(radar);
     final isLowMood = _isLowMood(csvMatrix);
 
+    debugPrint('🟣 isRestart=$isRestart, isLowSleep=$isLowSleep, isLowMood=$isLowMood');
+
     setState(() {
       _allTips = data;
       _pickTipsByCondition(
@@ -89,53 +91,76 @@ class _TipsScreenState extends State<TipsScreen> {
     _currentTips = _allTips.take(3).toList();
     _steps = List<int>.filled(_currentTips.length, 0);
   }
+
+
   void _pickTipsByCondition({
     required bool isRestart,
     required bool isLowSleep,
     required bool isLowMood,
   }) {
-    List<Map<String, String>> candidates = [];
+    List<Map<String, String>> primary = [];
+    List<Map<String, String>> fallbackAny = [];
 
     if (isRestart) {
-      candidates = _allTips
+      primary = _allTips
           .where((tip) => (tip['restart_state'] ?? 'any') == 'yes')
           .toList();
-    }
 
-    if (candidates.isEmpty && isLowSleep) {
-      candidates = _allTips
+      fallbackAny = _allTips.where((tip) {
+        return (tip['restart_state'] ?? 'any') == 'any';
+      }).toList();
+    } else if (isLowSleep) {
+      primary = _allTips
           .where((tip) => (tip['sleep_state'] ?? 'any') == 'low')
           .toList();
-    }
 
-    if (candidates.isEmpty && isLowMood) {
-      candidates = _allTips
+      fallbackAny = _allTips.where((tip) {
+        return (tip['sleep_state'] ?? 'any') == 'any';
+      }).toList();
+    } else if (isLowMood) {
+      primary = _allTips
           .where((tip) => (tip['mood_state'] ?? 'any') == 'low')
           .toList();
-    }
 
-    if (candidates.isEmpty) {
-      candidates = _allTips
-          .where((tip) {
+      fallbackAny = _allTips.where((tip) {
+        return (tip['mood_state'] ?? 'any') == 'any';
+      }).toList();
+    } else {
+      primary = _allTips.where((tip) {
         final mood = tip['mood_state'] ?? 'any';
         final sleep = tip['sleep_state'] ?? 'any';
         final restart = tip['restart_state'] ?? 'any';
         return mood == 'any' || sleep == 'any' || restart == 'any';
-      })
-          .toList();
+      }).toList();
     }
 
-    if (candidates.length < 3) {
-      final extra = _allTips.where((tip) => !candidates.contains(tip)).toList();
+    primary.shuffle(_random);
+    fallbackAny.shuffle(_random);
+
+    final selected = <Map<String, String>>[];
+    selected.addAll(primary);
+
+    for (final tip in fallbackAny) {
+      if (selected.length >= 3) break;
+      if (!selected.contains(tip)) {
+        selected.add(tip);
+      }
+    }
+
+    if (selected.length < 3) {
+      final extra = _allTips.where((tip) => !selected.contains(tip)).toList();
       extra.shuffle(_random);
-      candidates.addAll(extra);
+      selected.addAll(extra.take(3 - selected.length));
     }
 
-    candidates.shuffle(_random);
-
-    _currentTips = candidates.take(3).toList();
+    _currentTips = selected.take(3).toList();
     _steps = List<int>.filled(_currentTips.length, 0);
+
+    print('🟣 isRestart=$isRestart, isLowSleep=$isLowSleep, isLowMood=$isLowMood');
+    print('🟢 selected tip ids = ${_currentTips.map((e) => e['id']).toList()}');
+    print('🟢 selected categories = ${_currentTips.map((e) => e['category']).toList()}');
   }
+
 
 
   void _nextStep(int idx) {
