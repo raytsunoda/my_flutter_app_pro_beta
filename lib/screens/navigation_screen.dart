@@ -287,15 +287,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
             // ),
 
             _buildNavButton(
-              label: isEn ? '${t.navHints} (Japanese) ' : t.navHints,
+              label: t.navHints,
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const TipsScreen()),
               ),
               color: Colors.green,
-              contextText: isEn
-                  ? 'Currently available in Japanese.\n${t.navHintsDesc}'
-                  : t.navHintsDesc,
+              contextText: t.navHintsDesc,
             ),
 
             _buildNavButton(
