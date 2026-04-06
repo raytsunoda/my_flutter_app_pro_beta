@@ -23,21 +23,120 @@ class _TipsScreenState extends State<TipsScreen> {
     _loadCsv();
   }
 
+
   Future<void> _loadCsv() async {
     final data = await CsvLoader.loadCsvAsMapList('daily_insights.csv');
     if (data.isEmpty) return;
 
+    final radar = await CsvLoader.loadTodayRadarScores();
+    final csvMatrix = await CsvLoader.loadLatestCsvData('HappinessLevelDB1_v2.csv');
+
+    final isRestart = _isRestartUser(csvMatrix);
+    final isLowSleep = _isLowSleep(radar);
+    final isLowMood = _isLowMood(csvMatrix);
+
     setState(() {
       _allTips = data;
-      _shuffleAndPick();
+      _pickTipsByCondition(
+        isRestart: isRestart,
+        isLowSleep: isLowSleep,
+        isLowMood: isLowMood,
+      );
     });
   }
+  bool _isRestartUser(List<List<String>> csvMatrix) {
+    if (csvMatrix.length <= 2) return false;
+
+    try {
+      final rows = csvMatrix.skip(1).toList();
+      if (rows.length < 2) return false;
+
+      final lastDate = DateTime.parse(
+        rows.last[0].replaceAll('/', '-'),
+      );
+      final prevDate = DateTime.parse(
+        rows[rows.length - 2][0].replaceAll('/', '-'),
+      );
+
+      return lastDate.difference(prevDate).inDays >= 3;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool _isLowSleep(List<double> radar) {
+    if (radar.isEmpty) return false;
+    return radar[0] <= 2.0;
+  }
+
+  bool _isLowMood(List<List<String>> csvMatrix) {
+    if (csvMatrix.length <= 1) return false;
+
+    try {
+      final lastRow = csvMatrix.last;
+      if (lastRow.length < 2) return false;
+
+      final mood = double.tryParse(lastRow[1]) ?? 0;
+      return mood <= 2.0;
+    } catch (_) {
+      return false;
+    }
+  }
+
 
   void _shuffleAndPick() {
     _allTips.shuffle(_random);
     _currentTips = _allTips.take(3).toList();
     _steps = List<int>.filled(_currentTips.length, 0);
   }
+  void _pickTipsByCondition({
+    required bool isRestart,
+    required bool isLowSleep,
+    required bool isLowMood,
+  }) {
+    List<Map<String, String>> candidates = [];
+
+    if (isRestart) {
+      candidates = _allTips
+          .where((tip) => (tip['restart_state'] ?? 'any') == 'yes')
+          .toList();
+    }
+
+    if (candidates.isEmpty && isLowSleep) {
+      candidates = _allTips
+          .where((tip) => (tip['sleep_state'] ?? 'any') == 'low')
+          .toList();
+    }
+
+    if (candidates.isEmpty && isLowMood) {
+      candidates = _allTips
+          .where((tip) => (tip['mood_state'] ?? 'any') == 'low')
+          .toList();
+    }
+
+    if (candidates.isEmpty) {
+      candidates = _allTips
+          .where((tip) {
+        final mood = tip['mood_state'] ?? 'any';
+        final sleep = tip['sleep_state'] ?? 'any';
+        final restart = tip['restart_state'] ?? 'any';
+        return mood == 'any' || sleep == 'any' || restart == 'any';
+      })
+          .toList();
+    }
+
+    if (candidates.length < 3) {
+      final extra = _allTips.where((tip) => !candidates.contains(tip)).toList();
+      extra.shuffle(_random);
+      candidates.addAll(extra);
+    }
+
+    candidates.shuffle(_random);
+
+    _currentTips = candidates.take(3).toList();
+    _steps = List<int>.filled(_currentTips.length, 0);
+  }
+
 
   void _nextStep(int idx) {
     setState(() => _steps[idx] = (_steps[idx] + 1) % 3);
