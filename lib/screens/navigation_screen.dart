@@ -297,15 +297,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
             ),
 
             _buildNavButton(
-              label: isEn ? '${t.navQuotes} (Japanese)' : t.navQuotes,
+              label: t.navQuotes,
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const QuotesScreen()),
               ),
               color: Colors.green,
-              contextText: isEn
-                  ? 'Currently available in Japanese.\n${t.navQuotesDesc}'
-                  : t.navQuotesDesc,
+              contextText: t.navQuotesDesc,
             ),
 
 
