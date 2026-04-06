@@ -20,6 +20,9 @@ class _QuotesScreenState extends State<QuotesScreen> {
   final int _batchSize = 3;
   List<int> _tapState = [];
 
+  String? _loadError;
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
@@ -27,20 +30,41 @@ class _QuotesScreenState extends State<QuotesScreen> {
   }
 
   Future<void> _loadCSV() async {
-    final rawData = await rootBundle.loadString('assets/quotes.csv');
-    final rows = const CsvToListConverter().convert(rawData, eol: '\n');
-    final headers = rows.first.cast<String>();
-    final data = rows.skip(1).map((row) {
-      final values = row.map((e) => e.toString()).toList();
-      return Map.fromIterables(headers, values);
-    }).toList();
+    try {
+      final rawData = await rootBundle.loadString('assets/quotes.csv');
+      final rows = const CsvToListConverter().convert(rawData, eol: '\n');
 
-    setState(() {
-      _quotes = data;
-      _tapState = List.filled(_quotes.length, 0);
-      _shuffleQuotes();
-      _updateDisplayQuotes();
-    });
+      if (rows.isEmpty) {
+        throw Exception('quotes.csv is empty');
+      }
+
+      final headers = rows.first.map((e) => e.toString()).toList();
+
+      final data = rows.skip(1).map((row) {
+        final values = row.map((e) => e.toString()).toList();
+
+        final padded = values.length < headers.length
+            ? [...values, ...List.filled(headers.length - values.length, '')]
+            : values.sublist(0, headers.length);
+
+        return Map<String, String>.fromIterables(headers, padded);
+      }).toList();
+
+      setState(() {
+        _quotes = data;
+        _tapState = List.filled(_quotes.length, 0);
+        _shuffleQuotes();
+        _updateDisplayQuotes();
+        _loadError = null;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loadError = e.toString();
+        _isLoading = false;
+      });
+      debugPrint('❌ quotes.csv load failed: $e');
+    }
   }
 
   void _shuffleQuotes() {
@@ -48,9 +72,17 @@ class _QuotesScreenState extends State<QuotesScreen> {
   }
 
   void _updateDisplayQuotes() {
+    if (_quotes.isEmpty) return;
+
+    if (_currentIndex >= _quotes.length) {
+      _shuffleQuotes();
+      _currentIndex = 0;
+    }
+
     final nextIndex = (_currentIndex + _batchSize <= _quotes.length)
         ? _currentIndex + _batchSize
         : _quotes.length;
+
     setState(() {
       _displayQuotes = _quotes.sublist(_currentIndex, nextIndex);
       _currentIndex = nextIndex;
@@ -72,8 +104,20 @@ class _QuotesScreenState extends State<QuotesScreen> {
         //title: const Text('名言をチェック'),
         title: Text(t.quotesTitle),
       ),
-      body: _displayQuotes.isEmpty
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+          ? Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Failed to load quotes:\n$_loadError',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      )
+          : _displayQuotes.isEmpty
+          ? const Center(child: Text('No messages found'))
           : Column(
         children: [
           Expanded(
@@ -84,12 +128,19 @@ class _QuotesScreenState extends State<QuotesScreen> {
                 final globalIndex = _quotes.indexOf(quote);
                 final state = _tapState[globalIndex];
 
-                final quoteText = quote['名言・格言'] ?? '';
-                final author = quote['出典'] ?? '';
-                final commentary = quote['解説'] ?? '';
+                final lang = Localizations.localeOf(context).languageCode;
+                final isEn = lang == 'en';
 
-                final id = quote['番号'] ?? '';
-                Text('・$quoteText');  // ← これが抜けていた可能性が高い
+                final quoteText = isEn
+                    ? (quote['text_en'] ?? '')
+                    : (quote['text_ja'] ?? '');
+
+                final commentary = isEn
+                    ? (quote['detail_en'] ?? '')
+                    : (quote['detail_ja'] ?? '');
+
+                final id = quote['id'] ?? quote['番号'] ?? '';
+               // Text('・$quoteText');  // ← これが抜けていた可能性が高い
 
                 return GestureDetector(
                   onTap: () => _handleTap(index),
@@ -103,7 +154,7 @@ class _QuotesScreenState extends State<QuotesScreen> {
                           Text('No.$id', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                           const SizedBox(height: 8),
                           if (state == 0)
-                            Text('・$quoteText\n・$author')
+                            Text('・$quoteText')
                           else
                             Text(commentary),
                           const SizedBox(height: 8),
