@@ -44,27 +44,46 @@ class _TipsScreenState extends State<TipsScreen> {
   }
 
   String _textForStep(Map<String, String> tip, int step) {
+    final lang = Localizations.localeOf(context).languageCode;
+    final isEn = lang == 'en';
+
     switch (step) {
       case 0:
-     //   return tip['negative'] ?? tip['ネガ'] ?? tip['ネガティブ表現'] ?? '（ネガティブ表現なし）';
-      return tip['negative'] ??
-        tip['ネガ'] ??
-        tip['ネガティブ表現'] ??
-        (AppLocalizations.of(context)!.tipsMissingNegative);
+        return isEn
+            ? (tip['negative_en'] ??
+            tip['negative'] ??
+            tip['ネガ'] ??
+            tip['ネガティブ表現'] ??
+            AppLocalizations.of(context)!.tipsMissingNegative)
+            : (tip['negative_ja'] ??
+            tip['negative'] ??
+            tip['ネガ'] ??
+            tip['ネガティブ表現'] ??
+            AppLocalizations.of(context)!.tipsMissingNegative);
 
       case 1:
-        //return tip['positive'] ?? tip['ポジ'] ?? tip['ポジティブ表現'] ?? '（ポジティブ表現なし）';
-      return tip['positive'] ??
-        tip['ポジ'] ??
-        tip['ポジティブ表現'] ??
-        (AppLocalizations.of(context)!.tipsMissingPositive);
+        return isEn
+            ? (tip['positive_en'] ??
+            tip['positive'] ??
+            tip['ポジ'] ??
+            tip['ポジティブ表現'] ??
+            AppLocalizations.of(context)!.tipsMissingPositive)
+            : (tip['positive_ja'] ??
+            tip['positive'] ??
+            tip['ポジ'] ??
+            tip['ポジティブ表現'] ??
+            AppLocalizations.of(context)!.tipsMissingPositive);
 
       case 2:
-       // return tip['episode'] ?? tip['エピソード'] ?? '（エピソードなし）';
-      return tip['episode'] ??
-        tip['エピソード'] ??
-        (AppLocalizations.of(context)!.tipsMissingEpisode);
-
+        return isEn
+            ? (tip['episode_en'] ??
+            tip['episode'] ??
+            tip['エピソード'] ??
+            AppLocalizations.of(context)!.tipsMissingEpisode)
+            : (tip['episode_ja'] ??
+            tip['episode'] ??
+            tip['エピソード'] ??
+            AppLocalizations.of(context)!.tipsMissingEpisode);
 
       default:
         return '';
@@ -121,7 +140,8 @@ class _TipsScreenState extends State<TipsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                 //  Text('No.${tip['No.'] ?? '-'}',
-                  Text('${t.tipsNoPrefix}${tip['No.'] ?? '-'}',
+                //  Text('${t.tipsNoPrefix}${tip['No.'] ?? '-'}',
+                  Text('${t.tipsNoPrefix}${tip['id'] ?? tip['No.'] ?? '-'}',
                     style: const TextStyle(
                           fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 8),
