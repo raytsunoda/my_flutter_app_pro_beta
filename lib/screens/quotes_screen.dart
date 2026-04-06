@@ -221,11 +221,13 @@ class _QuotesScreenState extends State<QuotesScreen> {
                 final lang = Localizations.localeOf(context).languageCode;
                 final isEn = lang == 'en';
 
-                final quoteText = isEn
+           //     final quoteText = isEn
+                final messageText = isEn
                     ? (quote['text_en'] ?? '')
                     : (quote['text_ja'] ?? '');
 
-                final commentary = isEn
+           //     final commentary = isEn
+                final detailText = isEn
                     ? (quote['detail_en'] ?? '')
                     : (quote['detail_ja'] ?? '');
 
@@ -244,9 +246,9 @@ class _QuotesScreenState extends State<QuotesScreen> {
                           Text('No.$id', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                           const SizedBox(height: 8),
                           if (state == 0)
-                            Text('・$quoteText')
+                            Text('・$messageText')
                           else
-                            Text(commentary),
+                            Text(detailText),
                           const SizedBox(height: 8),
                           Text(
                             //state == 0 ? '🔵 タップして解説を見る' : '🔵 タップして名言に戻る',

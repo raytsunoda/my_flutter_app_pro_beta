@@ -224,17 +224,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
-    final lang = Localizations.localeOf(context).languageCode;
-    final isEn = lang == 'en';
-
-    // Tips/Quotes は当面「日本語のみ」なので、英語UIのときだけ注記を出す（B案：丁寧）
-    final localeCode = Localizations.localeOf(context).languageCode;
-    final tipsJaOnlyNote = (localeCode == 'ja')
-        ? ''
-        : '\n\nNote: Tips are currently available only in Japanese. An English version is in preparation.';
-    final quotesJaOnlyNote = (localeCode == 'ja')
-        ? ''
-        : '\n\nNote: Quotes are currently available only in Japanese. An English version is in preparation.';
+    // final lang = Localizations.localeOf(context).languageCode;
+    // final isEn = lang == 'en';
+    //
+    // // Tips/Quotes は当面「日本語のみ」なので、英語UIのときだけ注記を出す（B案：丁寧）
+    // final localeCode = Localizations.localeOf(context).languageCode;
+    // final tipsJaOnlyNote = (localeCode == 'ja')
+    //     ? ''
+    //     : '\n\nNote: Tips are currently available only in Japanese. An English version is in preparation.';
+    // final quotesJaOnlyNote = (localeCode == 'ja')
+    //     ? ''
+    //     : '\n\nNote: Quotes are currently available only in Japanese. An English version is in preparation.';
 
     return Scaffold(
 

@@ -146,8 +146,10 @@
  "navOneDayGraphDesc": "1日グラフと今日のメモを表示します。",
   "navPeriodGraphs": "1週・4週・1年グラフで見る 📊",
   "navPeriodGraphsDesc": "1/4週・1年の推移を確認します。",
-  "navQuotes": "名言をチェック 📜✨",
-  "navQuotesDesc": "やる気向上、ストレス・不安軽減のヒントに🔍✨",
+
+  "navQuotes": "今日のやさしい言葉",
+  "navQuotesDesc": "今の気持ちにそっと寄り添う短い言葉を見られます",
+
   "navSettingsButton": "⚙️ 設定",
   "navSettingsDesc": "通知、重み設定などを変更、保存データの管理ができます⚙️",
   "navTitle": "ナビゲーション画面",
@@ -242,7 +244,8 @@
   "proEnableAction": "有効化",
   "proEnableDescription": "「AIパートナーのひとこと」を使うにはProが必要です。\n機種変更・再インストール時は「過去の購入を復元」をご利用ください（重複課金なし）。",
   "proEnableTitle": "Pro機能の有効化 / 復元",
-  "quotesTitle": "名言をチェック",
+
+  "quotesTitle": "今日のやさしい言葉",
     "quotesDescription": "前向きな言葉や考え方に触れてみましょう。",
     "quotesReload": "別の名言を見る",
     "quotesAuthorPrefix": "― ",
@@ -372,8 +375,9 @@
       "description": "次の3件を表示するボタン文言。"
     },
 
-"tipsTapToExplanation": "🔵 タップして解説を見る",
-  "tipsBackToQuote": "🔵 タップして名言に戻る",
+
+  "tipsTapToExplanation": "🔵 タップして補足を見る",
+  "tipsBackToQuote": "🔵 タップして言葉に戻る",
 
   "walkingYesterdayMinutes": "🚶 昨日のウォーキング（分）",
 

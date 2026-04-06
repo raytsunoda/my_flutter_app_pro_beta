@@ -149,8 +149,10 @@
  "navOneDayGraphDesc": "View your 1-day graph and today’s memo.",
   "navPeriodGraphs": "View 1/4-Week & 1-Year Graphs 📊",
   "navPeriodGraphsDesc": "Check 1/4-week and 1-year trends.",
-  "navQuotes": "Check Quotes 📜✨",
-  "navQuotesDesc": "Hints for motivation and reducing stress/anxiety 🔍✨",
+
+  "navQuotes": "Gentle Words",
+  "navQuotesDesc": "Short, gentle words that may fit how you feel today",
+
   "navSettingsButton": "⚙️ Settings",
   "navSettingsDesc": "Manage notifications, weights, and saved data ⚙️",
   "navTitle": "Navigation",
@@ -252,7 +254,9 @@
   "proEnableAction": "Enable",
   "proEnableDescription": "Pro is required to use the AI Partner message.\nIf you changed devices or reinstalled the app, please restore your purchase (no duplicate charges).",
   "proEnableTitle": "Enable / Restore Pro",
-  "quotesTitle": "Check Quotes",
+
+"quotesTitle": "Gentle Words",
+
     "quotesDescription": "Take a moment to read an inspiring quote.",
     "quotesReload": "Show another quote",
     "quotesAuthorPrefix": "— ",
@@ -381,9 +385,9 @@
         "description": "Button label to load next 3 tips."
       },
 
- "tipsTapToExplanation": "🔵 Tap to see explanation",
-  "tipsBackToQuote": "🔵 Back to quote",
 
+  "tipsTapToExplanation": "🔵 Tap to see more",
+  "tipsBackToQuote": "🔵 Tap to return to the message",
 
   "walkingYesterdayMinutes": "🚶 Walking yesterday (minutes)",
   "weeklyCommentMissing": "No comment has been saved for this week.\nIf enough data exists, a weekly comment is generated every Sunday.",
