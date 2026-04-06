@@ -5,6 +5,7 @@ import 'package:csv/csv.dart';
 import 'dart:math';
 import 'package:my_flutter_app_pro/widgets/load_more_button.dart';
 import '../gen_l10n/app_localizations.dart';
+import 'package:my_flutter_app_pro/utils/csv_loader.dart';
 
 class QuotesScreen extends StatefulWidget {
   const QuotesScreen({super.key});
@@ -29,6 +30,42 @@ class _QuotesScreenState extends State<QuotesScreen> {
     _loadCSV();
   }
 
+  bool _isRestartUser(List<List<String>> csvMatrix) {
+    if (csvMatrix.length <= 2) return false;
+
+    try {
+      final rows = csvMatrix.skip(1).toList();
+      if (rows.length < 2) return false;
+
+      final lastDate = DateTime.parse(rows.last[0].replaceAll('/', '-'));
+      final prevDate = DateTime.parse(rows[rows.length - 2][0].replaceAll('/', '-'));
+
+      return lastDate.difference(prevDate).inDays >= 3;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool _isLowSleep(List<double> radar) {
+    if (radar.isEmpty) return false;
+    return radar[0] <= 2.0;
+  }
+
+  bool _isLowMood(List<List<String>> csvMatrix) {
+    if (csvMatrix.length <= 1) return false;
+
+    try {
+      final lastRow = csvMatrix.last;
+      if (lastRow.length < 2) return false;
+
+      final mood = double.tryParse(lastRow[1]) ?? 0;
+      return mood <= 2.0;
+    } catch (_) {
+      return false;
+    }
+  }
+
+
   Future<void> _loadCSV() async {
     try {
       final rawData = await rootBundle.loadString('assets/quotes.csv');
@@ -50,14 +87,32 @@ class _QuotesScreenState extends State<QuotesScreen> {
         return Map<String, String>.fromIterables(headers, padded);
       }).toList();
 
+      final radar = await CsvLoader.loadTodayRadarScores();
+      final csvMatrix = await CsvLoader.loadLatestCsvData('HappinessLevelDB1_v2.csv');
+
+      final isRestart = _isRestartUser(csvMatrix);
+      final isLowSleep = _isLowSleep(radar);
+      final isLowMood = _isLowMood(csvMatrix);
+
+      final filtered = _filterQuotesByCondition(
+        data,
+        isRestart: isRestart,
+        isLowSleep: isLowSleep,
+        isLowMood: isLowMood,
+      );
+
       setState(() {
-        _quotes = data;
+        _quotes = filtered;
         _tapState = List.filled(_quotes.length, 0);
         _shuffleQuotes();
         _updateDisplayQuotes();
         _loadError = null;
         _isLoading = false;
       });
+
+      print('🟣 quotes isRestart=$isRestart, isLowSleep=$isLowSleep, isLowMood=$isLowMood');
+      print('🟢 quotes selected use_when pool = ${_quotes.map((e) => e['use_when']).toList()}');
+      print('🟢 quotes selected ids pool = ${_quotes.map((e) => e['id']).toList()}');
     } catch (e) {
       setState(() {
         _loadError = e.toString();
@@ -65,6 +120,41 @@ class _QuotesScreenState extends State<QuotesScreen> {
       });
       debugPrint('❌ quotes.csv load failed: $e');
     }
+  }
+
+  List<Map<String, String>> _filterQuotesByCondition(
+      List<Map<String, String>> allQuotes, {
+        required bool isRestart,
+        required bool isLowSleep,
+        required bool isLowMood,
+      }) {
+    List<Map<String, String>> primary = [];
+    List<Map<String, String>> fallbackAny = [];
+
+    if (isRestart) {
+      primary = allQuotes.where((q) => (q['use_when'] ?? 'any') == 'restart').toList();
+    } else if (isLowSleep) {
+      primary = allQuotes.where((q) => (q['use_when'] ?? 'any') == 'poor_sleep').toList();
+    } else if (isLowMood) {
+      primary = allQuotes.where((q) => (q['use_when'] ?? 'any') == 'low_mood').toList();
+    }
+
+    fallbackAny = allQuotes.where((q) => (q['use_when'] ?? 'any') == 'any').toList();
+
+    final selected = <Map<String, String>>[];
+    selected.addAll(primary);
+
+    for (final q in fallbackAny) {
+      if (!selected.contains(q)) {
+        selected.add(q);
+      }
+    }
+
+    if (selected.isEmpty) {
+      return allQuotes;
+    }
+
+    return selected;
   }
 
   void _shuffleQuotes() {
