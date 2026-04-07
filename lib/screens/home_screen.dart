@@ -14,8 +14,7 @@ import 'package:flutter/foundation.dart';
 import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart' show openPaywall, PaywallMode;
 import '../gen_l10n/app_localizations.dart';
 import 'package:my_flutter_app_pro/utils/notification_scheduler.dart';
-
-
+import 'package:package_info_plus/package_info_plus.dart';
 
 class HomeScreen extends StatefulWidget {
   final List<List<dynamic>> csvData;
@@ -38,12 +37,12 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isPro = false;
   bool _showProBanner = true;
   bool _paywallShownOnce = false;
-
+  String _versionText = '';
 
   @override
   void initState() {
     super.initState();
-
+    _loadVersion();
 
     debugPrint('[home] ENABLED=${PurchaseConfig.ENABLED}');
     // Pro状態も見たい時
@@ -82,7 +81,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (!mounted) return;
 
+    setState(() {
+      _versionText = 'v${info.version} (${info.buildNumber})';
+    });
+  }
 
 
 
@@ -148,17 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 .withValues(alpha: 0.90),
                           ),
                         ),
-                        // const SizedBox(width: 6),
-                        // GestureDetector(
-                        //   onTap: () => _showPricingNote(context),
-                        //   child: Icon(
-                        //     Icons.info_outline,
-                        //     size: 16,
-                        //     color: (Theme.of(context).appBarTheme.foregroundColor
-                        //         ?? Theme.of(context).colorScheme.onSurface)
-                        //         .withValues(alpha: 0.70),
-                        //   ),
-                        // ),
+
                       ],
                     ),
                     // ※ 「（Proで…）」の行は削除（2025-09-22）
@@ -266,7 +262,20 @@ class _HomeScreenState extends State<HomeScreen> {
 //               ),
 //               ],
 
+              const SizedBox(height: 20),
+
+              if (_versionText.isNotEmpty)
+                Text(
+                  _versionText,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey,
+                  ),
+                ),
+
             ],
+
+
           ),
         ),
       ),
@@ -334,50 +343,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     );
   }
-  // void _showPricingNote(BuildContext context) {
-  //   final t = AppLocalizations.of(context)!;
-  //   showDialog<void>(
-  //     context: context,
-  //     builder: (_) => AlertDialog(
-  //    //   title: const Text('AIパートナーのひとこと'),
-  //       title: Text(t.homeAiSectionTitle),
-  //
-  //       content: Column(
-  //         mainAxisSize: MainAxisSize.min,
-  //         crossAxisAlignment: CrossAxisAlignment.start,
-  //         children: [
-  //           const _Bullet('気持ちに寄り添うひとことで心を整える後押し'),
-  //        //   const _Bullet('その日の記録に合わせた短いヒントで一緒に振り返り'),
-  //           _Bullet(t.homeAiBullet1),
-  //
-  //           const _Bullet('“続ける”を支える軽い読み心地と適度な頻度'),
-  //           const SizedBox(height: 8),
-  //           Text(
-  //          //   'この機能は Pro でご利用いただけます。',
-  //             t.homeAiProNote,
-  //
-  //             style: Theme.of(context).textTheme.bodySmall,
-  //           ),
-  //           const SizedBox(height: 6),
-  //           Opacity(
-  //             opacity: 0.70,
-  //             child: Text(
-  //               '料金：月額¥500（自動更新／月単位で解約可）。'
-  //                   '年額プラン¥4,800です。',
-  //               style: Theme.of(context).textTheme.labelSmall,
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Navigator.pop(context),
-  //           child: const Text('閉じる'),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
+
 
 }
 // 箇条書き用の小さな補助ウィジェット（同ファイルのどこでもOK）
