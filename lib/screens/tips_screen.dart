@@ -15,6 +15,10 @@ class _TipsScreenState extends State<TipsScreen> {
   late List<Map<String, String>> _currentTips = [];
   late List<int> _steps = [0, 0, 0];
 
+  bool _lastIsRestart = false;
+  bool _lastIsLowSleep = false;
+  bool _lastIsLowMood = false;
+
   final _random = Random();
 
   @override
@@ -39,10 +43,14 @@ class _TipsScreenState extends State<TipsScreen> {
 
     setState(() {
       _allTips = data;
+      _lastIsRestart = isRestart;
+      _lastIsLowSleep = isLowSleep;
+      _lastIsLowMood = isLowMood;
+
       _pickTipsByCondition(
-        isRestart: isRestart,
-        isLowSleep: isLowSleep,
-        isLowMood: isLowMood,
+        isRestart: _lastIsRestart,
+        isLowSleep: _lastIsLowSleep,
+        isLowMood: _lastIsLowMood,
       );
     });
   }
@@ -87,9 +95,11 @@ class _TipsScreenState extends State<TipsScreen> {
 
 
   void _shuffleAndPick() {
-    _allTips.shuffle(_random);
-    _currentTips = _allTips.take(3).toList();
-    _steps = List<int>.filled(_currentTips.length, 0);
+    _pickTipsByCondition(
+      isRestart: _lastIsRestart,
+      isLowSleep: _lastIsLowSleep,
+      isLowMood: _lastIsLowMood,
+    );
   }
 
 
