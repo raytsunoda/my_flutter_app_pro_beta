@@ -130,7 +130,8 @@ class _TipsScreenState extends State<TipsScreen> {
         final mood = tip['mood_state'] ?? 'any';
         final sleep = tip['sleep_state'] ?? 'any';
         final restart = tip['restart_state'] ?? 'any';
-        return mood == 'any' || sleep == 'any' || restart == 'any';
+
+        return mood == 'any' && sleep == 'any' && restart == 'any';
       }).toList();
     }
 
@@ -156,9 +157,12 @@ class _TipsScreenState extends State<TipsScreen> {
     _currentTips = selected.take(3).toList();
     _steps = List<int>.filled(_currentTips.length, 0);
 
-    print('🟣 isRestart=$isRestart, isLowSleep=$isLowSleep, isLowMood=$isLowMood');
-    print('🟢 selected tip ids = ${_currentTips.map((e) => e['id']).toList()}');
-    print('🟢 selected categories = ${_currentTips.map((e) => e['category']).toList()}');
+    debugPrint('🟣 isRestart=$isRestart, isLowSleep=$isLowSleep, isLowMood=$isLowMood');
+    debugPrint('🟢 selected tip ids = ${_currentTips.map((e) => e['id']).toList()}');
+    debugPrint('🟢 selected categories = ${_currentTips.map((e) => e['category']).toList()}');
+    debugPrint('🟢 selected restart_state = ${_currentTips.map((e) => e['restart_state']).toList()}');
+    debugPrint('🟢 selected sleep_state = ${_currentTips.map((e) => e['sleep_state']).toList()}');
+    debugPrint('🟢 selected mood_state = ${_currentTips.map((e) => e['mood_state']).toList()}');
   }
 
 
