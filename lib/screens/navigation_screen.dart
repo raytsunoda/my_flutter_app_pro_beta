@@ -54,6 +54,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     required VoidCallback onPressed,
     required Color color,
     required String contextText,
+    IconData? icon,
   }) {
     final t = AppLocalizations.of(context)!;
     return Padding(
@@ -65,13 +66,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
           showDialog(
             context: context,
             builder: (_) => AlertDialog(
-              //title: const Text('このボタンの説明'),
               title: Text(t.navDetailDialogTitle),
               content: Text(contextText),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  //child: const Text('閉じる'),
                   child: Text(t.commonClose),
                 ),
               ],
@@ -80,27 +79,39 @@ class _NavigationScreenState extends State<NavigationScreen> {
         },
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 18,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
     );
   }
-
-
 //------------------------------------------------------------------
   // 1. 毎日の入力
   //------------------------------------------------------------------
@@ -298,6 +309,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
             _buildNavButton(
               label: t.navQuotes,
+              icon: Icons.format_quote,
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const QuotesScreen()),
@@ -305,7 +317,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
               color: Colors.green,
               contextText: t.navQuotesDesc,
             ),
-
 
             // ✅ 追加：Favorite Words
             _buildNavButton(
