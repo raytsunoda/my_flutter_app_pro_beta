@@ -59,3 +59,243 @@ id,category,tone,use_when,text_ja,detail_ja,text_en,detail_en
 58,quiet,gentle,any,今日は小さく整えば十分です。,大きく変えるより、少し楽に終われるほうが大切な日もあります。,It is enough if today settles gently.,Some days ending a little easier matters more than changing a lot.
 59,hope,gentle,any,少しずつで大丈夫です。,目に見える変化が小さくても、やわらかい積み重ねは残っていきます。,Little by little is okay.,Even small gentle changes can still stay with you.
 60,rest,calm,any,今日は静かでも大丈夫です。,特別なことがなくても、落ち着いて過ごせたならそれで十分です。,It is okay if today is quiet.,Even without anything special a calm day can be enough.
+61,restart,gentle,restart,戻ってきた今日にも意味があります。,前と同じようにできなくても今日ここに来られたことが一歩です。,Today matters too because you came back.,It does not have to look the same as before. Showing up today is already a step.
+62,restart,calm,restart,また今日からで大丈夫です。,空白があっても戻りたいと思えたことを大切にしてよさそうです。,It is okay to begin again today.,Even with a gap the wish to return is worth honoring.
+63,self_acceptance,gentle,restart,少し空いても歩みは消えていません。,止まっていた時間があっても今日の一歩はちゃんと残ります。,Even with a pause your path has not disappeared.,Time away does not erase the step you take today.
+64,kindness,gentle,restart,やり直しではなく続きとして戻ってきて大丈夫です。,前の形に合わせなくても今のあなたに合う形で始められます。,You can return as a continuation not a correction.,You can begin in a way that fits who you are now.
+65,hope,calm,restart,小さな再開にも力があります。,勢いがなくても静かに戻ることには意味があります。,A small return still has strength.,Even without momentum a quiet restart still matters.
+66,restart,quiet,restart,今日は短くても大丈夫です。,続けるために小さく始める日があっても自然です。,It is okay if today is brief.,Some days are meant to begin in a small way.
+67,self_acceptance,gentle,restart,戻ってきた自分を責めなくて大丈夫です。,空白より今日ここに来たことを先に見てあげてもよさそうです。,You do not need to blame yourself for coming back late.,It may help to notice today’s return before judging the gap.
+68,kindness,calm,restart,再開の日はやさしい基準で。,たくさん取り戻そうとせず今日は軽く置いていくだけでも十分です。,On a restart day a gentler standard is enough.,You do not need to make up for everything today.
+69,quiet,quiet,restart,戻るだけの日があっても大丈夫です。,進み具合よりここに戻れたことを大切にしてみてください。,It is okay if today is simply a return.,Coming back can matter more than progress today.
+70,hope,gentle,restart,今日の一歩はちゃんと今日のものです。,前と比べなくても今の一歩には今の意味があります。,Today’s step belongs to today.,It has meaning even if it looks different from before.
+71,restart,gentle,restart,また始める力は残っています。,ためらいがあってもここに来られたことがその証です。,The ability to begin again is still there.,Your return today is already proof of that.
+72,self_acceptance,calm,restart,前の勢いがなくても大丈夫です。,今の自分に合うテンポで戻れるほうがやさしい再開になります。,It is okay if the old momentum is not here.,A kinder return is one that fits your pace now.
+73,kindness,gentle,restart,空白があっても今日のあなたで大丈夫です。,前の続きに追いつかなくても今日の一歩は十分です。,Even with a gap today’s you is okay.,You do not need to catch up for today’s step to matter.
+74,quiet,calm,restart,静かな再開にも意味があります。,大きく変えようとしなくても戻ってきたこと自体がやわらかな前進です。,A quiet return still means something.,You do not need a dramatic change for this to count.
+75,hope,gentle,restart,少しずつ戻れば大丈夫です。,一気に整えなくても続けやすい形のほうが力になります。,It is okay to come back little by little.,A sustainable return can be stronger than a sudden one.
+76,restart,calm,restart,今日は来られただけでも十分です。,完璧に戻ろうとしなくても再開には意味があります。,It is enough that you came today.,A return still matters without being perfect.
+77,self_acceptance,gentle,restart,戻る日にもやさしさを向けて大丈夫です。,前の空白より今日の一歩を先に見てあげてください。,You can be gentle with yourself on return days too.,Notice today’s step before the gap.
+78,kindness,quiet,restart,小さく戻る形でも大丈夫です。,軽い形の再開のほうが続けやすい日もあります。,It is okay to return in a small way.,Some days a lighter restart is easier to keep.
+79,hope,calm,restart,また開けた今日はちゃんと前進です。,大きく進まなくても戻れたこと自体に意味があります。,Opening this again today is already progress.,Returning itself has meaning even without a big push.
+80,quiet,gentle,restart,今日は静かに戻れば大丈夫です。,勢いより続けやすさを大切にしてよさそうです。,It is okay to return quietly today.,It may help to value steadiness over momentum.
+81,restart,gentle,restart,前の空白だけを見なくて大丈夫です。,今日ここに来たことがもうひとつの見方になります。,You do not have to look only at the gap.,Coming here today is another true way to see it.
+82,self_acceptance,calm,restart,また始めることに遅すぎる日はありません。,戻りたいと思えたことを大切にして大丈夫です。,It is never too late to begin again.,The wish to return is worth keeping close.
+83,kindness,gentle,restart,短い再開でも十分です。,今日の分だけ置いていく形でも意味があります。,A brief return is still enough.,Leaving only today’s small piece still matters.
+84,hope,quiet,restart,戻る力は静かに残っています。,大きな気合いがなくても一歩は置けます。,The strength to return is still quietly there.,You can still place one step without great energy.
+85,rest,calm,poor_sleep,眠れなかった日は少しやさしい基準で。,今日は整わないところがあってもあなたのせいではありません。,After poor sleep a gentler standard makes sense.,If things feel off today it is not your fault.
+86,calm,quiet,poor_sleep,今日は小さく過ごして大丈夫です。,寝不足の日はいつもの速さを求めなくても自然です。,It is okay to keep today small.,After a rough night you do not need your usual pace.
+87,rest,gentle,poor_sleep,休みながらでも大丈夫です。,止まりながら進む日があってもそれは後退ではありません。,It is okay to move with pauses today.,A slower day is not a step backward.
+88,kindness,calm,poor_sleep,眠れていない日は自分に少し甘くて大丈夫です。,今日はうまくできるかより消耗を増やさないことが大切な日かもしれません。,After little sleep you can be softer with yourself.,Today may be more about protecting your energy.
+89,quiet,quiet,poor_sleep,今日は急がなくて大丈夫です。,眠りが足りない日は先を広げすぎないほうが楽なことがあります。,You do not need to rush today.,When sleep is short keeping your focus small can help.
+90,rest,gentle,poor_sleep,休むことも今日の大事な選び方です。,回復を急がなくても身体をいたわる時間には意味があります。,Rest can be an important choice today.,Even without quick recovery caring for your body still matters.
+91,calm,calm,poor_sleep,今日は基準を下げても大丈夫です。,いつもと同じようにできなくてもそれは自然なことです。,It is okay to lower the bar today.,Not functioning as usual after poor sleep is natural.
+92,quiet,gentle,poor_sleep,整わないままの今日でも大丈夫です。,少し乱れて見える日にもその日なりの過ごし方があります。,It is okay if today feels unsteady.,Even uneven days can be lived gently.
+93,rest,quiet,poor_sleep,少し立ち止まる時間を入れて大丈夫です。,小さな休みがあるほうが今日をやわらかく過ごせることもあります。,It is okay to add a few pauses today.,Small rests can make the day gentler.
+94,kindness,gentle,poor_sleep,今日は責めないほうを選んで大丈夫です。,眠れていない日はできないことがあっても自然です。,Today it is okay to choose not to blame yourself.,After poor sleep some things may simply be harder.
+95,self_acceptance,calm,poor_sleep,整わない日にも価値は減りません。,寝不足の日のあなたもそのままで大丈夫です。,Your worth does not shrink on off days.,Even on tired days you are still okay as you are.
+96,rest,gentle,poor_sleep,今日は少しゆるくて大丈夫です。,いつもの形に合わせなくても今日に合う形があります。,It is okay if today is gentler.,There is a shape that fits this day too.
+97,calm,quiet,poor_sleep,今日は守るほうを優先して大丈夫です。,回復が追いつかない日は小さく過ごすことにも意味があります。,It is okay to focus on protecting yourself today.,Keeping the day small can matter when recovery feels slow.
+98,kindness,calm,poor_sleep,眠れていない日はがんばり方を変えて大丈夫です。,強く押すより少しゆるめるほうが合う日もあります。,After little sleep it is okay to change how you try.,Some days easing up works better than pushing hard.
+99,quiet,gentle,poor_sleep,今日は余白を残して大丈夫です。,少し止まりながらでもその日の流れは続いていきます。,It is okay to leave room in today.,A day can still move even with pauses.
+100,rest,calm,poor_sleep,小さな休みも今日の一部です。,休む時間があるから保てることもあります。,Small rests are part of today too.,Some things hold because rest is allowed.
+101,kindness,gentle,poor_sleep,今日は少しやさしくして大丈夫です。,寝不足の日はいつもより負荷が高いことを忘れなくて大丈夫です。,You can be a little gentler with yourself today.,It is okay to remember that tired days carry more weight.
+102,calm,quiet,poor_sleep,今日は整えようとしすぎなくて大丈夫です。,全部を戻そうとせず少し楽に終えられたら十分です。,You do not need to fix everything today.,It is enough if the day ends a little easier.
+103,rest,gentle,poor_sleep,眠れなかった日にもその日の過ごし方があります。,無理の少ない形で終えられたらそれで十分です。,Even a tired day has its own way to be lived.,It is enough if the day ends in a gentler shape.
+104,self_acceptance,calm,poor_sleep,動きにくい日でも大丈夫です。,それは怠けではなく身体の反応かもしれません。,It is okay if today feels harder to move through.,That may be your body responding not laziness.
+105,self_acceptance,gentle,low_mood,今のあなたのままでも大丈夫です。,気持ちが沈む日があっても価値まで下がるわけではありません。,You are still okay as you are today.,A low day does not reduce your worth.
+106,kindness,calm,low_mood,今日は自分に少しやさしくて大丈夫です。,前向きになれなくても強い言葉を向けないだけで十分です。,You can be a little gentler with yourself today.,Even if you cannot feel positive a softer inner voice is enough.
+107,hope,gentle,low_mood,急がなくて大丈夫です。,気持ちは少しずつ動いていくこともあるので今日は静かにいても大丈夫です。,You do not need to hurry today.,Feelings can shift little by little so it is okay to stay quiet today.
+108,quiet,quiet,low_mood,今日は小さく過ごして大丈夫です。,大きく変えようとしなくても少し楽なほうを選べたら十分です。,It is okay to keep today small.,Choosing what feels a little easier is enough.
+109,self_acceptance,calm,low_mood,つらい日の見え方をそのまま全部信じなくて大丈夫です。,気持ちが低い日は自分にも未来にも厳しく見えやすくなります。,You do not have to believe every thought from a hard day.,Low moods can color how you see yourself and the future.
+110,kindness,gentle,low_mood,今日は整えようとしすぎなくて大丈夫です。,無理に気分を上げるより少し負担を減らせたら十分です。,You do not need to force yourself into feeling better today.,Reducing a little strain can be enough.
+111,hope,calm,low_mood,今日の気持ちがずっと続くとは限りません。,今は先を決めず今日を静かに終えることを大切にして大丈夫です。,Today’s feeling may not last forever.,You do not need to decide the future from this moment.
+112,quiet,gentle,low_mood,何もしないような時間にも意味があります。,沈んだ気持ちの日には静かな時間が支えになることもあります。,Even still time can have meaning.,Quiet moments can help hold you on low days.
+113,self_acceptance,gentle,low_mood,できないことがあっても大丈夫です。,今日は足りない部分より消耗していることを先に見てあげてください。,It is okay if some things feel out of reach today.,It may help to notice your tiredness before judging yourself.
+114,kindness,calm,low_mood,今日は比べないほうを選んで大丈夫です。,人と比べるより自分が少し楽になるほうを大切にしてよさそうです。,Today it is okay not to compare.,What eases you matters more than measuring yourself.
+115,hope,gentle,low_mood,少しでも楽なほうへ向かえたら十分です。,大きく変わらなくても小さくやわらぐだけで意味があります。,If you can move even a little toward ease that is enough.,Things do not need to change dramatically for today to matter.
+116,self_acceptance,quiet,low_mood,言葉にならない日でも大丈夫です。,うまく整理できなくても今のあなたには今のままの意味があります。,It is okay if you cannot put it into words today.,You still have meaning even without clear words.
+117,kindness,gentle,low_mood,今日は責めないほうを選んで大丈夫です。,前向きでなくても強い言葉を減らせたら十分です。,Today it is okay to choose less blame.,Even without feeling positive a softer voice is enough.
+118,quiet,calm,low_mood,今日は静かなままでも大丈夫です。,無理に明るくならなくても今のまま過ごせる時間に意味があります。,It is okay if today stays quiet.,There is meaning in being with yourself without forcing brightness.
+119,self_acceptance,gentle,low_mood,小さくしか動けない日でも大丈夫です。,その小ささの中にも今日の価値があります。,It is okay if today moves only in small ways.,There is still value in that smallness.
+120,hope,calm,low_mood,今日を静かに終えられたらそれで十分です。,大きな変化がなくても今日を越えたことに意味があります。,It is enough if today ends quietly.,Even without a big change getting through today matters.
+121,kindness,gentle,low_mood,今は少しやわらかい基準で大丈夫です。,気持ちが低い日は厳しさよりやさしさが合うことがあります。,A softer standard is okay for now.,On low days kindness may fit better than strictness.
+122,quiet,quiet,low_mood,今日は答えを急がなくて大丈夫です。,決めきれないままでも少し休めたら十分です。,It is okay not to rush answers today.,If you can rest a little while things stay unresolved that is enough.
+123,self_acceptance,calm,low_mood,揺れる日にもあなたの意味は変わりません。,整っている日だけが大切なのではありません。,Your meaning does not change on wavering days.,Not only steady days matter.
+124,hope,gentle,low_mood,少しずつで大丈夫です。,今日が静かな一日でもその先につながることがあります。,Little by little is okay.,Even a quiet day can still lead somewhere gentle.
+125,kindness,gentle,any,今日は今日のペースで大丈夫です。,比べずに過ごせる時間が少しでもあると心は少しずつほどけます。,Today can move at today’s pace.,Even a little time without comparison can soften the day.
+126,calm,calm,any,全部をがんばらなくて大丈夫です。,ひとつだけできたら十分な日もあります。,You do not need to do everything.,Some days one small thing is enough.
+127,quiet,quiet,any,静かな時間にも意味があります。,何も起きていないように見える時間が心を整えることもあります。,Quiet time can still matter.,Time that seems still can help your mind settle.
+128,rest,gentle,any,少し休んでも大丈夫です。,立ち止まる時間があるから保てる流れもあります。,It is okay to rest a little.,Some rhythms stay steady because pauses are allowed.
+129,kindness,gentle,any,自分にもやさしくして大丈夫です。,自分への言葉が少しやわらぐだけで過ごしやすくなる日があります。,You can be gentle with yourself too.,A softer inner voice can make the day easier.
+130,hope,calm,any,今日は大きく進まなくても大丈夫です。,目立たない一日があとで支えになることもあります。,It is okay if today is not a big day.,Quiet days can still support you later.
+131,self_acceptance,gentle,any,今のあなたにもちゃんと意味があります。,整っている日だけが大切なのではなく揺れる日にもその日の価値があります。,You still matter exactly as you are today.,The wavering days have value too.
+132,calm,quiet,any,今日は少し余白を残して大丈夫です。,全部を埋めないほうが心と身体にやさしい日もあります。,It is okay to leave a little room today.,Some days feel kinder when not everything is filled.
+133,kindness,calm,any,決めきれない日があっても大丈夫です。,答えを急がないことが今の自分を守ることにつながる日もあります。,It is okay if today stays a little unresolved.,Not rushing an answer can sometimes be a form of care.
+134,quiet,gentle,any,今日は小さく整えば十分です。,大きく変えるより少し楽に終われるほうが大切な日もあります。,It is enough if today settles gently.,Some days ending a little easier matters more than changing a lot.
+135,hope,gentle,any,少しずつで大丈夫です。,目に見える変化が小さくてもやわらかい積み重ねは残っていきます。,Little by little is okay.,Even small gentle changes can still stay with you.
+136,rest,calm,any,今日は静かでも大丈夫です。,特別なことがなくても落ち着いて過ごせたならそれで十分です。,It is okay if today is quiet.,Even without anything special a calm day can be enough.
+137,kindness,gentle,any,少し軽い形で過ごして大丈夫です。,全部を強く持たないほうが合う日もあります。,It is okay to move through today lightly.,Some days fit better when not everything is held so tightly.
+138,calm,quiet,any,今日は深く考えすぎなくて大丈夫です。,答えを急がないことにも静かな意味があります。,It is okay not to think too deeply today.,There is quiet meaning in not rushing an answer.
+139,self_acceptance,gentle,any,小さな一日にも意味があります。,目立たなくてもその日の整え方は残っていきます。,A small day still has meaning.,Even quiet ways of caring can stay with you.
+140,hope,calm,any,今日は今日のままで大丈夫です。,大きな変化がなくても穏やかに終えられたなら十分です。,Today is okay as it is.,If it ends a little calmer that is enough.
+141,restart,gentle,restart,戻ってきた今日にも意味があります。,前と同じようにできなくても今日ここに来られたことが一歩です。,Today matters too because you came back.,Showing up today is already a step even if it looks different.
+142,restart,calm,restart,また今日からで大丈夫です。,空白があっても戻りたいと思えたことを大切にしてよさそうです。,It is okay to begin again today.,The wish to return is worth honoring even with a gap.
+143,self_acceptance,gentle,restart,少し空いても歩みは消えていません。,止まっていた時間があっても今日の一歩はちゃんと残ります。,Even with a pause your path has not disappeared.,Time away does not erase the step you take today.
+144,kindness,gentle,restart,やり直しではなく続きとして戻ってきて大丈夫です。,前の形に合わせなくても今のあなたに合う形で始められます。,You can return as a continuation not a correction.,You can begin in a way that fits who you are now.
+145,hope,calm,restart,小さな再開にも力があります。,勢いがなくても静かに戻ることには意味があります。,A small return still has strength.,A quiet restart still matters without big momentum.
+146,restart,quiet,restart,今日は短くても大丈夫です。,続けるために小さく始める日があっても自然です。,It is okay if today is brief.,Some days are meant to begin in a small way.
+147,self_acceptance,gentle,restart,戻ってきた自分を責めなくて大丈夫です。,空白より今日ここに来たことを先に見てあげてもよさそうです。,You do not need to blame yourself for coming back late.,It may help to notice today’s return before judging the gap.
+148,kindness,calm,restart,再開の日はやさしい基準で。,たくさん取り戻そうとせず今日は軽く置いていくだけでも十分です。,On a restart day a gentler standard is enough.,You do not need to make up for everything today.
+149,quiet,quiet,restart,戻るだけの日があっても大丈夫です。,進み具合よりここに戻れたことを大切にしてみてください。,It is okay if today is simply a return.,Coming back can matter more than progress today.
+150,hope,gentle,restart,今日の一歩はちゃんと今日のものです。,前と比べなくても今の一歩には今の意味があります。,Today’s step belongs to today.,It has meaning even without comparing it to before.
+151,restart,gentle,restart,また始める力は残っています。,ためらいがあってもここに来られたことがその証です。,The ability to begin again is still there.,Your return today is already proof of that.
+152,self_acceptance,calm,restart,前の勢いがなくても大丈夫です。,今の自分に合うテンポで戻れるほうがやさしい再開になります。,It is okay if the old momentum is not here.,A kinder return is one that fits your pace now.
+153,kindness,gentle,restart,空白があっても今日のあなたで大丈夫です。,前の続きに追いつかなくても今日の一歩は十分です。,Even with a gap today’s you is okay.,You do not need to catch up for today’s step to matter.
+154,quiet,calm,restart,静かな再開にも意味があります。,大きく変えようとしなくても戻ってきたこと自体がやわらかな前進です。,A quiet return still means something.,Returning itself is already a gentle kind of progress.
+155,hope,gentle,restart,少しずつ戻れば大丈夫です。,一気に整えなくても続けやすい形のほうが力になります。,It is okay to come back little by little.,A sustainable return can be stronger than a sudden one.
+156,restart,calm,restart,今日は来られただけでも十分です。,完璧に戻ろうとしなくても再開には意味があります。,It is enough that you came today.,A return still matters without being perfect.
+157,self_acceptance,gentle,restart,戻る日にもやさしさを向けて大丈夫です。,前の空白より今日の一歩を先に見てあげてください。,You can be gentle with yourself on return days too.,Notice today’s step before the gap.
+158,kindness,quiet,restart,小さく戻る形でも大丈夫です。,軽い形の再開のほうが続けやすい日もあります。,It is okay to return in a small way.,Some days a lighter restart is easier to keep.
+159,hope,calm,restart,また開けた今日はちゃんと前進です。,大きく進まなくても戻れたこと自体に意味があります。,Opening this again today is already progress.,Returning itself has meaning even without a big push.
+160,quiet,gentle,restart,今日は静かに戻れば大丈夫です。,勢いより続けやすさを大切にしてよさそうです。,It is okay to return quietly today.,It may help to value steadiness over momentum.
+161,restart,gentle,restart,前の空白だけを見なくて大丈夫です。,今日ここに来たことがもうひとつの見方になります。,You do not have to look only at the gap.,Coming here today is another true way to see it.
+162,self_acceptance,calm,restart,また始めることに遅すぎる日はありません。,戻りたいと思えたことを大切にして大丈夫です。,It is never too late to begin again.,The wish to return is worth keeping close.
+163,kindness,gentle,restart,短い再開でも十分です。,今日の分だけ置いていく形でも意味があります。,A brief return is still enough.,Leaving only today’s small piece still matters.
+164,hope,quiet,restart,戻る力は静かに残っています。,大きな気合いがなくても一歩は置けます。,The strength to return is still quietly there.,You can still place one step without great energy.
+165,restart,calm,restart,少し身軽に戻る日があっても大丈夫です。,全部を取り戻そうとしないほうが心が楽な日もあります。,It is okay to return lightly sometimes.,Some days the mind feels easier when not everything must be recovered.
+166,self_acceptance,gentle,restart,戻れた今日を小さく大事にして大丈夫です。,うまくやることより来られたことに意味があります。,It is okay to treasure today’s return in a small way.,Showing up can matter more than doing it well.
+167,kindness,calm,restart,やさしい再開でも十分です。,強く始めるより続けやすい形が合う日もあります。,A gentle restart is enough.,Some days a sustainable shape fits better than a strong beginning.
+168,quiet,quiet,restart,今日は戻るだけでも大丈夫です。,前に進む感じが少なくても意味はちゃんとあります。,It is okay if today is only about coming back.,The meaning is still there even without a strong sense of progress.
+169,hope,gentle,restart,今日の一歩は消えません。,空白があっても今日の歩みは今日のものとして残ります。,Today’s step will not disappear.,Even with a gap today’s movement still belongs to today.
+170,self_acceptance,calm,restart,今の自分に合う再開で大丈夫です。,前と同じ形にしなくても戻ることはできます。,It is okay to return in a way that fits you now.,You can come back without copying the past.
+171,rest,calm,poor_sleep,眠れなかった日は少しやさしい基準で。,今日は整わないところがあってもあなたのせいではありません。,After poor sleep a gentler standard makes sense.,If things feel off today it is not your fault.
+172,calm,quiet,poor_sleep,今日は小さく過ごして大丈夫です。,寝不足の日はいつもの速さを求めなくても自然です。,It is okay to keep today small.,After a rough night you do not need your usual pace.
+173,rest,gentle,poor_sleep,休みながらでも大丈夫です。,止まりながら進む日があってもそれは後退ではありません。,It is okay to move with pauses today.,A slower day is not a step backward.
+174,kindness,calm,poor_sleep,眠れていない日は自分に少し甘くて大丈夫です。,今日はうまくできるかより消耗を増やさないことが大切な日かもしれません。,After little sleep you can be softer with yourself.,Today may be more about protecting your energy.
+175,quiet,quiet,poor_sleep,今日は急がなくて大丈夫です。,眠りが足りない日は先を広げすぎないほうが楽なことがあります。,You do not need to rush today.,Keeping your focus small may help on tired days.
+176,rest,gentle,poor_sleep,休むことも今日の大事な選び方です。,回復を急がなくても身体をいたわる時間には意味があります。,Rest can be an important choice today.,Caring for your body still matters without fast recovery.
+177,calm,calm,poor_sleep,今日は基準を下げても大丈夫です。,いつもと同じようにできなくてもそれは自然なことです。,It is okay to lower the bar today.,Not functioning as usual after poor sleep is natural.
+178,quiet,gentle,poor_sleep,整わないままの今日でも大丈夫です。,少し乱れて見える日にもその日なりの過ごし方があります。,It is okay if today feels unsteady.,Even uneven days can be lived gently.
+179,rest,quiet,poor_sleep,少し立ち止まる時間を入れて大丈夫です。,小さな休みがあるほうが今日をやわらかく過ごせることもあります。,It is okay to add a few pauses today.,Small rests can make the day gentler.
+180,kindness,gentle,poor_sleep,今日は責めないほうを選んで大丈夫です。,眠れていない日はできないことがあっても自然です。,Today it is okay to choose not to blame yourself.,Some things may simply be harder after poor sleep.
+181,self_acceptance,calm,poor_sleep,整わない日にも価値は減りません。,寝不足の日のあなたもそのままで大丈夫です。,Your worth does not shrink on off days.,Even on tired days you are still okay as you are.
+182,rest,gentle,poor_sleep,今日は少しゆるくて大丈夫です。,いつもの形に合わせなくても今日に合う形があります。,It is okay if today is gentler.,There is a shape that fits this day too.
+183,calm,quiet,poor_sleep,今日は守るほうを優先して大丈夫です。,回復が追いつかない日は小さく過ごすことにも意味があります。,It is okay to focus on protecting yourself today.,Keeping the day small can matter when recovery feels slow.
+184,kindness,calm,poor_sleep,眠れていない日はがんばり方を変えて大丈夫です。,強く押すより少しゆるめるほうが合う日もあります。,After little sleep it is okay to change how you try.,Some days easing up works better than pushing hard.
+185,quiet,gentle,poor_sleep,今日は余白を残して大丈夫です。,少し止まりながらでもその日の流れは続いていきます。,It is okay to leave room in today.,A day can still move even with pauses.
+186,rest,calm,poor_sleep,小さな休みも今日の一部です。,休む時間があるから保てることもあります。,Small rests are part of today too.,Some things hold because rest is allowed.
+187,kindness,gentle,poor_sleep,今日は少しやさしくして大丈夫です。,寝不足の日はいつもより負荷が高いことを忘れなくて大丈夫です。,You can be a little gentler with yourself today.,It is okay to remember that tired days carry more weight.
+188,calm,quiet,poor_sleep,今日は整えようとしすぎなくて大丈夫です。,全部を戻そうとせず少し楽に終えられたら十分です。,You do not need to fix everything today.,It is enough if the day ends a little easier.
+189,rest,gentle,poor_sleep,眠れなかった日にもその日の過ごし方があります。,無理の少ない形で終えられたらそれで十分です。,Even a tired day has its own way to be lived.,It is enough if the day ends in a gentler shape.
+190,self_acceptance,calm,poor_sleep,動きにくい日でも大丈夫です。,それは怠けではなく身体の反応かもしれません。,It is okay if today feels harder to move through.,That may be your body responding not laziness.
+191,self_acceptance,gentle,low_mood,今のあなたのままでも大丈夫です。,気持ちが沈む日があっても価値まで下がるわけではありません。,You are still okay as you are today.,A low day does not reduce your worth.
+192,kindness,calm,low_mood,今日は自分に少しやさしくて大丈夫です。,前向きになれなくても強い言葉を向けないだけで十分です。,You can be a little gentler with yourself today.,A softer inner voice is enough even without positivity.
+193,hope,gentle,low_mood,急がなくて大丈夫です。,気持ちは少しずつ動いていくこともあるので今日は静かにいても大丈夫です。,You do not need to hurry today.,Feelings can shift little by little so quiet is okay today.
+194,quiet,quiet,low_mood,今日は小さく過ごして大丈夫です。,大きく変えようとしなくても少し楽なほうを選べたら十分です。,It is okay to keep today small.,Choosing what feels a little easier is enough.
+195,self_acceptance,calm,low_mood,つらい日の見え方をそのまま全部信じなくて大丈夫です。,気持ちが低い日は自分にも未来にも厳しく見えやすくなります。,You do not have to believe every thought from a hard day.,Low moods can color how you see yourself and the future.
+196,kindness,gentle,low_mood,今日は整えようとしすぎなくて大丈夫です。,無理に気分を上げるより少し負担を減らせたら十分です。,You do not need to force yourself into feeling better today.,Reducing a little strain can be enough.
+197,hope,calm,low_mood,今日の気持ちがずっと続くとは限りません。,今は先を決めず今日を静かに終えることを大切にして大丈夫です。,Today’s feeling may not last forever.,You do not need to decide the future from this moment.
+198,quiet,gentle,low_mood,何もしないような時間にも意味があります。,沈んだ気持ちの日には静かな時間が支えになることもあります。,Even still time can have meaning.,Quiet moments can help hold you on low days.
+199,self_acceptance,gentle,low_mood,できないことがあっても大丈夫です。,今日は足りない部分より消耗していることを先に見てあげてください。,It is okay if some things feel out of reach today.,It may help to notice your tiredness before judging yourself.
+200,kindness,calm,low_mood,今日は比べないほうを選んで大丈夫です。,人と比べるより自分が少し楽になるほうを大切にしてよさそうです。,Today it is okay not to compare.,What eases you matters more than measuring yourself.
+201,hope,gentle,low_mood,少しでも楽なほうへ向かえたら十分です。,大きく変わらなくても小さくやわらぐだけで意味があります。,If you can move even a little toward ease that is enough.,Things do not need to change dramatically for today to matter.
+202,self_acceptance,quiet,low_mood,言葉にならない日でも大丈夫です。,うまく整理できなくても今のあなたには今のままの意味があります。,It is okay if you cannot put it into words today.,You still have meaning even without clear words.
+203,kindness,gentle,low_mood,今日は責めないほうを選んで大丈夫です。,前向きでなくても強い言葉を減らせたら十分です。,Today it is okay to choose less blame.,A softer voice is enough even without positivity.
+204,quiet,calm,low_mood,今日は静かなままでも大丈夫です。,無理に明るくならなくても今のまま過ごせる時間に意味があります。,It is okay if today stays quiet.,There is meaning in being with yourself without forcing brightness.
+205,self_acceptance,gentle,low_mood,小さくしか動けない日でも大丈夫です。,その小ささの中にも今日の価値があります。,It is okay if today moves only in small ways.,There is still value in that smallness.
+206,hope,calm,low_mood,今日を静かに終えられたらそれで十分です。,大きな変化がなくても今日を越えたことに意味があります。,It is enough if today ends quietly.,Even without a big change getting through today matters.
+207,kindness,gentle,low_mood,今は少しやわらかい基準で大丈夫です。,気持ちが低い日は厳しさよりやさしさが合うことがあります。,A softer standard is okay for now.,On low days kindness may fit better than strictness.
+208,quiet,quiet,low_mood,今日は答えを急がなくて大丈夫です。,決めきれないままでも少し休めたら十分です。,It is okay not to rush answers today.,If you can rest a little while things stay unresolved that is enough.
+209,self_acceptance,calm,low_mood,揺れる日にもあなたの意味は変わりません。,整っている日だけが大切なのではありません。,Your meaning does not change on wavering days.,Not only steady days matter.
+210,hope,gentle,low_mood,少しずつで大丈夫です。,今日が静かな一日でもその先につながることがあります。,Little by little is okay.,Even a quiet day can still lead somewhere gentle.
+211,kindness,gentle,any,今日は今日のペースで大丈夫です。,比べずに過ごせる時間が少しでもあると心は少しずつほどけます。,Today can move at today’s pace.,Even a little time without comparison can soften the day.
+212,calm,calm,any,全部をがんばらなくて大丈夫です。,ひとつだけできたら十分な日もあります。,You do not need to do everything.,Some days one small thing is enough.
+213,quiet,quiet,any,静かな時間にも意味があります。,何も起きていないように見える時間が心を整えることもあります。,Quiet time can still matter.,Time that seems still can help your mind settle.
+214,rest,gentle,any,少し休んでも大丈夫です。,立ち止まる時間があるから保てる流れもあります。,It is okay to rest a little.,Some rhythms stay steady because pauses are allowed.
+215,kindness,gentle,any,自分にもやさしくして大丈夫です。,自分への言葉が少しやわらぐだけで過ごしやすくなる日があります。,You can be gentle with yourself too.,A softer inner voice can make the day easier.
+216,hope,calm,any,今日は大きく進まなくても大丈夫です。,目立たない一日があとで支えになることもあります。,It is okay if today is not a big day.,Quiet days can still support you later.
+217,self_acceptance,gentle,any,今のあなたにもちゃんと意味があります。,整っている日だけが大切なのではなく揺れる日にもその日の価値があります。,You still matter exactly as you are today.,The wavering days have value too.
+218,calm,quiet,any,今日は少し余白を残して大丈夫です。,全部を埋めないほうが心と身体にやさしい日もあります。,It is okay to leave a little room today.,Some days feel kinder when not everything is filled.
+219,kindness,calm,any,決めきれない日があっても大丈夫です。,答えを急がないことが今の自分を守ることにつながる日もあります。,It is okay if today stays a little unresolved.,Not rushing an answer can sometimes be a form of care.
+220,quiet,gentle,any,今日は小さく整えば十分です。,大きく変えるより少し楽に終われるほうが大切な日もあります。,It is enough if today settles gently.,Some days ending a little easier matters more than changing a lot.
+221,restart,gentle,restart,戻ってきた今日にも意味があります。,前と同じようにできなくても今日ここに来られたことが一歩です。,Today matters too because you came back.,Showing up today is already a step even if it looks different.
+222,restart,calm,restart,また今日からで大丈夫です。,空白があっても戻りたいと思えたことを大切にしてよさそうです。,It is okay to begin again today.,The wish to return is worth honoring even with a gap.
+223,self_acceptance,gentle,restart,少し空いても歩みは消えていません。,止まっていた時間があっても今日の一歩はちゃんと残ります。,Even with a pause your path has not disappeared.,Time away does not erase the step you take today.
+224,kindness,gentle,restart,やり直しではなく続きとして戻ってきて大丈夫です。,前の形に合わせなくても今のあなたに合う形で始められます。,You can return as a continuation not a correction.,You can begin in a way that fits who you are now.
+225,hope,calm,restart,小さな再開にも力があります。,勢いがなくても静かに戻ることには意味があります。,A small return still has strength.,A quiet restart still matters without big momentum.
+226,restart,quiet,restart,今日は短くても大丈夫です。,続けるために小さく始める日があっても自然です。,It is okay if today is brief.,Some days are meant to begin in a small way.
+227,self_acceptance,gentle,restart,戻ってきた自分を責めなくて大丈夫です。,空白より今日ここに来たことを先に見てあげてもよさそうです。,You do not need to blame yourself for coming back late.,It may help to notice today’s return before judging the gap.
+228,kindness,calm,restart,再開の日はやさしい基準で。,たくさん取り戻そうとせず今日は軽く置いていくだけでも十分です。,On a restart day a gentler standard is enough.,You do not need to make up for everything today.
+229,quiet,quiet,restart,戻るだけの日があっても大丈夫です。,進み具合よりここに戻れたことを大切にしてみてください。,It is okay if today is simply a return.,Coming back can matter more than progress today.
+230,hope,gentle,restart,今日の一歩はちゃんと今日のものです。,前と比べなくても今の一歩には今の意味があります。,Today’s step belongs to today.,It has meaning even without comparing it to before.
+231,restart,gentle,restart,また始める力は残っています。,ためらいがあってもここに来られたことがその証です。,The ability to begin again is still there.,Your return today is already proof of that.
+232,self_acceptance,calm,restart,前の勢いがなくても大丈夫です。,今の自分に合うテンポで戻れるほうがやさしい再開になります。,It is okay if the old momentum is not here.,A kinder return is one that fits your pace now.
+233,kindness,gentle,restart,空白があっても今日のあなたで大丈夫です。,前の続きに追いつかなくても今日の一歩は十分です。,Even with a gap today’s you is okay.,You do not need to catch up for today’s step to matter.
+234,quiet,calm,restart,静かな再開にも意味があります。,大きく変えようとしなくても戻ってきたこと自体がやわらかな前進です。,A quiet return still means something.,Returning itself is already a gentle kind of progress.
+235,hope,gentle,restart,少しずつ戻れば大丈夫です。,一気に整えなくても続けやすい形のほうが力になります。,It is okay to come back little by little.,A sustainable return can be stronger than a sudden one.
+236,restart,calm,restart,今日は来られただけでも十分です。,完璧に戻ろうとしなくても再開には意味があります。,It is enough that you came today.,A return still matters without being perfect.
+237,self_acceptance,gentle,restart,戻る日にもやさしさを向けて大丈夫です。,前の空白より今日の一歩を先に見てあげてください。,You can be gentle with yourself on return days too.,Notice today’s step before the gap.
+238,kindness,quiet,restart,小さく戻る形でも大丈夫です。,軽い形の再開のほうが続けやすい日もあります。,It is okay to return in a small way.,Some days a lighter restart is easier to keep.
+239,hope,calm,restart,また開けた今日はちゃんと前進です。,大きく進まなくても戻れたこと自体に意味があります。,Opening this again today is already progress.,Returning itself has meaning even without a big push.
+240,quiet,gentle,restart,今日は静かに戻れば大丈夫です。,勢いより続けやすさを大切にしてよさそうです。,It is okay to return quietly today.,It may help to value steadiness over momentum.
+241,restart,gentle,restart,前の空白だけを見なくて大丈夫です。,今日ここに来たことがもうひとつの見方になります。,You do not have to look only at the gap.,Coming here today is another true way to see it.
+242,self_acceptance,calm,restart,また始めることに遅すぎる日はありません。,戻りたいと思えたことを大切にして大丈夫です。,It is never too late to begin again.,The wish to return is worth keeping close.
+243,kindness,gentle,restart,短い再開でも十分です。,今日の分だけ置いていく形でも意味があります。,A brief return is still enough.,Leaving only today’s small piece still matters.
+244,hope,quiet,restart,戻る力は静かに残っています。,大きな気合いがなくても一歩は置けます。,The strength to return is still quietly there.,You can still place one step without great energy.
+245,restart,calm,restart,少し身軽に戻る日があっても大丈夫です。,全部を取り戻そうとしないほうが心が楽な日もあります。,It is okay to return lightly sometimes.,Some days the mind feels easier when not everything must be recovered.
+246,self_acceptance,gentle,restart,戻れた今日を小さく大事にして大丈夫です。,うまくやることより来られたことに意味があります。,It is okay to treasure today’s return in a small way.,Showing up can matter more than doing it well.
+247,kindness,calm,restart,やさしい再開でも十分です。,強く始めるより続けやすい形が合う日もあります。,A gentle restart is enough.,Some days a sustainable shape fits better than a strong beginning.
+248,quiet,quiet,restart,今日は戻るだけでも大丈夫です。,前に進む感じが少なくても意味はちゃんとあります。,It is okay if today is only about coming back.,The meaning is still there even without strong progress.
+249,hope,gentle,restart,今日の一歩は消えません。,空白があっても今日の歩みは今日のものとして残ります。,Today’s step will not disappear.,Even with a gap today’s movement still belongs to today.
+250,self_acceptance,calm,restart,今の自分に合う再開で大丈夫です。,前と同じ形にしなくても戻ることはできます。,It is okay to return in a way that fits you now.,You can come back without copying the past.
+251,rest,calm,poor_sleep,眠れなかった日は少しやさしい基準で。,今日は整わないところがあってもあなたのせいではありません。,After poor sleep a gentler standard makes sense.,If things feel off today it is not your fault.
+252,calm,quiet,poor_sleep,今日は小さく過ごして大丈夫です。,寝不足の日はいつもの速さを求めなくても自然です。,It is okay to keep today small.,After a rough night you do not need your usual pace.
+253,rest,gentle,poor_sleep,休みながらでも大丈夫です。,止まりながら進む日があってもそれは後退ではありません。,It is okay to move with pauses today.,A slower day is not a step backward.
+254,kindness,calm,poor_sleep,眠れていない日は自分に少し甘くて大丈夫です。,今日はうまくできるかより消耗を増やさないことが大切な日かもしれません。,After little sleep you can be softer with yourself.,Today may be more about protecting your energy.
+255,quiet,quiet,poor_sleep,今日は急がなくて大丈夫です。,眠りが足りない日は先を広げすぎないほうが楽なことがあります。,You do not need to rush today.,Keeping your focus small may help on tired days.
+256,rest,gentle,poor_sleep,休むことも今日の大事な選び方です。,回復を急がなくても身体をいたわる時間には意味があります。,Rest can be an important choice today.,Caring for your body still matters without fast recovery.
+257,calm,calm,poor_sleep,今日は基準を下げても大丈夫です。,いつもと同じようにできなくてもそれは自然なことです。,It is okay to lower the bar today.,Not functioning as usual after poor sleep is natural.
+258,quiet,gentle,poor_sleep,整わないままの今日でも大丈夫です。,少し乱れて見える日にもその日なりの過ごし方があります。,It is okay if today feels unsteady.,Even uneven days can be lived gently.
+259,rest,quiet,poor_sleep,少し立ち止まる時間を入れて大丈夫です。,小さな休みがあるほうが今日をやわらかく過ごせることもあります。,It is okay to add a few pauses today.,Small rests can make the day gentler.
+260,kindness,gentle,poor_sleep,今日は責めないほうを選んで大丈夫です。,眠れていない日はできないことがあっても自然です。,Today it is okay to choose not to blame yourself.,Some things may simply be harder after poor sleep.
+261,self_acceptance,calm,poor_sleep,整わない日にも価値は減りません。,寝不足の日のあなたもそのままで大丈夫です。,Your worth does not shrink on off days.,Even on tired days you are still okay as you are.
+262,rest,gentle,poor_sleep,今日は少しゆるくて大丈夫です。,いつもの形に合わせなくても今日に合う形があります。,It is okay if today is gentler.,There is a shape that fits this day too.
+263,calm,quiet,poor_sleep,今日は守るほうを優先して大丈夫です。,回復が追いつかない日は小さく過ごすことにも意味があります。,It is okay to focus on protecting yourself today.,Keeping the day small can matter when recovery feels slow.
+264,kindness,calm,poor_sleep,眠れていない日はがんばり方を変えて大丈夫です。,強く押すより少しゆるめるほうが合う日もあります。,After little sleep it is okay to change how you try.,Some days easing up works better than pushing hard.
+265,quiet,gentle,poor_sleep,今日は余白を残して大丈夫です。,少し止まりながらでもその日の流れは続いていきます。,It is okay to leave room in today.,A day can still move even with pauses.
+266,rest,calm,poor_sleep,小さな休みも今日の一部です。,休む時間があるから保てることもあります。,Small rests are part of today too.,Some things hold because rest is allowed.
+267,kindness,gentle,poor_sleep,今日は少しやさしくして大丈夫です。,寝不足の日はいつもより負荷が高いことを忘れなくて大丈夫です。,You can be a little gentler with yourself today.,It is okay to remember that tired days carry more weight.
+268,calm,quiet,poor_sleep,今日は整えようとしすぎなくて大丈夫です。,全部を戻そうとせず少し楽に終えられたら十分です。,You do not need to fix everything today.,It is enough if the day ends a little easier.
+269,rest,gentle,poor_sleep,眠れなかった日にもその日の過ごし方があります。,無理の少ない形で終えられたらそれで十分です。,Even a tired day has its own way to be lived.,It is enough if the day ends in a gentler shape.
+270,self_acceptance,calm,poor_sleep,動きにくい日でも大丈夫です。,それは怠けではなく身体の反応かもしれません。,It is okay if today feels harder to move through.,That may be your body responding not laziness.
+271,self_acceptance,gentle,low_mood,今のあなたのままでも大丈夫です。,気持ちが沈む日があっても価値まで下がるわけではありません。,You are still okay as you are today.,A low day does not reduce your worth.
+272,kindness,calm,low_mood,今日は自分に少しやさしくて大丈夫です。,前向きになれなくても強い言葉を向けないだけで十分です。,You can be a little gentler with yourself today.,A softer inner voice is enough even without positivity.
+273,hope,gentle,low_mood,急がなくて大丈夫です。,気持ちは少しずつ動いていくこともあるので今日は静かにいても大丈夫です。,You do not need to hurry today.,Feelings can shift little by little so quiet is okay today.
+274,quiet,quiet,low_mood,今日は小さく過ごして大丈夫です。,大きく変えようとしなくても少し楽なほうを選べたら十分です。,It is okay to keep today small.,Choosing what feels a little easier is enough.
+275,self_acceptance,calm,low_mood,つらい日の見え方をそのまま全部信じなくて大丈夫です。,気持ちが低い日は自分にも未来にも厳しく見えやすくなります。,You do not have to believe every thought from a hard day.,Low moods can color how you see yourself and the future.
+276,kindness,gentle,low_mood,今日は整えようとしすぎなくて大丈夫です。,無理に気分を上げるより少し負担を減らせたら十分です。,You do not need to force yourself into feeling better today.,Reducing a little strain can be enough.
+277,hope,calm,low_mood,今日の気持ちがずっと続くとは限りません。,今は先を決めず今日を静かに終えることを大切にして大丈夫です。,Today’s feeling may not last forever.,You do not need to decide the future from this moment.
+278,quiet,gentle,low_mood,何もしないような時間にも意味があります。,沈んだ気持ちの日には静かな時間が支えになることもあります。,Even still time can have meaning.,Quiet moments can help hold you on low days.
+279,self_acceptance,gentle,low_mood,できないことがあっても大丈夫です。,今日は足りない部分より消耗していることを先に見てあげてください。,It is okay if some things feel out of reach today.,It may help to notice your tiredness before judging yourself.
+280,kindness,calm,low_mood,今日は比べないほうを選んで大丈夫です。,人と比べるより自分が少し楽になるほうを大切にしてよさそうです。,Today it is okay not to compare.,What eases you matters more than measuring yourself.
+281,hope,gentle,low_mood,少しでも楽なほうへ向かえたら十分です。,大きく変わらなくても小さくやわらぐだけで意味があります。,If you can move even a little toward ease that is enough.,Things do not need to change dramatically for today to matter.
+282,self_acceptance,quiet,low_mood,言葉にならない日でも大丈夫です。,うまく整理できなくても今のあなたには今のままの意味があります。,It is okay if you cannot put it into words today.,You still have meaning even without clear words.
+283,kindness,gentle,low_mood,今日は責めないほうを選んで大丈夫です。,前向きでなくても強い言葉を減らせたら十分です。,Today it is okay to choose less blame.,A softer voice is enough even without positivity.
+284,quiet,calm,low_mood,今日は静かなままでも大丈夫です。,無理に明るくならなくても今のまま過ごせる時間に意味があります。,It is okay if today stays quiet.,There is meaning in being with yourself without forcing brightness.
+285,self_acceptance,gentle,low_mood,小さくしか動けない日でも大丈夫です。,その小ささの中にも今日の価値があります。,It is okay if today moves only in small ways.,There is still value in that smallness.
+286,hope,calm,low_mood,今日を静かに終えられたらそれで十分です。,大きな変化がなくても今日を越えたことに意味があります。,It is enough if today ends quietly.,Even without a big change getting through today matters.
+287,kindness,gentle,low_mood,今は少しやわらかい基準で大丈夫です。,気持ちが低い日は厳しさよりやさしさが合うことがあります。,A softer standard is okay for now.,On low days kindness may fit better than strictness.
+288,quiet,quiet,low_mood,今日は答えを急がなくて大丈夫です。,決めきれないままでも少し休めたら十分です。,It is okay not to rush answers today.,If you can rest a little while things stay unresolved that is enough.
+289,self_acceptance,calm,low_mood,揺れる日にもあなたの意味は変わりません。,整っている日だけが大切なのではありません。,Your meaning does not change on wavering days.,Not only steady days matter.
+290,hope,gentle,low_mood,少しずつで大丈夫です。,今日が静かな一日でもその先につながることがあります。,Little by little is okay.,Even a quiet day can still lead somewhere gentle.
+291,kindness,gentle,any,今日は今日のペースで大丈夫です。,比べずに過ごせる時間が少しでもあると心は少しずつほどけます。,Today can move at today’s pace.,Even a little time without comparison can soften the day.
+292,calm,calm,any,全部をがんばらなくて大丈夫です。,ひとつだけできたら十分な日もあります。,You do not need to do everything.,Some days one small thing is enough.
+293,quiet,quiet,any,静かな時間にも意味があります。,何も起きていないように見える時間が心を整えることもあります。,Quiet time can still matter.,Time that seems still can help your mind settle.
+294,rest,gentle,any,少し休んでも大丈夫です。,立ち止まる時間があるから保てる流れもあります。,It is okay to rest a little.,Some rhythms stay steady because pauses are allowed.
+295,kindness,gentle,any,自分にもやさしくして大丈夫です。,自分への言葉が少しやわらぐだけで過ごしやすくなる日があります。,You can be gentle with yourself too.,A softer inner voice can make the day easier.
+296,hope,calm,any,今日は大きく進まなくても大丈夫です。,目立たない一日があとで支えになることもあります。,It is okay if today is not a big day.,Quiet days can still support you later.
+297,self_acceptance,gentle,any,今のあなたにもちゃんと意味があります。,整っている日だけが大切なのではなく揺れる日にもその日の価値があります。,You still matter exactly as you are today.,The wavering days have value too.
+298,calm,quiet,any,今日は少し余白を残して大丈夫です。,全部を埋めないほうが心と身体にやさしい日もあります。,It is okay to leave a little room today.,Some days feel kinder when not everything is filled.
+299,kindness,calm,any,決めきれない日があっても大丈夫です。,答えを急がないことが今の自分を守ることにつながる日もあります。,It is okay if today stays a little unresolved.,Not rushing an answer can sometimes be a form of care.
+300,quiet,gentle,any,今日は小さく整えば十分です。,大きく変えるより少し楽に終われるほうが大切な日もあります。,It is enough if today settles gently.,Some days ending a little easier matters more than changing a lot.
