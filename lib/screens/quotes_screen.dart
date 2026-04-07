@@ -21,6 +21,10 @@ class _QuotesScreenState extends State<QuotesScreen> {
   final int _batchSize = 3;
   List<int> _tapState = [];
 
+  bool _lastIsRestart = false;
+  bool _lastIsLowSleep = false;
+  bool _lastIsLowMood = false;
+
   String? _loadError;
   bool _isLoading = true;
 
@@ -102,6 +106,10 @@ class _QuotesScreenState extends State<QuotesScreen> {
       );
 
       setState(() {
+        _lastIsRestart = isRestart;
+        _lastIsLowSleep = isLowSleep;
+        _lastIsLowMood = isLowMood;
+
         _quotes = filtered;
         _tapState = List.filled(_quotes.length, 0);
         _shuffleQuotes();
@@ -110,9 +118,9 @@ class _QuotesScreenState extends State<QuotesScreen> {
         _isLoading = false;
       });
 
-      print('🟣 quotes isRestart=$isRestart, isLowSleep=$isLowSleep, isLowMood=$isLowMood');
-      print('🟢 quotes selected use_when pool = ${_quotes.map((e) => e['use_when']).toList()}');
-      print('🟢 quotes selected ids pool = ${_quotes.map((e) => e['id']).toList()}');
+      debugPrint('🟣 quotes isRestart=$isRestart, isLowSleep=$isLowSleep, isLowMood=$isLowMood');
+      debugPrint('🟢 quotes selected use_when pool = ${_quotes.map((e) => e['use_when']).toList()}');
+      debugPrint('🟢 quotes selected ids pool = ${_quotes.map((e) => e['id']).toList()}');
     } catch (e) {
       setState(() {
         _loadError = e.toString();
@@ -132,14 +140,26 @@ class _QuotesScreenState extends State<QuotesScreen> {
     List<Map<String, String>> fallbackAny = [];
 
     if (isRestart) {
-      primary = allQuotes.where((q) => (q['use_when'] ?? 'any') == 'restart').toList();
+      primary = allQuotes
+          .where((q) => (q['use_when'] ?? 'any') == 'restart')
+          .toList();
     } else if (isLowSleep) {
-      primary = allQuotes.where((q) => (q['use_when'] ?? 'any') == 'poor_sleep').toList();
+      primary = allQuotes
+          .where((q) => (q['use_when'] ?? 'any') == 'poor_sleep')
+          .toList();
     } else if (isLowMood) {
-      primary = allQuotes.where((q) => (q['use_when'] ?? 'any') == 'low_mood').toList();
+      primary = allQuotes
+          .where((q) => (q['use_when'] ?? 'any') == 'low_mood')
+          .toList();
+    } else {
+      primary = allQuotes
+          .where((q) => (q['use_when'] ?? 'any') == 'any')
+          .toList();
     }
 
-    fallbackAny = allQuotes.where((q) => (q['use_when'] ?? 'any') == 'any').toList();
+    fallbackAny = allQuotes
+        .where((q) => (q['use_when'] ?? 'any') == 'any')
+        .toList();
 
     final selected = <Map<String, String>>[];
     selected.addAll(primary);
@@ -177,6 +197,11 @@ class _QuotesScreenState extends State<QuotesScreen> {
       _displayQuotes = _quotes.sublist(_currentIndex, nextIndex);
       _currentIndex = nextIndex;
     });
+
+    debugPrint('🟢 quotes displayed ids = ${_displayQuotes.map((e) => e['id']).toList()}');
+    debugPrint('🟢 quotes displayed categories = ${_displayQuotes.map((e) => e['category']).toList()}');
+    debugPrint('🟢 quotes displayed tone = ${_displayQuotes.map((e) => e['tone']).toList()}');
+    debugPrint('🟢 quotes displayed use_when = ${_displayQuotes.map((e) => e['use_when']).toList()}');
   }
 
   void _handleTap(int index) {
