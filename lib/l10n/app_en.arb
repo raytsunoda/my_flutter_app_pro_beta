@@ -78,7 +78,7 @@
 
 
 
-  "goToNavigation": "Go to Navigation",
+  "goToNavigation": "Start tracking and reflecting",
   "gratitude1": "Gratitude 1",
   "gratitude2": "Gratitude 2",
   "gratitude3": "Gratitude 3",
@@ -87,14 +87,14 @@
   "homeAiBullet1": "Reflect with short tips tailored to your daily record",
   "homeAiProNote": "This feature is available with Pro.",
   "homeAiSectionTitle": "AI Partner Message",
-  "homeAppTitle": "Happiness Navi Pro",
+  "homeAppTitle": "Happiness Navi Pro AI",
   "homeEnableProButton": "Enable Pro",
-  "homeHeroCopy": "Your AI partner gently supports your daily journey.",
+  "homeHeroCopy": "Your AI partner gently supports your daily reflection",
   "homeIapManageTooltip": "Manage in-app purchases",
   "homeProCardDesc": "Pro is required to use \"AI Partner Message\".\nIf you changed devices or reinstalled, use \"Restore Purchases\" (no duplicate charges).",
   "homeProCardTitle": "Enable Pro / Restore",
-  "homeTagline": "Supporting healthy habits for your mind and body",
-  "homeWelcomeTitle": "Welcome to\nHappiness Navi Pro",
+  "homeTagline": "Reflect on healthy habits and gratitude with AI",
+  "homeWelcomeTitle": "Welcome",
 
   "loadMore3": "Show next 3",
   "memoCharCount": "{count}/200",

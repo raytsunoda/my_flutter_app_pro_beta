@@ -27,8 +27,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
 
   // === Typography knobs (調整ノブ) ===
-  static const double kCatchLine1Size = 15.5;   // 見出し「心と身体…」
-  static const double kCatchLine2Size = 12.5;   // 強調「約¥10/日で…」
+  static const double kCatchLine1Size = 15.0;
+  static const double kCatchLine2Size = 12.0;
 
   static const double kCardTitleSize  = 14.5;   // カードのタイトル「Pro機能の有効化 / 復元」
   static const double kCardBodySize   = 12.0;   // カード本文
@@ -99,15 +99,22 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         // 少しだけ高さを足して下段キャッチを表示
-        toolbarHeight: 80,
+        toolbarHeight: 76,
       //  title: const Text('幸せ感ナビPro'),
-        title: Text(t.homeAppTitle),
+        title: Text(
+          t.homeAppTitle,
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            color: Colors.black87,
+          ),
+        ),
 
         // ▼ここがキャッチ
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56),
+          preferredSize: const Size.fromHeight(58),
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -194,24 +201,26 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              //const Text(
-                Text(
-           //     '幸せ感ナビProに\nようこそ',
+              Text(
                 t.homeWelcomeTitle,
-
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                  height: 1.35,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: () {
                   Navigator.push(
@@ -221,16 +230,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 },
-               // child: const Text('ナビゲーション画面へ'),
                 child: Text(t.goToNavigation),
-
               ),
 
               const SizedBox(height: 12),
 
-            //  const SizedBox(height: 12),
-
-// ▼正式導線：未購入なら「Proを有効化」からPaywallへ
               ValueListenableBuilder<bool>(
                 valueListenable: PurchaseService.I.hasPro,
                 builder: (context, hasPro, _) {
@@ -239,30 +243,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: () async {
                       await openPaywall(context, mode: PaywallMode.enable);
                     },
-                 //   child: const Text('Proを有効化'),
                     child: Text(t.homeEnableProButton),
-
                   );
                 },
               ),
 
-
-
-
-
-
-
-//               if (!kReleaseMode) ...[
-// // ▼ Apple指摘確認用：Paywallを手動で確実に出すボタン（確認後に削除OK）
-//               ElevatedButton(
-//                 onPressed: () async {
-//                   await openPaywall(context, mode: PaywallMode.enable);
-//                 },
-//                 child: const Text('Paywallテスト（確認用）'),
-//               ),
-//               ],
-
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               if (_versionText.isNotEmpty)
                 Text(
@@ -272,10 +258,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.grey,
                   ),
                 ),
-
             ],
-
-
           ),
         ),
       ),

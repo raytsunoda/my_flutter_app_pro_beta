@@ -76,7 +76,7 @@
         },
 
 
-  "goToNavigation": "ナビゲーション画面へ",
+  "goToNavigation": "記録・振り返りを始める",
   "gratitude1": "感謝 1",
   "gratitude2": "感謝 2",
   "gratitude3": "感謝 3",
@@ -85,14 +85,14 @@
   "homeAiBullet1": "その日の記録に合わせた短いヒントで一緒に振り返り",
   "homeAiProNote": "この機能は Pro でご利用いただけます。",
   "homeAiSectionTitle": "AIパートナーのひとこと",
-  "homeAppTitle": "幸せ感ナビPro",
+  "homeAppTitle": "幸せ感ナビ Pro AI",
   "homeEnableProButton": "Proを有効化",
   "homeHeroCopy": "AIパートナーが、あなたの毎日にそっと伴走",
   "homeIapManageTooltip": "アプリ内課金の管理",
   "homeProCardDesc": "「AIパートナーのひとこと」を使うにはProが必要です。\n機種変更・再インストール時は「過去の購入を復元」をご利用ください（重複課金なし）。",
   "homeProCardTitle": "Pro機能の有効化 / 復元",
-  "homeTagline": "心と身体の“健康習慣”づくりをサポート",
-  "homeWelcomeTitle": "幸せ感ナビProに\nようこそ",
+  "homeTagline": "AIと振り返る健康習慣・感謝日記",
+  "homeWelcomeTitle": "ようこそ",
 
   "loadMore3": "次の３件を見る",
   "memoCharCount": "{count} / 200文字",
