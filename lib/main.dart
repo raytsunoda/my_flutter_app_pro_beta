@@ -137,7 +137,9 @@ class MyApp extends StatelessWidget {
       // locale: null, // ← 端末言語に追従（デフォルト挙動）
 
       //✅⬇️ 🔧 開発中のみコメントアウト
-      locale: kDebugMode ? const Locale('en') : null,
+     // locale: kDebugMode ? const Locale('en') : null,
+      locale: null,
+
       //✅⬇️ 🔧 開発後コメントアウト外す
       // ↑ リリースでは null → 端末言語に従う
 
