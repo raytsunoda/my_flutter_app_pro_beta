@@ -118,7 +118,7 @@ class NotificationService {
 
 
     // v0.10+ は setListeners を使う
-    AwesomeNotifications().setListeners(
+    await AwesomeNotifications().setListeners(
       onActionReceivedMethod: _onActionReceivedMethod,
       onNotificationCreatedMethod: _onCreated,
       onNotificationDisplayedMethod: _onDisplayed,
@@ -186,7 +186,22 @@ class NotificationService {
 
   // ====================== Navigation ======================
 
+  /// DEV用：通知payload遷移をアプリ内から直接テストする
+  static void debugGoByPayloadForTest({
+    required String tab,
+  }) {
+    print('[notif-test] debugGoByPayloadForTest tab=$tab');
+
+    _goByPayload({
+      'route': '/history',
+      'tab': tab,
+    });
+  }
+
+
   static void _goByPayload(Map<String, String?> payload) {
+    print('[notif] _goByPayload payload=$payload');
+
     final nav = _navKey?.currentState;
     if (nav == null) return;
 
@@ -411,6 +426,7 @@ class NotificationService {
           'fireAt': fireAt.toIso8601String(),
         },
         category: NotificationCategory.Reminder,
+        actionType: ActionType.Default,
         displayOnForeground: true,
         wakeUpScreen: true,
         autoDismissible: false,
@@ -450,6 +466,7 @@ class NotificationService {
         ),
         payload: {'route': '/history', 'tab': 'weekly'},
         category: NotificationCategory.Reminder,
+        actionType: ActionType.Default,
       ),
       schedule: NotificationCalendar(
         weekday: DateTime.monday,
@@ -482,6 +499,8 @@ class NotificationService {
         ),
         payload: {'route': '/history', 'tab': 'monthly'},
         category: NotificationCategory.Reminder,
+        actionType: ActionType.Default,
+
       ),
       schedule: NotificationCalendar(
         day: 1,

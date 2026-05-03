@@ -71,7 +71,7 @@ class NotificationTestScreen extends StatelessWidget {
 
 
 
-            
+
             const SizedBox(height: 10),
 
             SizedBox(
@@ -91,7 +91,31 @@ class NotificationTestScreen extends StatelessWidget {
               ),
             ),
 
+            const SizedBox(height: 10),
 
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  print('[notif-test] Simulate weekly payload');
+                  NotificationService.debugGoByPayloadForTest(tab: 'weekly');
+                },
+                child: const Text('DEV: Simulate Weekly Payload'),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  print('[notif-test] Simulate monthly payload');
+                  NotificationService.debugGoByPayloadForTest(tab: 'monthly');
+                },
+                child: const Text('DEV: Simulate Monthly Payload'),
+              ),
+            ),
 
 
 
