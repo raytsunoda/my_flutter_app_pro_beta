@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import '../screens/ai_comment_history_screen.dart';
 import 'dart:ui' show PlatformDispatcher; // ★追加
+import 'package:flutter/widgets.dart';
 
 // ★追加：端末言語で出し分け（context不要）
 // bool _isJa() => PlatformDispatcher.instance.locale.languageCode == 'ja';
@@ -73,8 +74,12 @@ class NotificationService {
     static Future<T?> _safe<T>(Future<T> Function() block) async {
         try {
           return await block();
-        } catch (e) {
-          dev.log('[notif] ignored error: $e');
+        // } catch (e) {
+        //   dev.log('[notif] ignored error: $e');
+        } catch (e, st) {
+          print('[notif] ignored error: $e');
+          print('[notif] stack: $st');
+
           return null;
         }
       }
@@ -85,6 +90,7 @@ class NotificationService {
   /// 初期化：**runApp の前**に1度だけ呼び出す
   static Future<void> init(GlobalKey<NavigatorState> navigatorKey) async {
     _navKey = navigatorKey;
+
 
     await AwesomeNotifications().initialize(
       null,
@@ -97,10 +103,19 @@ class NotificationService {
             en: 'Reminders to review your AI comments',
           ),
           importance: NotificationImportance.High,
+          defaultRingtoneType: DefaultRingtoneType.Notification,
+        ),
+        NotificationChannel(
+          channelKey: 'basic_channel',
+          channelName: '基本通知',
+          channelDescription: '一般的なお知らせ用',
+          importance: NotificationImportance.High,
+          defaultRingtoneType: DefaultRingtoneType.Notification,
         ),
       ],
       debug: kDebugMode,
     );
+
 
     // v0.10+ は setListeners を使う
     AwesomeNotifications().setListeners(
@@ -120,11 +135,19 @@ class NotificationService {
   /// kill → 通知タップ起動（cold start）の初回アクションを処理
   /// ※ **runApp の後**で呼ぶ
   static Future<void> handleInitialAction() async {
+    print('[notif] handleInitialAction called');
     final initial = await AwesomeNotifications().getInitialNotificationAction(
       removeFromActionEvents: true,
     );
+    print('[notif] initial action payload=${initial?.payload}');
+    print('[notif] pending action payload=${_pendingAction?.payload}');
+
+
     final action = initial ?? _pendingAction;
-    if (action == null) return;
+    if (action == null) {
+      print('[notif] no initial/pending action');
+      return;
+    }
 
     _pendingAction = null;
     _goByPayload(action.payload ?? const {});
@@ -134,10 +157,12 @@ class NotificationService {
 
   @pragma('vm:entry-point')
   static Future<void> _onActionReceivedMethod(ReceivedAction action) async {
-    dev.log('[notif] onAction route=${action.payload?['route']} tab=${action.payload?['tab']}');
+    print('[notif] onAction route=${action.payload?['route']} tab=${action.payload?['tab']}');
+    print('[notif] onAction payload=${action.payload}');
 
     // Navigator 準備前（runApp 前）は一旦保留
     if (_navKey?.currentState == null) {
+      print('[notif] nav not ready, pending action saved');
       _pendingAction = action;
       return;
     }
@@ -151,7 +176,7 @@ class NotificationService {
 
   @pragma('vm:entry-point')
   static Future<void> _onDisplayed(ReceivedNotification n) async {
-    dev.log('[notif] displayed id=${n.id}');
+    print('[notif] displayed id=${n.id}');
   }
 
   @pragma('vm:entry-point')
@@ -179,32 +204,40 @@ class NotificationService {
           nav.pushNamedAndRemoveUntil('/', (r) => false);
           return;
 
-        case 'nav':
-          final target = (payload['target'] ?? '').toLowerCase().trim();
-
-          // ✅ ルート未定義事故を避ける：必ずホーム('/')へ戻す
-          // nav.pushNamedAndRemoveUntil(
-          //   '/',
-          //       (r) => false,
-          //   arguments: {'target': target},
-          // );
-           nav.pushNamedAndRemoveUntil(
-                 '/nav',
-                 (r) => false,
-                 arguments: {'target': target},
-               );
-          return;
-
-
         case 'history':
           final tab = (payload['tab'] ?? 'daily').toLowerCase().trim();
           int initialIndex = 0;
           if (tab == 'weekly') initialIndex = 1;
           if (tab == 'monthly') initialIndex = 2;
-          nav.push(MaterialPageRoute(
-            builder: (_) => AiCommentHistoryScreen(initialTab: initialIndex),
-          ));
+
+          print('[notif] navigate history(new format) initialIndex=$initialIndex');
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final currentNav = _navKey?.currentState;
+            if (currentNav == null) {
+              print('[notif] navigation failed: nav is null after frame');
+              return;
+            }
+
+            currentNav.pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (_) => AiCommentHistoryScreen(initialTab: initialIndex),
+              ),
+                  (route) => false,
+            );
+          });
+
           return;
+
+        // case 'history':
+        //   final tab = (payload['tab'] ?? 'daily').toLowerCase().trim();
+        //   int initialIndex = 0;
+        //   if (tab == 'weekly') initialIndex = 1;
+        //   if (tab == 'monthly') initialIndex = 2;
+        //   nav.push(MaterialPageRoute(
+        //     builder: (_) => AiCommentHistoryScreen(initialTab: initialIndex),
+        //   ));
+        //   return;
 
         default:
         // 不明ならホームへ
@@ -227,9 +260,24 @@ class NotificationService {
       int initialIndex = 0;
       if (tab == 'weekly') initialIndex = 1;
       if (tab == 'monthly') initialIndex = 2;
-      nav.push(MaterialPageRoute(
-        builder: (_) => AiCommentHistoryScreen(initialTab: initialIndex),
-      ));
+
+      print('[notif] navigate to history initialIndex=$initialIndex');
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final currentNav = _navKey?.currentState;
+        if (currentNav == null) {
+          print('[notif] navigation failed: nav is null after frame');
+          return;
+        }
+
+        currentNav.pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => AiCommentHistoryScreen(initialTab: initialIndex),
+          ),
+              (route) => false,
+        );
+      });
+
       return;
     }
 
@@ -327,15 +375,30 @@ class NotificationService {
     required String bodyEn,
     required Map<String, String> payload,
   }) async {
-    // ✅ Debugボタンは「許可が無ければその場で許可を取りに行く」
-    if (!await _ensureAllowed(requestIfDenied: true)) return;
+    // // ✅ Debugボタンは「許可が無ければその場で許可を取りに行く」
+    // if (!await _ensureAllowed(requestIfDenied: true)) return;
+    print('[notif] debugFireNow ENTER');
 
-    // ✅ iOSで確実に出すため「3秒後の日時」を Calendar で予約する
-    final fireAt = DateTime.now().add(const Duration(seconds: 3));
+// ✅ Debugボタンは「許可が無ければその場で許可を取りに行く」
+    final allowed = await _ensureAllowed(requestIfDenied: true);
+    print('[notif] debugFireNow allowed=$allowed');
+
+    if (!allowed) {
+      print('[notif] debugFireNow stopped: notification not allowed');
+      return;
+    }
+
+
+    //// ✅ iOSで確実に出すため「3秒後の日時」を Calendar で予約する
+    // ✅ iOSで確実に出すため「15秒後の日時」を Calendar で予約する
+    final fireAt = DateTime.now().add(const Duration(seconds: 15));
+    print('[notif] debugFireNow scheduled fireAt=$fireAt payload=$payload');
 
     // ✅ 既存予約（weekly/monthly等）と衝突しないように、毎回ユニークIDにする
     final uniqueId = DateTime.now().millisecondsSinceEpoch.remainder(1000000000);
 
+
+    print('[notif] debugFireNow createNotification start');
     await _safe(() => AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: uniqueId, // ←固定id(id)は使わない（衝突回避）
@@ -348,14 +411,18 @@ class NotificationService {
           'fireAt': fireAt.toIso8601String(),
         },
         category: NotificationCategory.Reminder,
+        displayOnForeground: true,
+        wakeUpScreen: true,
+        autoDismissible: false,
       ),
-      // ✅ 3秒後に1回だけ（Calendar指定）
-      schedule: NotificationCalendar.fromDate(
-        date: fireAt,
-        preciseAlarm: true,
+      schedule: NotificationInterval(
+        interval: const Duration(seconds: 15),
         repeats: false,
+        preciseAlarm: true,
       ),
     ));
+    print('[notif] debugFireNow createNotification end');
+
   }
 
 
