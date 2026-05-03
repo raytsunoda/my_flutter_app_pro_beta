@@ -119,10 +119,10 @@ class NotificationService {
 
     // v0.10+ は setListeners を使う
     await AwesomeNotifications().setListeners(
-      onActionReceivedMethod: _onActionReceivedMethod,
-      onNotificationCreatedMethod: _onCreated,
-      onNotificationDisplayedMethod: _onDisplayed,
-      onDismissActionReceivedMethod: _onDismissed,
+      onActionReceivedMethod: onActionReceivedMethod,
+      onNotificationCreatedMethod: onCreated,
+      onNotificationDisplayedMethod: onDisplayed,
+      onDismissActionReceivedMethod: onDismissed,
     );
   }
 
@@ -156,7 +156,7 @@ class NotificationService {
   // ====================== Listeners ======================
 
   @pragma('vm:entry-point')
-  static Future<void> _onActionReceivedMethod(ReceivedAction action) async {
+  static Future<void> onActionReceivedMethod(ReceivedAction action) async {
     print('[notif] onAction route=${action.payload?['route']} tab=${action.payload?['tab']}');
     print('[notif] onAction payload=${action.payload}');
 
@@ -170,17 +170,17 @@ class NotificationService {
   }
 
   @pragma('vm:entry-point')
-  static Future<void> _onCreated(ReceivedNotification n) async {
+  static Future<void> onCreated(ReceivedNotification n) async {
     dev.log('[notif] created id=${n.id}');
   }
 
   @pragma('vm:entry-point')
-  static Future<void> _onDisplayed(ReceivedNotification n) async {
+  static Future<void> onDisplayed(ReceivedNotification n) async {
     print('[notif] displayed id=${n.id}');
   }
 
   @pragma('vm:entry-point')
-  static Future<void> _onDismissed(ReceivedAction a) async {
+  static Future<void> onDismissed(ReceivedAction a) async {
     dev.log('[notif] dismissed id=${a.id}');
   }
 
@@ -521,6 +521,13 @@ class NotificationService {
     await _safe(() => AwesomeNotifications().cancel(_idWeekly));
     await _safe(() => AwesomeNotifications().cancel(_idMonthly));
   }
+  static Future<void> debugClearAllNotificationsOnly() async {
+    print('[notif] debugClearAllNotificationsOnly start');
 
+    await _safe(() => AwesomeNotifications().cancelAll());
+    await _safe(() => AwesomeNotifications().dismissAllNotifications());
+
+    print('[notif] debugClearAllNotificationsOnly end');
+  }
 
 }

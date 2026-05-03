@@ -127,13 +127,13 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _didPostFrameInit = false;
 
   @override
   void initState() {
     super.initState();
-
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (_didPostFrameInit) return;
       _didPostFrameInit = true;
@@ -158,6 +158,28 @@ class _MyAppState extends State<MyApp> {
       print('[boot] MyApp postFrame init end');
     });
   }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print('[boot] lifecycle state=$state');
+
+    if (state == AppLifecycleState.resumed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        print('[boot] resumed -> handleInitialAction');
+
+        await Future.delayed(const Duration(milliseconds: 300));
+        await NotificationService.handleInitialAction();
+      });
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -211,6 +233,8 @@ class _MyAppState extends State<MyApp> {
       initialRoute: '/',
     );
   }
+
+
 
 }
 

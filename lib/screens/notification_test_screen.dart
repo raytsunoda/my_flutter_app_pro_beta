@@ -117,7 +117,24 @@ class NotificationTestScreen extends StatelessWidget {
               ),
             ),
 
+            const SizedBox(height: 10),
 
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  print('[notif-test] Clear all notifications pressed');
+
+                  await NotificationService.debugClearAllNotificationsOnly();
+
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Notifications cleared.')),
+                  );
+                },
+                child: const Text('DEV: Clear All Notifications Only'),
+              ),
+            ),
 
 
             const SizedBox(height: 10),
