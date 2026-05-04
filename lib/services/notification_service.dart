@@ -6,6 +6,7 @@ import 'package:awesome_notifications/awesome_notifications.dart';
 import '../screens/ai_comment_history_screen.dart';
 import 'dart:ui' show PlatformDispatcher; // ★追加
 import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ★追加：端末言語で出し分け（context不要）
 // bool _isJa() => PlatformDispatcher.instance.locale.languageCode == 'ja';
@@ -159,6 +160,13 @@ class NotificationService {
   static Future<void> onActionReceivedMethod(ReceivedAction action) async {
     print('[notif] onAction route=${action.payload?['route']} tab=${action.payload?['tab']}');
     print('[notif] onAction payload=${action.payload}');
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('last_notification_payload', action.payload.toString());
+    await prefs.setString('last_notification_route', action.payload?['route'] ?? '');
+    await prefs.setString('last_notification_tab', action.payload?['tab'] ?? '');
+    await prefs.setString('last_notification_tapped_at', DateTime.now().toIso8601String());
+
 
     // Navigator 準備前（runApp 前）は一旦保留
     if (_navKey?.currentState == null) {
@@ -431,11 +439,13 @@ class NotificationService {
         wakeUpScreen: true,
         autoDismissible: false,
       ),
-      schedule: NotificationInterval(
-        interval: const Duration(seconds: 15),
-        repeats: false,
-        preciseAlarm: true,
-      ),
+      //
+      // schedule: NotificationCalendar.fromDate(
+      //   date: fireAt,
+      //   preciseAlarm: false,
+      //   allowWhileIdle: true,
+      // ),
+
     ));
     print('[notif] debugFireNow createNotification end');
 

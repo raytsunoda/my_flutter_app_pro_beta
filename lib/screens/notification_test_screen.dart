@@ -5,6 +5,7 @@ import 'package:my_flutter_app_pro/screens/navigation_screen.dart';
 import '../screens/ai_partner_screen.dart';
 import 'package:my_flutter_app_pro/screens/navigation_screen.dart';
 import '../screens/ai_comment_history_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationTestScreen extends StatelessWidget {
   const NotificationTestScreen({super.key});
@@ -91,6 +92,53 @@ class NotificationTestScreen extends StatelessWidget {
               ),
             ),
 
+
+            const SizedBox(height: 10),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+
+                  final payload = prefs.getString('last_notification_payload') ?? '(none)';
+                  final route = prefs.getString('last_notification_route') ?? '(none)';
+                  final tab = prefs.getString('last_notification_tab') ?? '(none)';
+                  final tappedAt = prefs.getString('last_notification_tapped_at') ?? '(none)';
+
+                  if (!context.mounted) return;
+
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('Last notification tap'),
+                      content: SingleChildScrollView(
+                        child: Text(
+                          'payload: $payload\n'
+                              'route: $route\n'
+                              'tab: $tab\n'
+                              'tappedAt: $tappedAt',
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                child: const Text('DEV: Show Last Notification Tap'),
+              ),
+            ),
+
+
+
+
+
+
+
             const SizedBox(height: 10),
 
             SizedBox(
@@ -152,6 +200,13 @@ class NotificationTestScreen extends StatelessWidget {
                 child: const Text('Fire Monthly (15s)'),
               ),
             ),
+
+
+
+
+
+
+
 
             const SizedBox(height: 10),
 
