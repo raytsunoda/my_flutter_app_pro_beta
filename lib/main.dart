@@ -142,7 +142,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
       await NotificationService.handleInitialAction();
 
+      final didFallbackNavigate =
+      await NotificationService.consumeNotificationFallbackIfNeeded();
+
+      print('[boot] didFallbackNavigate=$didFallbackNavigate');
+
       final ctx = widget.navigatorKey.currentContext;
+
       final code = (ctx != null)
           ? Localizations.localeOf(ctx).languageCode
           : WidgetsBinding.instance.platformDispatcher.locale.languageCode;
@@ -172,14 +178,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     if (state == AppLifecycleState.resumed) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        print('[boot] resumed -> handleInitialAction');
+        print('[boot] resumed -> consume fallback');
 
         await Future.delayed(const Duration(milliseconds: 300));
-        await NotificationService.handleInitialAction();
+
+        final didFallbackNavigate =
+        await NotificationService.consumeNotificationFallbackIfNeeded();
+
+        print('[boot] resumed didFallbackNavigate=$didFallbackNavigate');
       });
     }
   }
-
 
   @override
   Widget build(BuildContext context) {

@@ -308,6 +308,71 @@ class NotificationService {
   }
 
 
+  static const String _fallbackRouteKey = 'pending_notification_route';
+  static const String _fallbackTabKey = 'pending_notification_tab';
+  static const String _fallbackUntilKey = 'pending_notification_until';
+
+  static Future<void> _saveNotificationFallback({
+    required String route,
+    required String tab,
+    required DateTime validUntil,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(_fallbackRouteKey, route);
+    await prefs.setString(_fallbackTabKey, tab);
+    await prefs.setString(_fallbackUntilKey, validUntil.toIso8601String());
+
+    print('[notif] saved fallback route=$route tab=$tab until=$validUntil');
+  }
+
+  static Future<bool> consumeNotificationFallbackIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final route = prefs.getString(_fallbackRouteKey);
+    final tab = prefs.getString(_fallbackTabKey);
+    final untilText = prefs.getString(_fallbackUntilKey);
+
+    print('[notif] fallback check route=$route tab=$tab until=$untilText');
+
+    if (route == null || route.isEmpty || tab == null || tab.isEmpty || untilText == null) {
+      return false;
+    }
+
+    final until = DateTime.tryParse(untilText);
+    if (until == null) {
+      return false;
+    }
+
+    final now = DateTime.now();
+    if (now.isAfter(until)) {
+      print('[notif] fallback expired');
+
+      await prefs.remove(_fallbackRouteKey);
+      await prefs.remove(_fallbackTabKey);
+      await prefs.remove(_fallbackUntilKey);
+
+      return false;
+    }
+
+    await prefs.remove(_fallbackRouteKey);
+    await prefs.remove(_fallbackTabKey);
+    await prefs.remove(_fallbackUntilKey);
+
+    print('[notif] fallback consume route=$route tab=$tab');
+
+    _goByPayload({
+      'route': route,
+      'tab': tab,
+    });
+
+    return true;
+  }
+
+
+
+
+
   // ====================== デバッグ用 ======================
 
   /// デバッグ：数秒後にワンショット通知（タップで履歴へ）
@@ -353,6 +418,13 @@ class NotificationService {
     final uniqueId = DateTime.now().millisecondsSinceEpoch.remainder(1000000000);
 
     print('[notif] debugScheduleWeeklyIn60s fireAt=$fireAt');
+
+    await _saveNotificationFallback(
+      route: '/history',
+      tab: 'weekly',
+      validUntil: fireAt.add(const Duration(hours: 3)),
+    );
+
 
     await _safe(() => AwesomeNotifications().createNotification(
       content: NotificationContent(
