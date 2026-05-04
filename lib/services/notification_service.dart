@@ -338,6 +338,61 @@ class NotificationService {
   // ==============================
 // Debug one-shot notifications
 // ==============================
+  static Future<void> debugScheduleWeeklyIn60s({required String localeCode}) async {
+    print('[notif] debugScheduleWeeklyIn60s ENTER');
+
+    final allowed = await _ensureAllowed(requestIfDenied: true);
+    print('[notif] debugScheduleWeeklyIn60s allowed=$allowed');
+
+    if (!allowed) {
+      print('[notif] debugScheduleWeeklyIn60s stopped: notification not allowed');
+      return;
+    }
+
+    final fireAt = DateTime.now().add(const Duration(seconds: 60));
+    final uniqueId = DateTime.now().millisecondsSinceEpoch.remainder(1000000000);
+
+    print('[notif] debugScheduleWeeklyIn60s fireAt=$fireAt');
+
+    await _safe(() => AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: uniqueId,
+        channelKey: _channelKey,
+        title: _txByCode(
+          localeCode: localeCode,
+          ja: '【テスト】週次のAIコメントを確認しましょう',
+          en: '[TEST] Your weekly AI comment is ready',
+        ),
+        body: _txByCode(
+          localeCode: localeCode,
+          ja: 'タップで履歴（週次）へ',
+          en: 'Tap to open history (Weekly)',
+        ),
+        payload: const {
+          'route': '/history',
+          'tab': 'weekly',
+          'debug': '1',
+        },
+        category: NotificationCategory.Reminder,
+        actionType: ActionType.Default,
+        displayOnForeground: true,
+        wakeUpScreen: true,
+        autoDismissible: false,
+      ),
+      schedule: NotificationCalendar.fromDate(
+        date: fireAt,
+        preciseAlarm: true,
+      ),
+    ));
+
+    print('[notif] debugScheduleWeeklyIn60s createNotification end');
+  }
+
+
+
+
+
+
 
   static Future<void> debugFireWeeklyNow({required String localeCode}) async {
     await _debugFireNow(
