@@ -242,11 +242,10 @@ class NotificationService {
               return;
             }
 
-            currentNav.pushAndRemoveUntil(
+            currentNav.push(
               MaterialPageRoute(
                 builder: (_) => AiCommentHistoryScreen(initialTab: initialIndex),
               ),
-                  (route) => false,
             );
           });
 
@@ -293,11 +292,10 @@ class NotificationService {
           return;
         }
 
-        currentNav.pushAndRemoveUntil(
+        currentNav.push(
           MaterialPageRoute(
             builder: (_) => AiCommentHistoryScreen(initialTab: initialIndex),
           ),
-              (route) => false,
         );
       });
 
