@@ -372,6 +372,83 @@ class NotificationService {
 
 
 
+  static const String _lastWeeklyDateFallbackKey =
+      'last_weekly_date_based_fallback_date';
+  static const String _lastMonthlyDateFallbackKey =
+      'last_monthly_date_based_fallback_month';
+
+  static String _dateKey(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  static String _monthKey(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}';
+  }
+
+  /// 本番用フォールバック：
+  /// iOSで通知タップイベントがDart側に届かない場合でも、
+  /// アプリ起動/復帰時に「通知対象日・通知時刻後」なら履歴タブへ遷移する。
+  ///
+  /// - 毎週月曜10:00以降 → 週次タブへ
+  /// - 毎月1日10:00以降 → 月次タブへ
+  /// - 同じ日/同じ月には1回だけ
+  static Future<bool> consumeDateBasedAiCommentFallbackIfNeeded() async {
+    final now = DateTime.now();
+    final prefs = await SharedPreferences.getInstance();
+
+    print('[notif] date fallback check now=$now');
+
+    // 月次を先に判定：
+    // 1日が月曜日の場合、週次と月次が同時に成立するため、
+    // 月初の特別感を優先して月次タブへ飛ばす。
+    if (now.day == 1 && now.hour >= 10) {
+      final monthKey = _monthKey(now);
+      final lastMonthly = prefs.getString(_lastMonthlyDateFallbackKey);
+
+      print(
+        '[notif] date fallback monthly month=$monthKey last=$lastMonthly',
+      );
+
+      if (lastMonthly != monthKey) {
+        await prefs.setString(_lastMonthlyDateFallbackKey, monthKey);
+
+        print('[notif] date fallback consume monthly month=$monthKey');
+
+        _goByPayload({
+          'route': '/history',
+          'tab': 'monthly',
+        });
+
+        return true;
+      }
+    }
+
+    if (now.weekday == DateTime.monday && now.hour >= 10) {
+      final todayKey = _dateKey(now);
+      final lastWeekly = prefs.getString(_lastWeeklyDateFallbackKey);
+
+      print(
+        '[notif] date fallback weekly date=$todayKey last=$lastWeekly',
+      );
+
+      if (lastWeekly != todayKey) {
+        await prefs.setString(_lastWeeklyDateFallbackKey, todayKey);
+
+        print('[notif] date fallback consume weekly date=$todayKey');
+
+        _goByPayload({
+          'route': '/history',
+          'tab': 'weekly',
+        });
+
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+
 
   // ====================== デバッグ用 ======================
 

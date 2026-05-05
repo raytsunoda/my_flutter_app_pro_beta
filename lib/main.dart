@@ -147,6 +147,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
       print('[boot] didFallbackNavigate=$didFallbackNavigate');
 
+      if (!didFallbackNavigate) {
+        final didDateFallbackNavigate =
+        await NotificationService.consumeDateBasedAiCommentFallbackIfNeeded();
+
+        print('[boot] didDateFallbackNavigate=$didDateFallbackNavigate');
+      }
+
       final ctx = widget.navigatorKey.currentContext;
 
       final code = (ctx != null)
@@ -186,6 +193,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         await NotificationService.consumeNotificationFallbackIfNeeded();
 
         print('[boot] resumed didFallbackNavigate=$didFallbackNavigate');
+
+        if (!didFallbackNavigate) {
+          final didDateFallbackNavigate =
+          await NotificationService.consumeDateBasedAiCommentFallbackIfNeeded();
+
+          print('[boot] resumed didDateFallbackNavigate=$didDateFallbackNavigate');
+        }
       });
     }
   }
