@@ -206,6 +206,34 @@ class NotificationService {
     });
   }
 
+  static Future<bool> debugConsumeWeeklyDateFallbackForTest() async {
+    if (kReleaseMode) return false;
+
+    print('[notif-test] debugConsumeWeeklyDateFallbackForTest');
+
+    _goByPayload({
+      'route': '/history',
+      'tab': 'weekly',
+    });
+
+    return true;
+  }
+
+  static Future<bool> debugConsumeMonthlyDateFallbackForTest() async {
+    if (kReleaseMode) return false;
+
+    print('[notif-test] debugConsumeMonthlyDateFallbackForTest');
+
+    _goByPayload({
+      'route': '/history',
+      'tab': 'monthly',
+    });
+
+    return true;
+  }
+
+
+
 
   static void _goByPayload(Map<String, String?> payload) {
     print('[notif] _goByPayload payload=$payload');

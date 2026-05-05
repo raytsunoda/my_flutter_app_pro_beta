@@ -219,6 +219,36 @@ class NotificationTestScreen extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () async {
+                  print('[notif-test] Test date fallback weekly');
+
+                  await NotificationService.debugConsumeWeeklyDateFallbackForTest();
+                },
+                child: const Text('DEV: Test Date Fallback Weekly'),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  print('[notif-test] Test date fallback monthly');
+
+                  await NotificationService.debugConsumeMonthlyDateFallbackForTest();
+                },
+                child: const Text('DEV: Test Date Fallback Monthly'),
+              ),
+            ),
+
+
+
+            const SizedBox(height: 10),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
                   print('[notif-test] Clear all notifications pressed');
 
                   await NotificationService.debugClearAllNotificationsOnly();
