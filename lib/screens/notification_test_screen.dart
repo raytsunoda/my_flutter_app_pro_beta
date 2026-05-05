@@ -74,28 +74,7 @@ class NotificationTestScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 10),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  print('[notif-test] Schedule weekly 60s pressed');
-
-                  await NotificationService.debugScheduleWeeklyIn60s(
-                    localeCode: localeCode,
-                  );
-
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Weekly test notification scheduled in 60s.'),
-                    ),
-                  );
-                },
-                child: const Text('Fire Weekly in 60s'),
-              ),
-            ),
+ 
 
 
             const SizedBox(height: 10),
