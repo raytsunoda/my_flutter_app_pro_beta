@@ -427,7 +427,8 @@ class NotificationService {
     // 月次を先に判定：
     // 1日が月曜日の場合、週次と月次が同時に成立するため、
     // 月初の特別感を優先して月次タブへ飛ばす。
-    if (now.day == 1 && now.hour >= 10) {
+    //if (now.day == 1 && now.hour >= 10) {
+    if (now.day == 1 && now.hour >= 10 && now.hour < 13) {
       final monthKey = _monthKey(now);
       final lastMonthly = prefs.getString(_lastMonthlyDateFallbackKey);
 
@@ -449,7 +450,8 @@ class NotificationService {
       }
     }
 
-    if (now.weekday == DateTime.monday && now.hour >= 10) {
+    //if (now.weekday == DateTime.monday && now.hour >= 10) {
+    if (now.weekday == DateTime.monday && now.hour >= 10 && now.hour < 13) {
       final todayKey = _dateKey(now);
       final lastWeekly = prefs.getString(_lastWeeklyDateFallbackKey);
 
