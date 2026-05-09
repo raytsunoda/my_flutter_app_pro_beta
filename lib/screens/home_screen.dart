@@ -15,6 +15,7 @@ import 'package:my_flutter_app_pro/widgets/paywall_sheet.dart' show openPaywall,
 import '../gen_l10n/app_localizations.dart';
 import 'package:my_flutter_app_pro/utils/notification_scheduler.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../services/notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final List<List<dynamic>> csvData;
@@ -63,6 +64,19 @@ class _HomeScreenState extends State<HomeScreen> {
       final sp = await SharedPreferences.getInstance();
       _showProBanner = !(sp.getBool('dismiss_pro_banner') ?? false);
       if (mounted) setState(() {});
+
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        if (!mounted) return;
+
+        final didFallbackNavigate =
+        await NotificationService.consumeNotificationFallbackIfNeeded();
+
+        print('[home] didFallbackNavigate=$didFallbackNavigate');
+      });
+
+
 
       // // ▼ Apple指摘確認用：起動直後に1回だけPaywallを出す（確認後に削除OK）
       // WidgetsBinding.instance.addPostFrameCallback((_) async {

@@ -148,10 +148,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       print('[boot] didFallbackNavigate=$didFallbackNavigate');
 
       if (!didFallbackNavigate) {
-        final didDateFallbackNavigate =
-        await NotificationService.consumeDateBasedAiCommentFallbackIfNeeded();
+        await Future.delayed(const Duration(milliseconds: 800));
 
-        print('[boot] didDateFallbackNavigate=$didDateFallbackNavigate');
+        final didFallbackNavigateRetry =
+        await NotificationService.consumeNotificationFallbackIfNeeded();
+
+        print('[boot] didFallbackNavigateRetry=$didFallbackNavigateRetry');
+
+        if (!didFallbackNavigateRetry) {
+          final didDateFallbackNavigate =
+          await NotificationService.consumeDateBasedAiCommentFallbackIfNeeded();
+
+          print('[boot] didDateFallbackNavigate=$didDateFallbackNavigate');
+        }
       }
 
       final ctx = widget.navigatorKey.currentContext;
@@ -195,10 +204,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         print('[boot] resumed didFallbackNavigate=$didFallbackNavigate');
 
         if (!didFallbackNavigate) {
-          final didDateFallbackNavigate =
-          await NotificationService.consumeDateBasedAiCommentFallbackIfNeeded();
+          await Future.delayed(const Duration(milliseconds: 800));
 
-          print('[boot] resumed didDateFallbackNavigate=$didDateFallbackNavigate');
+          final didFallbackNavigateRetry =
+          await NotificationService.consumeNotificationFallbackIfNeeded();
+
+          print('[boot] resumed didFallbackNavigateRetry=$didFallbackNavigateRetry');
+
+          if (!didFallbackNavigateRetry) {
+            final didDateFallbackNavigate =
+            await NotificationService.consumeDateBasedAiCommentFallbackIfNeeded();
+
+            print('[boot] resumed didDateFallbackNavigate=$didDateFallbackNavigate');
+          }
         }
       });
     }
