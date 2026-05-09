@@ -137,12 +137,36 @@ class NotificationService {
   /// ※ **runApp の後**で呼ぶ
   static Future<void> handleInitialAction() async {
     print('[notif] handleInitialAction called');
+
     final initial = await AwesomeNotifications().getInitialNotificationAction(
       removeFromActionEvents: true,
     );
+
     print('[notif] initial action payload=${initial?.payload}');
     print('[notif] pending action payload=${_pendingAction?.payload}');
 
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(
+      'last_initial_action_payload',
+      initial?.payload.toString() ?? '(null)',
+    );
+    await prefs.setString(
+      'last_initial_action_route',
+      initial?.payload?['route'] ?? '',
+    );
+    await prefs.setString(
+      'last_initial_action_tab',
+      initial?.payload?['tab'] ?? '',
+    );
+    await prefs.setString(
+      'last_initial_action_checked_at',
+      DateTime.now().toIso8601String(),
+    );
+    await prefs.setString(
+      'last_pending_action_payload',
+      _pendingAction?.payload.toString() ?? '(null)',
+    );
 
     final action = initial ?? _pendingAction;
     if (action == null) {

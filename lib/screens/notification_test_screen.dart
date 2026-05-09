@@ -133,6 +133,18 @@ class NotificationTestScreen extends StatelessWidget {
                   final tab = prefs.getString('last_notification_tab') ?? '(none)';
                   final tappedAt = prefs.getString('last_notification_tapped_at') ?? '(none)';
 
+                  final initialPayload =
+                      prefs.getString('last_initial_action_payload') ?? '(none)';
+                  final initialRoute =
+                      prefs.getString('last_initial_action_route') ?? '(none)';
+                  final initialTab =
+                      prefs.getString('last_initial_action_tab') ?? '(none)';
+                  final initialCheckedAt =
+                      prefs.getString('last_initial_action_checked_at') ?? '(none)';
+                  final pendingPayload =
+                      prefs.getString('last_pending_action_payload') ?? '(none)';
+
+
                   if (!context.mounted) return;
 
                   showDialog(
@@ -144,7 +156,12 @@ class NotificationTestScreen extends StatelessWidget {
                           'payload: $payload\n'
                               'route: $route\n'
                               'tab: $tab\n'
-                              'tappedAt: $tappedAt',
+                              'tappedAt: $tappedAt\n\n'
+                              'initialPayload: $initialPayload\n'
+                              'initialRoute: $initialRoute\n'
+                              'initialTab: $initialTab\n'
+                              'initialCheckedAt: $initialCheckedAt\n'
+                              'pendingPayload: $pendingPayload',
                         ),
                       ),
                       actions: [
