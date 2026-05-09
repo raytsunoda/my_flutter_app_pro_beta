@@ -589,7 +589,61 @@ class NotificationService {
     print('[notif] debugScheduleWeeklyIn60s createNotification end');
   }
 
+  static Future<void> debugScheduleMonthlyIn60s({required String localeCode}) async {
+    print('[notif] debugScheduleMonthlyIn60s ENTER');
 
+    final allowed = await _ensureAllowed(requestIfDenied: true);
+    print('[notif] debugScheduleMonthlyIn60s allowed=$allowed');
+
+    if (!allowed) {
+      print('[notif] debugScheduleMonthlyIn60s stopped: notification not allowed');
+      return;
+    }
+
+    final fireAt = DateTime.now().add(const Duration(seconds: 60));
+    final uniqueId = DateTime.now().millisecondsSinceEpoch.remainder(1000000000);
+
+    print('[notif] debugScheduleMonthlyIn60s fireAt=$fireAt');
+
+    await _saveNotificationFallback(
+      route: '/history',
+      tab: 'monthly',
+      validUntil: fireAt.add(const Duration(hours: 3)),
+    );
+
+    await _safe(() => AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: uniqueId,
+        channelKey: _channelKey,
+        title: _txByCode(
+          localeCode: localeCode,
+          ja: '【テスト】月次のAIコメントを見直しましょう',
+          en: '[TEST] Your monthly AI comment is ready',
+        ),
+        body: _txByCode(
+          localeCode: localeCode,
+          ja: 'タップで履歴（月次）へ',
+          en: 'Tap to open history (Monthly)',
+        ),
+        payload: const {
+          'route': '/history',
+          'tab': 'monthly',
+          'debug': '1',
+        },
+        category: NotificationCategory.Reminder,
+        actionType: ActionType.Default,
+        displayOnForeground: true,
+        wakeUpScreen: true,
+        autoDismissible: false,
+      ),
+      schedule: NotificationCalendar.fromDate(
+        date: fireAt,
+        preciseAlarm: true,
+      ),
+    ));
+
+    print('[notif] debugScheduleMonthlyIn60s createNotification end');
+  }
 
 
 
