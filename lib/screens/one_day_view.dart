@@ -101,11 +101,9 @@ class _OneDayViewState extends State<OneDayView> {
     final hasToday = widget.csvData.any((r) => _normYmdStr(r['日付'] ?? '') == _normYmd(today));
     _selectedDate = widget.selectedDate ?? (hasToday ? today : (_latestDateInCsv() ?? today));
 
-    final s = AppLocalizations.of(context)!;
     final seeded = (widget.initialAiDailyText ?? '').trim();
-    // ★追加（AI生成待ち表示）
-   // _aiDailyText = "考え中です…";
-    _aiDailyText = s.aiThinking;
+// initState内では AppLocalizations.of(context) を使わない
+    _aiDailyText = '';
     _aiLoading = true;
 
 // 選択日の行を厳密一致で取得してセット

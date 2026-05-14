@@ -424,6 +424,8 @@ class _ManualInputViewState extends State<ManualInputView> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
+    final memoMaxLength =
+    Localizations.localeOf(context).languageCode == 'ja' ? 200 : 400;
 
     final dateStr = DateFormat('yyyy/MM/dd').format(selectedDate);
 
@@ -555,7 +557,7 @@ class _ManualInputViewState extends State<ManualInputView> {
             ),
             TextField(
               controller: memoController,
-              maxLength: 200,
+              maxLength: memoMaxLength,
               maxLines: 3,
               onChanged: (text) => setState(() => memoCharCount = text.length),
               // decoration: const InputDecoration(
@@ -570,9 +572,11 @@ class _ManualInputViewState extends State<ManualInputView> {
               alignment: Alignment.centerRight,
               child: Text(
                 //  '$memoCharCount / 200文字',
-                t.memoCharCount(memoCharCount),
+                  Localizations.localeOf(context).languageCode == 'ja'
+                      ? '$memoCharCount / $memoMaxLength文字'
+                      : '$memoCharCount/$memoMaxLength',
 
-                style: TextStyle(fontSize: 12),
+                style: const TextStyle(fontSize: 12),
               ),
             ),
 
