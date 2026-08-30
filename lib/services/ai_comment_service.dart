@@ -679,7 +679,11 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       memo: memo,
       displayDate: date,
     );
-
+    if (comment.trim().isEmpty || _isTransientAiErrorMessage(comment)) {
+      debugPrint(
+          '[ensureDailySavedForDate] AI unavailable -> skip save: $target');
+      return null;
+    }
 
     final newRow = <String, String>{'date': target, 'type': 'daily', 'comment': comment};
     log.add(newRow);
@@ -776,6 +780,7 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
       '独学でこれが実現できたらうれしい',
       // 追加
       '無理なく続けられるリズムで明日も一歩ずついきましょう', // 既定のオフライン生成文
+      '無理せずペース配分を。小さな一歩からで大丈夫です。',
     ];
     return patterns.any((p) => t.contains(p));
   }
@@ -1229,11 +1234,14 @@ final prompt = (effectiveLang == 'en') ? promptEn : promptJa;
           return text;
         }
       }
-    } catch (_) {
-      // 失敗時は下のフォールバックへ
+    } catch (e, st) {
+      debugPrint('[AI] response error (daily $ymdLabel): $e');
+      debugPrintStack(stackTrace: st);
     }
 
-    return '';
+    return effectiveLang == 'en'
+        ? '⚠️ Unable to get the AI comment right now. Please try again later.'
+        : '⚠️ AIコメントを取得できませんでした。時間をおいて、もう一度お試しください。';
   }
 
 
@@ -1300,8 +1308,19 @@ final prompt = (effectiveLang == 'en') ? promptEn : promptJa;
         }
 
 
-    // ② API失敗時はルールベースにフォールバック
-    generated ??= await _generateDailyAiTextFromCsv(date);
+    // ② API失敗時は固定フォールバックを保存しない
+    if (generated == null || generated.trim().isEmpty) {
+      const errorMessage =
+          '⚠️ AIコメントを取得できませんでした。時間をおいて、もう一度お試しください。';
+
+      debugPrint('[ensureDailySaved] AI unavailable -> skip save: $key');
+
+      return {
+        'date': key,
+        'type': 'daily',
+        'comment': errorMessage,
+      };
+    }
 
     await CsvLoader.appendAiCommentLog(
 
