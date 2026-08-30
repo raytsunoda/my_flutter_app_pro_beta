@@ -47,19 +47,19 @@ Future<void> main() async {
   debugPrint('[boot] ENABLED=${PurchaseConfig.ENABLED}, DEV_FORCE_PRO=${PurchaseConfig.DEV_FORCE_PRO}');
 
 
-  await AwesomeNotifications().initialize(
-    null,
-    [
-      NotificationChannel(
-        channelKey: 'basic_channel',
-        channelName: '基本通知',
-        channelDescription: '一般的なお知らせ用',
-        importance: NotificationImportance.High,
-        defaultRingtoneType: DefaultRingtoneType.Notification,
-      ),
-    ],
-    debug: kDebugMode,
-  );
+  // await AwesomeNotifications().initialize(
+  //   null,
+  //   [
+  //     NotificationChannel(
+  //       channelKey: 'basic_channel',
+  //       channelName: '基本通知',
+  //       channelDescription: '一般的なお知らせ用',
+  //       importance: NotificationImportance.High,
+  //       defaultRingtoneType: DefaultRingtoneType.Notification,
+  //     ),
+  //   ],
+  //   debug: kDebugMode,
+  // );
   await NotificationService.init(notificationNavigatorKey);
   //await NotificationService.listenNotificationActions(notificationNavigatorKey);
 
@@ -77,21 +77,21 @@ Future<void> main() async {
 
   runApp(MyApp(navigatorKey: notificationNavigatorKey));
 
-  WidgetsBinding.instance.addPostFrameCallback((_) async {
-    await NotificationService.handleInitialAction();
-
-    final ctx = notificationNavigatorKey.currentContext;
-    final code = (ctx != null)
-        ? Localizations.localeOf(ctx).languageCode
-        : WidgetsBinding.instance.platformDispatcher.locale.languageCode;
-
-    await NotificationScheduler.rescheduleMorningEvening(appLocaleCode: code);
-
-    // ★週次/月次もここで：appLocaleCode を渡して英語通知を確定させる
-    await NotificationService.clearAiCommentSchedules();
-    await NotificationService.scheduleWeeklyOnMonday10(localeCode: code);
-    await NotificationService.scheduleMonthlyOnFirstDay10(localeCode: code);
-  });
+  // WidgetsBinding.instance.addPostFrameCallback((_) async {
+  //   await NotificationService.handleInitialAction();
+  //
+  //   final ctx = notificationNavigatorKey.currentContext;
+  //   final code = (ctx != null)
+  //       ? Localizations.localeOf(ctx).languageCode
+  //       : WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+  //
+  //   await NotificationScheduler.rescheduleMorningEvening(appLocaleCode: code);
+  //
+  //   // ★週次/月次もここで：appLocaleCode を渡して英語通知を確定させる
+  //   await NotificationService.clearAiCommentSchedules();
+  //   await NotificationService.scheduleWeeklyOnMonday10(localeCode: code);
+  //   await NotificationService.scheduleMonthlyOnFirstDay10(localeCode: code);
+  // });
 
 // ↓この3行は削除（またはコメントアウト）
 // await NotificationService.clearAiCommentSchedules();
@@ -119,14 +119,115 @@ Future<void> main() async {
 
 
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key, required this.navigatorKey});
   final GlobalKey<NavigatorState> navigatorKey;
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  bool _didPostFrameInit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (_didPostFrameInit) return;
+      _didPostFrameInit = true;
+
+      print('[boot] MyApp postFrame init start');
+
+      await NotificationService.handleInitialAction();
+
+      final didFallbackNavigate =
+      await NotificationService.consumeNotificationFallbackIfNeeded();
+
+      print('[boot] didFallbackNavigate=$didFallbackNavigate');
+
+      if (!didFallbackNavigate) {
+        await Future.delayed(const Duration(milliseconds: 800));
+
+        final didFallbackNavigateRetry =
+        await NotificationService.consumeNotificationFallbackIfNeeded();
+
+        print('[boot] didFallbackNavigateRetry=$didFallbackNavigateRetry');
+
+        if (!didFallbackNavigateRetry) {
+          final didDateFallbackNavigate =
+          await NotificationService.consumeDateBasedAiCommentFallbackIfNeeded();
+
+          print('[boot] didDateFallbackNavigate=$didDateFallbackNavigate');
+        }
+      }
+
+      final ctx = widget.navigatorKey.currentContext;
+
+      final code = (ctx != null)
+          ? Localizations.localeOf(ctx).languageCode
+          : WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+
+      print('[boot] reschedule notifications locale=$code');
+
+      await NotificationScheduler.rescheduleMorningEvening(appLocaleCode: code);
+
+      await NotificationService.clearAiCommentSchedules();
+      await NotificationService.scheduleWeeklyOnMonday10(localeCode: code);
+      await NotificationService.scheduleMonthlyOnFirstDay10(localeCode: code);
+
+      print('[boot] MyApp postFrame init end');
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print('[boot] lifecycle state=$state');
+
+    if (state == AppLifecycleState.resumed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        print('[boot] resumed -> consume fallback');
+
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        final didFallbackNavigate =
+        await NotificationService.consumeNotificationFallbackIfNeeded();
+
+        print('[boot] resumed didFallbackNavigate=$didFallbackNavigate');
+
+        if (!didFallbackNavigate) {
+          await Future.delayed(const Duration(milliseconds: 800));
+
+          final didFallbackNavigateRetry =
+          await NotificationService.consumeNotificationFallbackIfNeeded();
+
+          print('[boot] resumed didFallbackNavigateRetry=$didFallbackNavigateRetry');
+
+          if (!didFallbackNavigateRetry) {
+            final didDateFallbackNavigate =
+            await NotificationService.consumeDateBasedAiCommentFallbackIfNeeded();
+
+            print('[boot] resumed didDateFallbackNavigate=$didDateFallbackNavigate');
+          }
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: navigatorKey,
+      navigatorKey: widget.navigatorKey,
+
+
       debugShowCheckedModeBanner: false,
 
       // locale:
@@ -173,6 +274,8 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
     );
   }
+
+
 
 }
 

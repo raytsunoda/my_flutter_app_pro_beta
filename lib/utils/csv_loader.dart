@@ -1079,10 +1079,10 @@ class CsvLoader {
 
     final rows = await loadAiCommentLog();
 
-    // ★ 既存ログが少なすぎる場合は危険なので追記しない
-    if (rows.length < 10) {
-      debugPrint('⚠️ appendAiCommentLog aborted: suspicious log size=${rows.length}');
-      return;
+    // 新規ユーザーやテスト環境ではログが少ないのは正常。
+// 0〜数件でも追記できるようにする。
+    if (rows.isEmpty) {
+      debugPrint('ℹ️ appendAiCommentLog: starting new AI comment log');
     }
 
     rows.add(<String, String>{

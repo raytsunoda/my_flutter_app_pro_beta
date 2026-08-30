@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -9,6 +10,7 @@ import '../gen_l10n/app_localizations.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../services/ai_comment_service.dart';
 import 'dart:async';
+
 
 class ManualInputView extends StatefulWidget {
   final VoidCallback? onSaved;
@@ -49,6 +51,106 @@ class _ManualInputViewState extends State<ManualInputView> {
 
   String _loadingMessage = '';
   Timer? _loadingTimer;
+
+
+  String get _draftKey =>
+      'daily_draft_${DateFormat('yyyy-MM-dd').format(selectedDate)}';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDraft();
+  }
+
+  Future<void> _saveDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final draft = <String, dynamic>{
+      'stretchDuration': stretchDuration,
+      'walkingDuration': walkingDuration,
+      'sleepQuality': sleepQuality,
+      'sleepHours': sleepHours,
+      'sleepMinutes': sleepMinutes,
+      'fallingAsleepSatisfaction': fallingAsleepSatisfaction,
+      'deepSleepFeeling': deepSleepFeeling,
+      'wakeUpFeeling': wakeUpFeeling,
+      'motivation': motivation,
+      'threeAppreciations': threeAppreciations,
+      'appreciation1': appreciation1Controller.text,
+      'appreciation2': appreciation2Controller.text,
+      'appreciation3': appreciation3Controller.text,
+      'memo': memoController.text,
+    };
+
+    await prefs.setString(_draftKey, jsonEncode(draft));
+  }
+
+  Future<void> _loadDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_draftKey);
+
+    if (raw == null || raw.isEmpty) return;
+
+    try {
+      final draft = jsonDecode(raw) as Map<String, dynamic>;
+
+      if (!mounted) return;
+
+      setState(() {
+        stretchDuration = draft['stretchDuration'] ?? stretchDuration;
+        walkingDuration = draft['walkingDuration'] ?? walkingDuration;
+        sleepQuality =
+            (draft['sleepQuality'] as num?)?.toDouble() ?? sleepQuality;
+        sleepHours = draft['sleepHours'] ?? sleepHours;
+        sleepMinutes = draft['sleepMinutes'] ?? sleepMinutes;
+        fallingAsleepSatisfaction =
+            draft['fallingAsleepSatisfaction'] ?? fallingAsleepSatisfaction;
+        deepSleepFeeling = draft['deepSleepFeeling'] ?? deepSleepFeeling;
+        wakeUpFeeling = draft['wakeUpFeeling'] ?? wakeUpFeeling;
+        motivation = draft['motivation'] ?? motivation;
+        threeAppreciations =
+            draft['threeAppreciations'] ?? threeAppreciations;
+
+        appreciation1Controller.text = draft['appreciation1'] ?? '';
+        appreciation2Controller.text = draft['appreciation2'] ?? '';
+        appreciation3Controller.text = draft['appreciation3'] ?? '';
+        memoController.text = draft['memo'] ?? '';
+        memoCharCount = memoController.text.length;
+      });
+    } catch (e) {
+      debugPrint('[draft] load failed: $e');
+    }
+  }
+
+  Future<void> _clearDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_draftKey);
+  }
+
+  void _resetDraftFields() {
+    setState(() {
+      stretchDuration = 0;
+      walkingDuration = 0;
+      sleepQuality = 0.0;
+      sleepHours = 0;
+      sleepMinutes = 0;
+      fallingAsleepSatisfaction = 0;
+      deepSleepFeeling = 0;
+      wakeUpFeeling = 0;
+      motivation = 0;
+      threeAppreciations = 0;
+
+      appreciation1Controller.clear();
+      appreciation2Controller.clear();
+      appreciation3Controller.clear();
+      memoController.clear();
+      memoCharCount = 0;
+
+      isConfirmed = false;
+    });
+  }
+
+
 
   Future<File> get _localFile async {
     final dir = await getApplicationDocumentsDirectory();
@@ -287,9 +389,14 @@ class _ManualInputViewState extends State<ManualInputView> {
     // ⑤ 保存・画面遷移
     // ──────────────────────────────
     csvData.add(newRow);
-    final csvContent = const ListToCsvConverter(eol: '\n').convert(csvData);
+    final csvContent =
+    const ListToCsvConverter(eol: '\n').convert(csvData);
     await file.writeAsString(csvContent);
-    debugPrint('[DEBUG] CSVファイル保存完了: ${file.path}');
+
+// 正式保存に成功したので、この日の下書きを削除
+      await _clearDraft();
+
+      debugPrint('[DEBUG] CSVファイル保存完了: ${file.path}');
 
     String initialAiDailyText = '';
 
@@ -418,12 +525,19 @@ class _ManualInputViewState extends State<ManualInputView> {
       controller: controller,
       decoration: InputDecoration(labelText: label),
       textInputAction: TextInputAction.next,
+      onChanged: (_) {
+        _saveDraft();
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+
     final t = AppLocalizations.of(context)!;
+
+    final memoMaxLength =
+    Localizations.localeOf(context).languageCode == 'ja' ? 200 : 400;
 
     final dateStr = DateFormat('yyyy/MM/dd').format(selectedDate);
 
@@ -470,7 +584,17 @@ class _ManualInputViewState extends State<ManualInputView> {
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now(),
                     );
-                    if (picked != null) setState(() => selectedDate = picked);
+                    if (picked != null) {
+                      // 現在表示中の日付の入力途中データを念のため保存
+                      await _saveDraft();
+
+                      setState(() => selectedDate = picked);
+
+                      // 前の日の入力内容を画面から消してから、
+                      // 選択した日の下書きがあれば復元
+                      _resetDraftFields();
+                      await _loadDraft();
+                    }
                   },
                   // child: const Text("日付を選ぶ"),
                   child: Text(t.pickDate),
@@ -483,7 +607,10 @@ class _ManualInputViewState extends State<ManualInputView> {
               t.stretchYesterdayMinutes,
               stretchDuration,
               [0, 10, 20, 30],
-              (val) => setState(() => stretchDuration = val!),
+                  (val) {
+                setState(() => stretchDuration = val!);
+                _saveDraft();
+              },
             ),
 
             //buildDropdown("🚶 昨日のウォーキング（分）", walkingDuration, List.generate(10, (i) => i * 10), (val) => setState(() => walkingDuration = val!)),
@@ -491,7 +618,10 @@ class _ManualInputViewState extends State<ManualInputView> {
               t.walkingYesterdayMinutes,
               walkingDuration,
               List.generate(10, (i) => i * 10),
-              (val) => setState(() => walkingDuration = val!),
+                  (val) {
+                setState(() => walkingDuration = val!);
+                _saveDraft();
+              },
             ),
             // buildDropdown("😴 睡眠時間（時間）", sleepHours, List.generate(13, (i) => i), (val) => setState(() => sleepHours = val!)),
             // buildDropdown("😴 睡眠時間（分）", sleepMinutes, [0, 10, 20, 30, 40, 50], (val) => setState(() => sleepMinutes = val!)),
@@ -503,37 +633,59 @@ class _ManualInputViewState extends State<ManualInputView> {
               "😴 ${t.sleepHoursLabel}",
               sleepHours,
               List.generate(13, (i) => i),
-              (val) => setState(() => sleepHours = val!),
+                  (val) {
+                setState(() => sleepHours = val!);
+                _saveDraft();
+              },
             ),
             buildDropdown(
               "😴 ${t.sleepMinutesLabel}",
               sleepMinutes,
               [0, 10, 20, 30, 40, 50],
-              (val) => setState(() => sleepMinutes = val!),
+                  (val) {
+                setState(() => sleepMinutes = val!);
+                _saveDraft();
+              },
+
             ),
             buildDropdown(
               "😴 ${t.sleepFallingAsleepLabel}",
               fallingAsleepSatisfaction,
               List.generate(6, (i) => i),
-              (val) => setState(() => fallingAsleepSatisfaction = val!),
+                  (val) {
+                setState(() => fallingAsleepSatisfaction
+
+                = val!);
+                _saveDraft();
+              },
             ),
             buildDropdown(
               "😴 ${t.sleepDeepLabel}",
               deepSleepFeeling,
               List.generate(6, (i) => i),
-              (val) => setState(() => deepSleepFeeling = val!),
+                  (val) {
+                setState(() => deepSleepFeeling = val!);
+                _saveDraft();
+              },
             ),
             buildDropdown(
               "😴 ${t.sleepWakeupLabel}",
               wakeUpFeeling,
               List.generate(6, (i) => i),
-              (val) => setState(() => wakeUpFeeling = val!),
+                  (val) {
+                setState(() => wakeUpFeeling = val!);
+                _saveDraft();
+              },
             ),
             buildDropdown(
               "😄 ${t.motivationLabel}",
               motivation,
               List.generate(6, (i) => i),
-              (val) => setState(() => motivation = val!),
+                  (val) {
+                setState(() => motivation = val!);
+                _saveDraft();
+              },
+
             ),
 
             const Divider(),
@@ -555,9 +707,12 @@ class _ManualInputViewState extends State<ManualInputView> {
             ),
             TextField(
               controller: memoController,
-              maxLength: 200,
+              maxLength: memoMaxLength,
               maxLines: 3,
-              onChanged: (text) => setState(() => memoCharCount = text.length),
+              onChanged: (text) {
+                setState(() => memoCharCount = text.length);
+                _saveDraft();
+              },
               // decoration: const InputDecoration(
               //   hintText: '例：昨日より少し元気が出た気がします🌱',
               //   border: OutlineInputBorder(),
@@ -570,7 +725,9 @@ class _ManualInputViewState extends State<ManualInputView> {
               alignment: Alignment.centerRight,
               child: Text(
                 //  '$memoCharCount / 200文字',
-                t.memoCharCount(memoCharCount),
+                Localizations.localeOf(context).languageCode == 'ja'
+                    ? '$memoCharCount / $memoMaxLength文字'
+                    : '$memoCharCount/$memoMaxLength',
 
                 style: TextStyle(fontSize: 12),
               ),
