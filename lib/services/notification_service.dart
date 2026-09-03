@@ -174,8 +174,16 @@ class NotificationService {
       return;
     }
 
-    _pendingAction = null;
-    _goByPayload(action.payload ?? const {});
+    final navigationAccepted = _goByPayload(
+      action.payload ?? const {},
+      sourceAction: action,
+    );
+    if (navigationAccepted) {
+      _pendingAction = null;
+    } else {
+      // Navigator がまだ準備できていなければ、次回処理できるよう保持する。
+      _pendingAction = action;
+    }
   }
 
   // ====================== Listeners ======================
@@ -198,7 +206,14 @@ class NotificationService {
       _pendingAction = action;
       return;
     }
-    _goByPayload(action.payload ?? const {});
+    final navigationAccepted = _goByPayload(
+      action.payload ?? const {},
+      sourceAction: action,
+    );
+    if (!navigationAccepted) {
+      print('[notif] nav became unavailable, pending action saved');
+      _pendingAction = action;
+    }
   }
 
   @pragma('vm:entry-point')
@@ -259,16 +274,19 @@ class NotificationService {
 
 
 
-  static void _goByPayload(Map<String, String?> payload) {
+  static bool _goByPayload(
+    Map<String, String?> payload, {
+    ReceivedAction? sourceAction,
+  }) {
     print('[notif] _goByPayload payload=$payload');
 
     final nav = _navKey?.currentState;
-    if (nav == null) return;
+    if (nav == null) return false;
 
     // ★ 0) payloadが空なら「履歴」ではなく「ホーム」に倒す（事故防止）
     if (payload.isEmpty) {
       nav.pushNamedAndRemoveUntil('/', (r) => false);
-      return;
+      return true;
     }
 
     // ★ 1) 新形式：navigate/target/tab を優先処理（朝/夕がこれ）
@@ -277,7 +295,7 @@ class NotificationService {
       switch (navigate) {
         case 'home':
           nav.pushNamedAndRemoveUntil('/', (r) => false);
-          return;
+          return true;
 
         case 'history':
           final tab = (payload['tab'] ?? 'daily').toLowerCase().trim();
@@ -291,6 +309,7 @@ class NotificationService {
             final currentNav = _navKey?.currentState;
             if (currentNav == null) {
               print('[notif] navigation failed: nav is null after frame');
+              if (sourceAction != null) _pendingAction = sourceAction;
               return;
             }
 
@@ -300,8 +319,9 @@ class NotificationService {
               ),
             );
           });
+          WidgetsBinding.instance.ensureVisualUpdate();
 
-          return;
+          return true;
 
         // case 'history':
         //   final tab = (payload['tab'] ?? 'daily').toLowerCase().trim();
@@ -316,7 +336,7 @@ class NotificationService {
         default:
         // 不明ならホームへ
           nav.pushNamedAndRemoveUntil('/', (r) => false);
-          return;
+          return true;
       }
     }
 
@@ -327,7 +347,7 @@ class NotificationService {
     // route が無いならホーム
     if (route.isEmpty) {
       nav.pushNamedAndRemoveUntil('/', (r) => false);
-      return;
+      return true;
     }
 
     if (route == '/history') {
@@ -341,6 +361,7 @@ class NotificationService {
         final currentNav = _navKey?.currentState;
         if (currentNav == null) {
           print('[notif] navigation failed: nav is null after frame');
+          if (sourceAction != null) _pendingAction = sourceAction;
           return;
         }
 
@@ -350,11 +371,13 @@ class NotificationService {
           ),
         );
       });
+      WidgetsBinding.instance.ensureVisualUpdate();
 
-      return;
+      return true;
     }
 
     nav.pushNamed(route, arguments: {'initialTab': tab});
+    return true;
   }
 
 

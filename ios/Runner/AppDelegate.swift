@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import UserNotifications
 import awesome_notifications
 
 @main
@@ -17,5 +18,14 @@ import awesome_notifications
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    // Compatibility shim for awesome_notifications 0.10.1 under UIScene.
+    // Re-evaluate and remove this when upgrading the plugin.
+    if UNUserNotificationCenter.current().delegate == nil {
+      NotificationCenter.default.post(
+        name: UIApplication.didFinishLaunchingNotification,
+        object: UIApplication.shared
+      )
+    }
   }
 }
