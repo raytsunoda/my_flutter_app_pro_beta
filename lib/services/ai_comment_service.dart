@@ -166,6 +166,8 @@ DateTime _monthlyVisibleCutoff(DateTime now) =>
 
 
 class AiCommentService {
+  static final Map<String, Future<Map<String, String>>>
+      _monthlyEnsureInFlight = {};
 
   // --- ADD: 英語用の感謝追記（保険） ---
   static String _ensureGratitudeMentionEn(String text, List<String> candidates) {
@@ -724,10 +726,34 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
 // 月次（end=月末）
 // 月次：monthEndDay は「保存したい月の月末日」（例: 先月末）を渡す
 // 期間内に実データなし → comment=""（＝UI側で「表示なし」）
-  static Future<Map<String, String>> ensureMonthlySaved(DateTime monthEndDay) async {
+  static Future<Map<String, String>> ensureMonthlySaved(DateTime monthEndDay) {
     final end   = DateTime(monthEndDay.year, monthEndDay.month, monthEndDay.day);
-    final start = DateTime(end.year, end.month, 1);
     final key   = DateFormat('yyyy/MM/dd').format(end);
+
+    final inFlight = _monthlyEnsureInFlight[key];
+    if (inFlight != null) return inFlight;
+
+    final future = _ensureMonthlySavedOnce(end, key);
+    _monthlyEnsureInFlight[key] = future;
+    return future;
+  }
+
+  static Future<Map<String, String>> _ensureMonthlySavedOnce(
+    DateTime end,
+    String key,
+  ) async {
+    try {
+      return await _ensureMonthlySavedUnlocked(end, key);
+    } finally {
+      _monthlyEnsureInFlight.remove(key);
+    }
+  }
+
+  static Future<Map<String, String>> _ensureMonthlySavedUnlocked(
+    DateTime end,
+    String key,
+  ) async {
+    final start = DateTime(end.year, end.month, 1);
 
     // ① 保存済みがあれば最優先で返す
     final saved = await getSavedComment(date: key, type: 'monthly');
@@ -754,11 +780,17 @@ static const _csvName = 'HappinessLevelDB1_v2.csv';
     ))
         .trim();
 
-    if (text.isNotEmpty) {
-      // ★ここで永続化（関数名はプロジェクトの実体に合わせてください）
-      await saveComment(date: key, type: 'monthly', text: text);
-
+    if (text.isEmpty || _isTransientAiErrorMessage(text)) {
+      return {'date': key, 'type': 'monthly', 'comment': ''};
     }
+
+    // API待機中に別経路が保存していないか、永続化直前に再確認する。
+    final savedBeforeWrite = await getSavedComment(date: key, type: 'monthly');
+    if (savedBeforeWrite != null && savedBeforeWrite.trim().isNotEmpty) {
+      return {'date': key, 'type': 'monthly', 'comment': savedBeforeWrite};
+    }
+
+    await saveComment(date: key, type: 'monthly', text: text);
 
     return {'date': key, 'type': 'monthly', 'comment': text};
   }

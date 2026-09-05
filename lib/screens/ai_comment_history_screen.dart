@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/ai_comment_service.dart';
 import 'package:my_flutter_app_pro/ui/common_error_dialog.dart';
 import 'package:my_flutter_app_pro/l10n/strings.dart';
+import '../services/purchase_service.dart';
 
 class AiCommentHistoryScreen extends StatefulWidget {
   final int initialTab;
@@ -22,12 +23,51 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
 
   bool _isLoading = false;
   bool _routeApplied = false; // pushNamed の arguments を一度だけ適用
+  bool _monthlyEnsureRequestedForVisit = false;
 
   @override
   void initState() {
     super.initState();
     _tab = TabController(length: 3, vsync: this, initialIndex: widget.initialTab);
+    _tab.addListener(_onTabChanged);
     _reloadAllFromLog(); // ← 初期表示時に必ず最新を取得
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ensureMonthlyForVisibleTab();
+    });
+  }
+
+  void _onTabChanged() {
+    if (_tab.index != 2) {
+      _monthlyEnsureRequestedForVisit = false;
+      return;
+    }
+    if (!_tab.indexIsChanging) {
+      _ensureMonthlyForVisibleTab();
+    }
+  }
+
+  Future<void> _ensureMonthlyForVisibleTab() async {
+    if (!mounted || _tab.index != 2 || _monthlyEnsureRequestedForVisit) {
+      return;
+    }
+    if (!PurchaseService.I.isProEffective) return;
+
+    _monthlyEnsureRequestedForVisit = true;
+    final now = DateTime.now();
+    final previousMonthEnd = DateTime(now.year, now.month, 0);
+
+    try {
+      final result =
+          await AiCommentService.ensureMonthlySaved(previousMonthEnd);
+      if (!mounted || (result['comment'] ?? '').trim().isEmpty) return;
+
+      final monthly = await AiCommentService.loadMonthlyHistoryStrict();
+      if (!mounted) return;
+      setState(() => _monthly = monthly);
+    } catch (e, st) {
+      debugPrint('ensureMonthlySaved on monthly tab failed: $e');
+      debugPrintStack(stackTrace: st);
+    }
   }
 
   /// pushNamed の arguments（int / String / Map）からタブIndexを解釈
@@ -66,6 +106,7 @@ class _AiCommentHistoryScreenState extends State<AiCommentHistoryScreen>
 
   @override
   void dispose() {
+    _tab.removeListener(_onTabChanged);
     _tab.dispose();
     super.dispose();
   }

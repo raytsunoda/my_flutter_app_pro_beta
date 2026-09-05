@@ -15,6 +15,7 @@ import 'package:my_flutter_app_pro/screens/data_migration_screen.dart'; // è¿½åŠ
 import 'package:my_flutter_app_pro/config/purchase_config.dart';
 
 import 'services/purchase_service.dart';
+import 'services/ai_comment_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'gen_l10n/app_localizations.dart';
@@ -139,6 +140,23 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       _didPostFrameInit = true;
 
       print('[boot] MyApp postFrame init start');
+
+      if (PurchaseService.I.isProEffective) {
+        final now = DateTime.now();
+        final previousMonthEnd = DateTime(now.year, now.month, 0);
+        unawaited(
+          AiCommentService.ensureMonthlySaved(previousMonthEnd).then((result) {
+            final saved = (result['comment'] ?? '').trim().isNotEmpty;
+            debugPrint(
+              '[boot] previous monthly ensure '
+              'date=${result['date']} saved=$saved',
+            );
+          }).catchError((Object error, StackTrace stackTrace) {
+            debugPrint('[boot] previous monthly ensure failed: $error');
+            debugPrintStack(stackTrace: stackTrace);
+          }),
+        );
+      }
 
       await NotificationService.handleInitialAction();
 
