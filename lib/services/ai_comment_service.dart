@@ -1088,6 +1088,7 @@ final prompt = (effectiveLang == 'en') ? promptEn : promptJa;
     try {
       final payload = {
         'kind': 'daily',
+        'aiPolicyVersion': 2,
         'date': ymdLabel,
         'callName': callName,
         'name': callName,
